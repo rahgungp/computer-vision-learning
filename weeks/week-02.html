@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Materi 02 · Digital Image &amp; Image Formation — COM Computer Vision</title>
+<meta name="description" content="Materi 02: citra sebagai fungsi f(x,y), koordinat spasial, pixel, intensitas, grayscale dan RGB, kanal warna, resolusi spasial dan intensitas, sensor, serta pipeline akuisisi citra.">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="week" data-week="02">
+
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <span>Materi 02</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">Materi 02</span>
+        <h1 class="page-title" data-week-title>Digital Image &amp; Image Formation</h1>
+        <p class="page-sub" data-week-subtitle>Citra sebagai fungsi f(x,y), pixel, resolusi, kanal warna, dan rantai akuisisi</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ <span data-week-duration>100 menit</span></span>
+          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 1</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menuliskan citra sebagai fungsi <code>f(x, y)</code> dan menjelaskan makna setiap simbolnya;</li>
+          <li>menjelaskan hubungan antara pixel, intensitas, dan sistem koordinat citra;</li>
+          <li>membedakan grayscale dan RGB serta menjelaskan konsep kanal warna;</li>
+          <li>membedakan resolusi spasial dan resolusi intensitas beserta pengaruh masing-masing;</li>
+          <li>menguraikan rantai akuisisi citra dari sumber cahaya hingga matriks digital, termasuk sampling dan kuantisasi.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Hampir semua kesalahan pemula di Computer Vision berakar pada satu hal: tidak benar-benar memahami
+        apa yang sedang diproses.
+      </p>
+      <p>
+        Model memberi hasil aneh karena citra dibaca sebagai BGR padahal diasumsikan RGB. Akurasi anjlok karena
+        citra di-resize dengan cara yang merusak rasio aspek. Kode gagal karena satu berkas ternyata memiliki
+        empat kanal, bukan tiga. Semua persoalan ini bukan persoalan model, melainkan persoalan pemahaman tentang
+        struktur citra.
+      </p>
+      <p>
+        Materi ini adalah fondasi paling teknis di paruh awal perkuliahan. Setelah memahaminya, konvolusi pada
+        Materi 05 akan terasa wajar, karena Anda sudah terbiasa memandang citra sebagai matriks angka yang dapat
+        dioperasikan.
+      </p>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-01.html">Materi 01</a> — memahami bahwa komputer hanya menerima angka, bukan makna.</li>
+        <li>Operasi dasar matriks: indeks baris dan kolom, ukuran matriks.</li>
+        <li>Sistem bilangan biner secukupnya untuk memahami kedalaman bit (8 bit = 256 tingkat).</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Concept First — dibangun berlapis</p>
+        <p style="margin-bottom:0">
+          representasi visual → fungsi → koordinat spasial → intensitas → pixel → citra digital → resolusi → kanal warna.
+          Baru setelah itu Python dan OpenCV. Ikuti urutannya; setiap lapis menjelaskan lapis berikutnya.
+        </p>
+      </div>
+
+      <h3>1 — Citra adalah representasi visual</h3>
+      <p>
+        Citra adalah representasi visual dari objek, pemandangan, orang, bahkan konsep. Foto, lukisan, gambar
+        teknik, hasil pemindaian, semuanya adalah citra. Definisi ini sengaja longgar agar mencakup berbagai cara
+        memperoleh data visual.
+      </p>
+
+      <h3>2 — Citra juga sebuah fungsi</h3>
+      <p>
+        Di sinilah letak kejutannya. Sebuah citra adalah fungsi berdimensi-n. Untuk citra dua dimensi
+        (<code>n = 2</code>) kita tuliskan:
+      </p>
+      <pre><code>f(x, y)</code></pre>
+
+      <h3>3 — x dan y adalah koordinat spasial</h3>
+      <p>
+        Koordinat spasial adalah sistem untuk menyatakan posisi dalam ruang; yang paling umum adalah sistem
+        Kartesius dua dimensi. Jadi <code>x</code> dan <code>y</code> sekadar menunjuk "di posisi mana".
+      </p>
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Titik asal citra berada di kiri atas</p>
+        <p style="margin-bottom:0">
+          Berbeda dari grafik matematika, sumbu vertikal citra digital menghitung ke bawah. Pixel
+          <code>(0, 0)</code> berada di sudut kiri atas. Pada NumPy, urutan indeksnya pun terbalik dari intuisi
+          banyak orang: <code>img[baris, kolom]</code>, yaitu <code>img[y, x]</code>.
+        </p>
+      </div>
+
+      <h3>4 — f(x, y) adalah intensitas</h3>
+      <p>
+        Nilai fungsi pada sepasang koordinat adalah intensitas atau tingkat keabuan pada titik tersebut.
+        Intensitas inilah yang memberi persepsi terang dan gelap. Nilainya tidak negatif dan terbatas —
+        pada citra 8 bit, rentangnya 0 sampai 255.
+      </p>
+
+      <h3>5 — Pixel</h3>
+      <p>
+        Ketika kita berbicara tentang satu pasangan koordinat beserta nilainya, kita menyebutnya
+        <strong>pixel</strong> — singkatan dari <em>picture element</em>. Pada citra volumetrik tiga dimensi,
+        fungsinya menjadi <code>f(x, y, z)</code> dan elemennya disebut <strong>voxel</strong>
+        (<em>volume element</em>), seperti pada pemindaian MRI atau CT.
+      </p>
+
+      <h3>6 — Dari kontinu ke diskret</h3>
+      <p>
+        Dunia nyata bersifat kontinu, sedangkan citra digital bersifat diskret. Perubahan dari yang satu ke yang
+        lain itulah yang disebut digitalisasi, dan itu dibahas pada bagian fondasi teknis di bawah.
+      </p>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Apa yang membentuk f(x, y)</h3>
+      <p>
+        Nilai pada setiap titik ditentukan oleh dua komponen: jumlah cahaya yang datang dari sumber iluminasi,
+        dan jumlah cahaya yang dipantulkan oleh objek di dalam scene. Secara ringkas:
+      </p>
+      <pre><code>f(x, y) = i(x, y) · r(x, y)
+
+i(x, y) = iluminasi — cahaya yang datang dari sumber
+r(x, y) = reflektansi — proporsi cahaya yang dipantulkan objek</code></pre>
+      <p>
+        Pada pencitraan berbasis transmisi seperti sinar-X, reflektansi digantikan oleh transmisivitas: berapa
+        banyak energi yang berhasil menembus objek. Konsekuensi praktis dari persamaan ini sangat penting: citra
+        yang gelap belum tentu berisi objek yang gelap. Bisa jadi objeknya terang tetapi iluminasinya rendah.
+        Inilah alasan pengendalian pencahayaan menjadi langkah pertama dalam setiap sistem inspeksi visual industri.
+      </p>
+
+      <h3>Grayscale, RGB, dan kanal</h3>
+      <p>
+        Pada citra grayscale, setiap pixel memiliki satu nilai. Pada citra berwarna, setiap pixel memiliki
+        beberapa nilai — satu untuk setiap komponen warna. Komponen inilah yang disebut <strong>kanal</strong>.
+        Model RGB memiliki tiga kanal: merah, hijau, dan biru. Pada kanal merah, nilai tinggi berarti komponen
+        merah yang kuat, nilai rendah berarti hampir tidak ada merah.
+      </p>
+      <p>
+        Dengan kedalaman 8 bit per kanal, citra RGB memiliki kedalaman total 24 bit, yang menghasilkan lebih dari
+        16 juta kemungkinan warna. Model warna lain dipakai untuk keperluan berbeda: CMY dan CMYK untuk pencetakan,
+        HSV ketika kita ingin memisahkan informasi warna dari kecerahan — sangat berguna untuk deteksi objek
+        berdasarkan warna pada kondisi pencahayaan yang berubah-ubah.
+      </p>
+
+      <h3>Citra berlabel dan mask</h3>
+      <p>
+        Ada jenis citra khusus yang nilainya bukan intensitas, melainkan <em>label</em>. Contoh paling sederhana
+        adalah pemisahan latar depan dan latar belakang: latar depan diberi nilai 1, latar belakang 0. Citra
+        semacam ini disebut citra berlabel, dan ketika hanya ada dua label kita menyebutnya citra biner atau
+        <strong>mask</strong>. Konsep ini akan kembali muncul pada segmentasi.
+      </p>
+
+      <h3>Bagaimana citra disimpan di komputer</h3>
+      <p>
+        Paling umum sebagai matriks. Citra grayscale berukuran 480×640 adalah matriks 480 baris dan 640 kolom.
+        Citra RGB dengan ukuran sama adalah array tiga dimensi berbentuk (480, 640, 3). Alternatifnya, citra juga
+        dapat direpresentasikan sebagai graf, dengan setiap node sebagai koordinat dan setiap edge menghubungkan
+        koordinat bertetangga — yang berarti algoritma graf pun dapat diterapkan pada citra.
+      </p>
+
+      <h3>Citra dan video</h3>
+      <p>
+        Video adalah citra dengan komponen waktu: <code>F(X, Y, T)</code>. Citra adalah representasi statis pada
+        satu titik waktu, sedangkan video adalah barisan citra yang ditampilkan pada laju tertentu sehingga
+        menimbulkan ilusi gerak. Laju itulah yang kita sebut frame per second. Konsekuensinya dibahas di Materi 12.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 230" role="img" aria-label="Diagram pipeline akuisisi citra: dunia nyata, cahaya, lensa, sensor, digitisasi melalui sampling dan kuantisasi, menghasilkan citra digital berupa matriks angka">
+            <defs>
+              <marker id="arB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .b  { fill: var(--dg-fill);   stroke: var(--dg-stroke);   stroke-width: 1.6; }
+              .b2 { fill: var(--dg-fill-2); stroke: var(--dg-accent);   stroke-width: 1.6; }
+              .b3 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .h  { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .s  { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .74; }
+              .a  { stroke: var(--dg-stroke); stroke-width: 1.7; fill: none; marker-end: url(#arB); }
+            </style>
+
+            <!-- scene -->
+            <rect class="b" x="14" y="52" width="96" height="70" rx="7"/>
+            <circle cx="46" cy="86" r="14" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.3"/>
+            <path d="M68 104 l16 -22 l16 22 z" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1.3"/>
+            <text x="62" y="140" class="h" text-anchor="middle">Dunia Nyata</text>
+            <text x="62" y="155" class="s" text-anchor="middle">scene</text>
+
+            <!-- light -->
+            <g>
+              <path d="M118 74 l28 12 M118 86 l28 0 M118 98 l28 -12" stroke="var(--dg-accent-2)" stroke-width="1.6"/>
+              <text x="132" y="36" class="h" text-anchor="middle">Cahaya</text>
+              <text x="132" y="50" class="s" text-anchor="middle">i · r</text>
+            </g>
+
+            <!-- lens -->
+            <g>
+              <path d="M172 54 q22 32 0 64 q-22 -32 0 -64z" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.6"/>
+              <text x="172" y="140" class="h" text-anchor="middle">Lensa</text>
+              <text x="172" y="155" class="s" text-anchor="middle">pemfokusan</text>
+            </g>
+            <path class="a" d="M196 86h22"/>
+
+            <!-- sensor -->
+            <g>
+              <rect class="b2" x="224" y="52" width="96" height="70" rx="7"/>
+              <g stroke="var(--dg-accent)" stroke-width=".9" opacity=".75">
+                <path d="M248 52v70M272 52v70M296 52v70M224 76h96M224 100h96"/>
+              </g>
+              <text x="272" y="140" class="h" text-anchor="middle">Sensor</text>
+              <text x="272" y="155" class="s" text-anchor="middle">CCD / CMOS</text>
+            </g>
+            <path class="a" d="M322 86h22"/>
+
+            <!-- digitization -->
+            <g>
+              <rect class="b3" x="350" y="40" width="152" height="94" rx="7"/>
+              <text x="426" y="66" class="h" text-anchor="middle">Digitisasi</text>
+              <text x="426" y="86" class="s" text-anchor="middle">sampling → koordinat</text>
+              <text x="426" y="102" class="s" text-anchor="middle">kuantisasi → amplitudo</text>
+              <text x="426" y="122" class="s" text-anchor="middle">ADC</text>
+              <text x="426" y="155" class="h" text-anchor="middle">Konversi ke diskret</text>
+            </g>
+            <path class="a" d="M504 86h22"/>
+
+            <!-- digital image -->
+            <g>
+              <rect class="b" x="532" y="46" width="118" height="82" rx="7"/>
+              <g font-family="monospace" font-size="10.5" fill="var(--dg-text)">
+                <text x="546" y="66">12  40  88</text>
+                <text x="546" y="86">33  91 140</text>
+                <text x="546" y="106">70 155 210</text>
+              </g>
+              <text x="591" y="140" class="h" text-anchor="middle">Citra Digital</text>
+              <text x="591" y="155" class="s" text-anchor="middle">matriks f(x, y)</text>
+            </g>
+            <path class="a" d="M652 86h20"/>
+
+            <!-- model -->
+            <g>
+              <rect class="b2" x="678" y="56" width="70" height="60" rx="7"/>
+              <text x="713" y="82" class="h" text-anchor="middle">Proses</text>
+              <text x="713" y="98" class="s" text-anchor="middle">Materi 03+</text>
+            </g>
+
+            <text x="380" y="198" class="s" text-anchor="middle">
+              Setiap tahap dapat menurunkan kualitas informasi. Kualitas citra ditentukan sejak sebelum satu baris kode ditulis.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 2.1.</b> Pipeline akuisisi citra digital, dari dunia nyata hingga matriks angka.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Hugging Face Community Computer Vision Course, Unit 1 — Imaging.</span>
+        </figcaption>
+      </figure>
+
+      <h3>Teknologi sensor</h3>
+      <p>Tiga konfigurasi sensor yang umum dipakai:</p>
+      <dl class="defs">
+        <dt>Elemen sensor tunggal</dt>
+        <dd>Satu fotodioda digerakkan sepanjang sumbu x dan y untuk membentuk citra dua dimensi. Lambat, tetapi sangat presisi.</dd>
+        <dt>Sensor strip</dt>
+        <dd>Deretan elemen sensor yang menangkap satu garis sekaligus, lalu digerakkan tegak lurus untuk membentuk citra utuh. Dipakai pada pemindai flatbed dan pencitraan dari udara. Versi melingkarnya dipakai pada CT scan, yang memerlukan algoritma rekonstruksi untuk mengubah data proyeksi menjadi citra.</dd>
+        <dt>Sensor array</dt>
+        <dd>Susunan dua dimensi elemen sensor seperti CCD pada kamera digital. Menangkap keseluruhan citra sekaligus tanpa perlu gerakan mekanis — karena itulah yang paling umum dipakai.</dd>
+      </dl>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Sampling dan kuantisasi</h3>
+      <p>Digitalisasi terdiri atas dua proses yang berbeda dan sering tertukar:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Proses</th><th>Yang didiskretkan</th><th>Menentukan</th><th>Efek bila terlalu kasar</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Sampling</strong></td>
+              <td>Koordinat (sumbu x dan y)</td>
+              <td>Resolusi spasial — jumlah pixel</td>
+              <td>Citra tampak berkotak, detail halus hilang</td>
+            </tr>
+            <tr>
+              <td><strong>Kuantisasi</strong></td>
+              <td>Amplitudo (nilai intensitas)</td>
+              <td>Resolusi intensitas — jumlah tingkat keabuan</td>
+              <td>Gradasi halus berubah menjadi pita-pita warna</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Resolusi spasial dan resolusi intensitas</h3>
+      <p>
+        <strong>Resolusi spasial</strong> adalah detail terkecil yang masih dapat dibedakan pada citra, umumnya
+        diukur dalam pasangan garis per satuan jarak atau pixel per satuan jarak. Maknanya bergantung konteks —
+        kamera 20 megapixel umumnya memberi detail lebih baik daripada kamera 8 megapixel pada jarak yang sama.
+      </p>
+      <p>
+        <strong>Resolusi intensitas</strong> adalah perubahan intensitas terkecil yang masih dapat dideteksi,
+        dan biasanya dibatasi kemampuan perangkat keras. Nilainya dikuantisasi dalam kelipatan biner: 8 bit
+        berarti 256 tingkat. Persepsi kita terhadap perubahan ini dipengaruhi derau, saturasi, dan keterbatasan
+        penglihatan manusia itu sendiri.
+      </p>
+      <p>Hubungannya dengan ukuran berkas dapat dihitung langsung:</p>
+      <pre><code>ukuran (bit) = tinggi × lebar × jumlah_kanal × kedalaman_bit
+
+Contoh — citra RGB 1920 × 1080, 8 bit per kanal:
+  1920 × 1080 × 3 × 8 = 49.766.400 bit
+                      = 6.220.800 byte
+                      ≈ 5,93 MB  (tanpa kompresi)</code></pre>
+      <p>
+        Berkas JPEG dari kamera jauh lebih kecil karena dikompresi. Kompresi bekerja dengan membuang
+        <em>redundansi</em>: redundansi pengkodean (nilai yang sering muncul tidak diberi kode lebih pendek),
+        redundansi spasial dan temporal (nilai pixel bertetangga saling berkorelasi), serta informasi yang tidak
+        relevan bagi sistem penglihatan manusia. Membuang informasi tak relevan berarti melakukan kuantisasi,
+        dan kuantisasi tidak dapat dikembalikan — di sinilah letak perbedaan kompresi <em>lossy</em> dan
+        <em>lossless</em>.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 280" role="img" aria-label="Diagram citra sebagai fungsi: grid pixel dengan nilai intensitas, pembesaran satu pixel, dan sumbu koordinat dengan titik asal di kiri atas">
+            <style>
+              .cell { stroke: var(--dg-grid); stroke-width: 1; }
+              .val  { font: 10.5px monospace; fill: var(--dg-text); }
+              .ax   { stroke: var(--dg-accent); stroke-width: 1.8; fill: none; }
+              .lb   { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .sm   { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <!-- axes -->
+            <path class="ax" d="M52 34 h190" marker-end="url(#arC)"/>
+            <path class="ax" d="M52 34 v170" marker-end="url(#arC)"/>
+            <defs>
+              <marker id="arC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-accent)"/>
+              </marker>
+            </defs>
+            <text x="250" y="38" class="lb" style="fill:var(--dg-accent);">x (kolom)</text>
+            <text x="30" y="214" class="lb" style="fill:var(--dg-accent);">y</text>
+            <text x="30" y="28" class="sm">(0,0)</text>
+
+            <!-- pixel grid with values -->
+            <g transform="translate(56,38)">
+              <g>
+                <rect class="cell" x="0"  y="0"  width="42" height="34" fill="#1a1a1a" opacity=".82"/>
+                <rect class="cell" x="42" y="0"  width="42" height="34" fill="#4d4d4d" opacity=".82"/>
+                <rect class="cell" x="84" y="0"  width="42" height="34" fill="#8c8c8c" opacity=".82"/>
+                <rect class="cell" x="126" y="0" width="42" height="34" fill="#d4d4d4" opacity=".82"/>
+
+                <rect class="cell" x="0"  y="34" width="42" height="34" fill="#3a3a3a" opacity=".82"/>
+                <rect class="cell" x="42" y="34" width="42" height="34" fill="#707070" opacity=".82"/>
+                <rect class="cell" x="84" y="34" width="42" height="34" fill="#b0b0b0" opacity=".82"/>
+                <rect class="cell" x="126" y="34" width="42" height="34" fill="#efefef" opacity=".82"/>
+
+                <rect class="cell" x="0"  y="68" width="42" height="34" fill="#5c5c5c" opacity=".82"/>
+                <rect class="cell" x="42" y="68" width="42" height="34" fill="#949494" opacity=".82"/>
+                <rect class="cell" x="84" y="68" width="42" height="34" fill="#c8c8c8" opacity=".82"/>
+                <rect class="cell" x="126" y="68" width="42" height="34" fill="#ffffff" opacity=".82"/>
+
+                <rect class="cell" x="0"  y="102" width="42" height="34" fill="#262626" opacity=".82"/>
+                <rect class="cell" x="42" y="102" width="42" height="34" fill="#616161" opacity=".82"/>
+                <rect class="cell" x="84" y="102" width="42" height="34" fill="#a2a2a2" opacity=".82"/>
+                <rect class="cell" x="126" y="102" width="42" height="34" fill="#dedede" opacity=".82"/>
+              </g>
+              <g class="val" text-anchor="middle" style="fill:var(--dg-text);">
+                <text x="21"  y="21"  fill="#fff">26</text>
+                <text x="63"  y="21"  fill="#fff">77</text>
+                <text x="105" y="21">140</text>
+                <text x="147" y="21" fill="#111">212</text>
+
+                <text x="21"  y="55" fill="#fff">58</text>
+                <text x="63"  y="55" fill="#fff">112</text>
+                <text x="105" y="55" fill="#111">176</text>
+                <text x="147" y="55" fill="#111">239</text>
+
+                <text x="21"  y="89" fill="#fff">92</text>
+                <text x="63"  y="89" fill="#111">148</text>
+                <text x="105" y="89" fill="#111">200</text>
+                <text x="147" y="89" fill="#111">255</text>
+
+                <text x="21"  y="123" fill="#fff">38</text>
+                <text x="63"  y="123" fill="#fff">97</text>
+                <text x="105" y="123" fill="#111">162</text>
+                <text x="147" y="123" fill="#111">222</text>
+              </g>
+              <rect x="42" y="34" width="42" height="34" fill="none" stroke="var(--dg-accent-2)" stroke-width="2.5"/>
+            </g>
+
+            <!-- zoom -->
+            <path d="M148 110 L400 96" stroke="var(--dg-accent-2)" stroke-width="1.2" stroke-dasharray="4 4" fill="none"/>
+            <path d="M148 132 L400 196" stroke="var(--dg-accent-2)" stroke-width="1.2" stroke-dasharray="4 4" fill="none"/>
+
+            <g transform="translate(400,96)">
+              <rect x="0" y="0" width="100" height="100" fill="#707070" stroke="var(--dg-accent-2)" stroke-width="2.5"/>
+              <text x="50" y="56" text-anchor="middle" font-family="monospace" font-size="24" fill="#fff">112</text>
+            </g>
+            <text x="450" y="216" class="lb" text-anchor="middle">satu pixel</text>
+
+            <g transform="translate(534,96)">
+              <text x="0" y="6" class="lb">f(1, 1) = 112</text>
+              <text x="0" y="30" class="sm">x = 1 → kolom kedua</text>
+              <text x="0" y="48" class="sm">y = 1 → baris kedua</text>
+              <text x="0" y="66" class="sm">112 → intensitas (0–255)</text>
+              <text x="0" y="92" class="sm" style="font-family:monospace;">NumPy: img[1, 1]</text>
+              <text x="0" y="110" class="sm" style="font-family:monospace;">yaitu img[y, x]</text>
+            </g>
+
+            <text x="370" y="262" class="sm" text-anchor="middle">
+              Citra yang kita lihat sebagai gambar, bagi komputer adalah tabel bilangan bulat ini.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 2.2.</b> Citra sebagai fungsi <code>f(x, y)</code>: grid pixel beserta nilai intensitasnya dan pembesaran satu pixel.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 1 — Image.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 250" role="img" aria-label="Perbandingan sampling dan kuantisasi: sinyal kontinu dicuplik pada interval tertentu lalu nilainya dibulatkan ke tingkat diskret">
+            <style>
+              .sig { fill: none; stroke: var(--dg-accent); stroke-width: 2; }
+              .gl  { stroke: var(--dg-grid); stroke-width: 1; }
+              .pt  { fill: var(--dg-accent-2); }
+              .hh  { font: 700 12px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .ss  { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .74; }
+            </style>
+
+            <!-- sampling -->
+            <text x="20" y="28" class="hh">SAMPLING — mendiskretkan koordinat</text>
+            <g transform="translate(20,40)">
+              <rect x="0" y="0" width="320" height="130" fill="var(--dg-fill)" stroke="var(--dg-stroke)" stroke-width="1.4" rx="6"/>
+              <g class="gl">
+                <path d="M40 0v130M80 0v130M120 0v130M160 0v130M200 0v130M240 0v130M280 0v130"/>
+              </g>
+              <path class="sig" d="M4 100 C 40 20, 70 120, 110 56 S 180 24, 220 86 S 290 46, 316 76"/>
+              <g class="pt">
+                <circle cx="40" cy="67" r="4"/>
+                <circle cx="80" cy="79" r="4"/>
+                <circle cx="120" cy="42" r="4"/>
+                <circle cx="160" cy="22" r="4"/>
+                <circle cx="200" cy="57" r="4"/>
+                <circle cx="240" cy="105" r="4"/>
+                <circle cx="280" cy="87" r="4"/>
+              </g>
+              <text x="160" y="150" class="ss" text-anchor="middle">nilai diambil hanya pada posisi tertentu → jumlah pixel</text>
+            </g>
+
+            <!-- quantization -->
+            <text x="392" y="28" class="hh">KUANTISASI — mendiskretkan amplitudo</text>
+            <g transform="translate(392,40)">
+              <rect x="0" y="0" width="326" height="130" fill="var(--dg-fill)" stroke="var(--dg-stroke)" stroke-width="1.4" rx="6"/>
+              <g class="gl">
+                <path d="M0 26h326M0 52h326M0 78h326M0 104h326"/>
+              </g>
+              <path class="sig" d="M4 100 C 40 20, 70 120, 110 56 S 180 24, 220 86 S 290 46, 316 76" opacity=".45"/>
+              <path d="M4 78 H43 V78 H82 V52 H121 V26 H160 V26 H199 V78 H238 V104 H277 V78 H316"
+                    fill="none" stroke="var(--dg-accent-2)" stroke-width="2"/>
+              <text x="163" y="150" class="ss" text-anchor="middle">nilai dibulatkan ke tingkat terdekat → jumlah tingkat keabuan</text>
+            </g>
+
+            <text x="370" y="226" class="ss" text-anchor="middle">
+              Sampling terlalu kasar → citra berkotak. Kuantisasi terlalu kasar → gradasi berubah menjadi pita.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 2.3.</b> Perbedaan sampling dan kuantisasi pada proses digitalisasi citra.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 1 — Imaging.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration — Kanal Warna</h2>
+      <p>
+        Citra berwarna bukanlah satu matriks, melainkan tumpukan beberapa matriks. Memahami hal ini menjelaskan
+        banyak hal sekaligus: mengapa citra RGB memiliki bentuk (tinggi, lebar, 3), mengapa konversi ke grayscale
+        mengurangi data hingga sepertiga, dan mengapa lapisan konvolusi pertama pada CNN menerima tiga kanal masukan.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 260" role="img" aria-label="Diagram pemisahan citra berwarna menjadi tiga matriks kanal merah hijau dan biru yang kemudian digabung kembali menjadi citra RGB">
+            <style>
+              .ch { stroke: var(--dg-stroke); stroke-width: 1.5; rx: 6; }
+              .cl { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .cs { font: 10px monospace; fill: var(--dg-text); opacity: .8; }
+              .cm { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .74; }
+            </style>
+
+            <!-- composite -->
+            <g transform="translate(16,58)">
+              <rect class="ch" x="0" y="0" width="112" height="112" fill="var(--dg-fill)"/>
+              <circle cx="42" cy="42" r="26" fill="#d94a3d" opacity=".85"/>
+              <circle cx="72" cy="56" r="26" fill="#3fa05f" opacity=".7"/>
+              <circle cx="56" cy="80" r="26" fill="#3d6fd9" opacity=".7"/>
+              <text x="56" y="-14" class="cl" text-anchor="middle">Citra RGB</text>
+              <text x="56" y="132" class="cm" text-anchor="middle">bentuk: (H, W, 3)</text>
+            </g>
+
+            <path d="M138 114 h28" stroke="var(--dg-stroke)" stroke-width="1.7" marker-end="url(#arD)"/>
+            <defs>
+              <marker id="arD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+
+            <!-- channels -->
+            <g transform="translate(178,22)">
+              <rect class="ch" x="0" y="0" width="104" height="66" fill="#f6d9d6"/>
+              <rect x="0" y="0" width="104" height="66" fill="none" stroke="#d94a3d" stroke-width="2" rx="6"/>
+              <text x="52" y="30" class="cs" text-anchor="middle">210 180  45</text>
+              <text x="52" y="48" class="cs" text-anchor="middle">190  88  12</text>
+              <text x="118" y="38" class="cl">Kanal R</text>
+              <text x="118" y="54" class="cm">intensitas merah</text>
+            </g>
+
+            <g transform="translate(178,98)">
+              <rect class="ch" x="0" y="0" width="104" height="66" fill="#dcefe2"/>
+              <rect x="0" y="0" width="104" height="66" fill="none" stroke="#3fa05f" stroke-width="2" rx="6"/>
+              <text x="52" y="30" class="cs" text-anchor="middle">120 200 160</text>
+              <text x="52" y="48" class="cs" text-anchor="middle"> 95 175  60</text>
+              <text x="118" y="38" class="cl">Kanal G</text>
+              <text x="118" y="54" class="cm">intensitas hijau</text>
+            </g>
+
+            <g transform="translate(178,174)">
+              <rect class="ch" x="0" y="0" width="104" height="66" fill="#dbe3f7"/>
+              <rect x="0" y="0" width="104" height="66" fill="none" stroke="#3d6fd9" stroke-width="2" rx="6"/>
+              <text x="52" y="30" class="cs" text-anchor="middle"> 40  70 230</text>
+              <text x="52" y="48" class="cs" text-anchor="middle"> 65 140 205</text>
+              <text x="118" y="38" class="cl">Kanal B</text>
+              <text x="118" y="54" class="cm">intensitas biru</text>
+            </g>
+
+            <!-- grayscale -->
+            <g transform="translate(520,58)">
+              <rect class="ch" x="0" y="0" width="112" height="112" fill="var(--dg-fill)"/>
+              <circle cx="42" cy="42" r="26" fill="#8a8a8a" opacity=".9"/>
+              <circle cx="72" cy="56" r="26" fill="#a8a8a8" opacity=".8"/>
+              <circle cx="56" cy="80" r="26" fill="#6f6f6f" opacity=".8"/>
+              <text x="56" y="-14" class="cl" text-anchor="middle">Grayscale</text>
+              <text x="56" y="132" class="cm" text-anchor="middle">bentuk: (H, W)</text>
+            </g>
+            <path d="M462 114 h44" stroke="var(--dg-stroke)" stroke-width="1.7" marker-end="url(#arD)"/>
+            <text x="484" y="104" class="cm" text-anchor="middle">gabung</text>
+
+            <text x="370" y="254" class="cm" text-anchor="middle">
+              Setiap kanal adalah matriks grayscale tersendiri. Warna muncul dari kombinasinya, bukan dari salah satunya.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 2.4.</b> Pemisahan citra berwarna menjadi tiga kanal dan penggabungannya menjadi grayscale.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 1 — Image dan Imaging (bagian Colour in Image Processing).</span>
+        </figcaption>
+      </figure>
+
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> BGR, bukan RGB</p>
+        <p style="margin-bottom:0">
+          OpenCV membaca citra dengan urutan kanal <strong>BGR</strong>, bukan RGB. Bila Anda menampilkan hasil
+          <code>cv2.imread()</code> dengan Matplotlib tanpa konversi, warna akan tertukar: langit menjadi jingga,
+          kulit menjadi kebiruan. Ini bukan bug pada kode Anda, melainkan perbedaan konvensi antar-pustaka.
+        </p>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Sebuah citra grayscale kecil berukuran 4×4 dengan kedalaman 8 bit. Mari telusuri seluruh besaran yang
+        telah kita bahas pada satu contoh yang sama.
+      </p>
+
+      <span class="code-label">Matriks citra f(x, y)</span>
+      <pre><code>        x=0   x=1   x=2   x=3
+y=0  [  26    77   140   212  ]
+y=1  [  58   112   176   239  ]
+y=2  [  92   148   200   255  ]
+y=3  [  38    97   162   222  ]</code></pre>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Besaran</th><th>Nilai</th><th>Cara memperolehnya</th></tr></thead>
+          <tbody>
+            <tr><td>Resolusi spasial</td><td>4 × 4 = 16 pixel</td><td>jumlah baris × jumlah kolom</td></tr>
+            <tr><td>Resolusi intensitas</td><td>256 tingkat (8 bit)</td><td>2<sup>8</sup> kemungkinan nilai per pixel</td></tr>
+            <tr><td>Jumlah kanal</td><td>1</td><td>grayscale</td></tr>
+            <tr><td>Ukuran tanpa kompresi</td><td>16 byte</td><td>16 pixel × 1 kanal × 1 byte</td></tr>
+            <tr><td><code>f(2, 1)</code></td><td>176</td><td>x=2 (kolom ketiga), y=1 (baris kedua)</td></tr>
+            <tr><td>Pixel paling terang</td><td>255 pada (3, 2)</td><td>nilai maksimum dalam matriks</td></tr>
+            <tr><td>Pixel paling gelap</td><td>26 pada (0, 0)</td><td>nilai minimum dalam matriks</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Perhatikan polanya: nilai meningkat dari kiri ke kanan pada setiap baris. Inilah yang disebut
+        <em>gradien horizontal</em>. Pada Materi 04 pola semacam ini adalah petunjuk adanya tepi, dan pada
+        Materi 05 kita akan mendeteksinya secara otomatis dengan kernel konvolusi.
+      </p>
+
+      <details class="acc">
+        <summary>Setelah memahami konsepnya — seperti apa bentuknya dalam kode</summary>
+        <div class="acc-body">
+          <p>
+            Kode berikut ditampilkan sebagai penutup, bukan sebagai titik awal. Perhatikan bahwa setiap baris
+            hanya menerjemahkan konsep yang sudah Anda pahami.
+          </p>
+          <span class="code-label">Python · NumPy</span>
+<pre><code>import numpy as np
+
+f = np.array([
+    [ 26,  77, 140, 212],
+    [ 58, 112, 176, 239],
+    [ 92, 148, 200, 255],
+    [ 38,  97, 162, 222],
+], dtype=np.uint8)
+
+print(f.shape)        # (4, 4)        -> resolusi spasial
+print(f.dtype)        # uint8         -> resolusi intensitas: 256 tingkat
+print(f.ndim)         # 2             -> satu kanal (grayscale)
+print(f[1, 2])        # 176           -> f(x=2, y=1); ingat urutan [y, x]
+print(f.min(), f.max())   # 26 255
+print(f.nbytes)       # 16 byte</code></pre>
+          <p style="margin-bottom:0">
+            Satu-satunya hal yang perlu diwaspadai di sini adalah urutan indeks: NumPy memakai
+            <code>[baris, kolom]</code>, sedangkan notasi matematis memakai <code>f(x, y)</code>.
+            Keduanya saling terbalik.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Pencitraan medis</dt>
+        <dd>CT dan MRI menghasilkan citra volumetrik: <code>f(x, y, z)</code> dengan voxel sebagai elemennya. Resolusi intensitas biasanya 12 sampai 16 bit, jauh melampaui 8 bit citra biasa, karena perbedaan jaringan yang halus harus tetap terbaca.</dd>
+        <dt>Penginderaan jauh</dt>
+        <dd>Citra satelit memiliki jauh lebih dari tiga kanal. Citra multispektral dan hiperspektral merekam puluhan hingga ratusan pita panjang gelombang, termasuk inframerah yang menjadi kunci untuk memantau kesehatan vegetasi.</dd>
+        <dt>Inspeksi industri</dt>
+        <dd>Karena <code>f = i · r</code>, pengendalian iluminasi lebih menentukan keberhasilan daripada pemilihan algoritma. Banyak sistem inspeksi yang gagal diperbaiki bukan dengan mengganti model, melainkan dengan menata ulang lampunya.</dd>
+        <dt>Mikroskopi</dt>
+        <dd>Istilah citra 4D dan 5D lazim dipakai: data volumetrik yang direkam sepanjang waktu (4D) dengan beberapa kanal atau modalitas pencitraan (5D). Setiap sumber informasi baru menambah satu dimensi.</dd>
+        <dt>Fotografi ponsel</dt>
+        <dd>Pipeline pemrosesan citra di dalam ponsel modern melakukan demosaicing, koreksi white balance, pengurangan derau, dan penggabungan beberapa eksposur — seluruhnya sebelum berkas JPEG tersimpan.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Megapixel lebih tinggi pasti lebih baik."</p>
+        <p style="margin-bottom:0">
+          Resolusi spasial hanyalah salah satu faktor. Ukuran sensor, kualitas lensa, tingkat derau, dan rentang
+          dinamis sering lebih menentukan. Menaikkan resolusi pada lensa yang buruk hanya menghasilkan citra besar
+          yang tetap kabur.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Grayscale berarti membuang informasi warna, jadi selalu merugikan."</p>
+        <p style="margin-bottom:0">
+          Untuk banyak tugas — deteksi tepi, pengenalan teks, pencocokan fitur — warna justru tidak relevan dan
+          hanya menambah beban komputasi tiga kali lipat. SIFT dan ORB, misalnya, bekerja pada citra grayscale.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Citra gelap berarti objeknya gelap."</p>
+        <p style="margin-bottom:0">
+          Karena <code>f = i · r</code>, citra gelap bisa disebabkan objek berwarna gelap (reflektansi rendah)
+          <em>atau</em> pencahayaan yang kurang (iluminasi rendah). Keduanya menghasilkan angka yang mirip, tetapi
+          membutuhkan penanganan yang sama sekali berbeda.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Pixel itu kotak kecil."</p>
+        <p style="margin-bottom:0">
+          Pixel adalah <em>cuplikan nilai</em> pada satu titik koordinat. Bentuk kotak yang kita lihat di layar
+          hanyalah cara menampilkannya. Perbedaan ini menjadi penting ketika membahas interpolasi pada proses
+          resize di Materi 03.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>f(x, y):</strong> x dan y adalah koordinat spasial, nilai fungsinya adalah intensitas, dan pasangan koordinat itu disebut pixel.</li>
+        <li><strong>f = i · r:</strong> citra terbentuk dari iluminasi dikalikan reflektansi — pencahayaan adalah bagian dari sistem, bukan faktor eksternal.</li>
+        <li><strong>Sampling mendiskretkan koordinat, kuantisasi mendiskretkan amplitudo.</strong> Keduanya proses yang berbeda.</li>
+        <li><strong>Resolusi spasial ≠ resolusi intensitas.</strong> Yang pertama menentukan jumlah pixel, yang kedua menentukan jumlah tingkat keabuan.</li>
+        <li><strong>Kanal adalah matriks tersendiri.</strong> Citra RGB adalah tiga matriks yang ditumpuk.</li>
+        <li><strong>Titik asal citra berada di kiri atas,</strong> dan NumPy mengindeks dengan <code>[y, x]</code>.</li>
+        <li><strong>Video adalah F(X, Y, T)</strong> — citra ditambah dimensi waktu.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>Praktikum ini adalah pertama kalinya Anda menyentuh kode. Yang perlu disiapkan:</p>
+      <ul>
+        <li>Google Colab (tanpa instalasi) atau Python lokal dengan NumPy, Pillow, dan Matplotlib;</li>
+        <li>satu foto berwarna hasil jepretan sendiri, sebaiknya beresolusi sedang agar mudah diamati;</li>
+        <li>kesediaan untuk memeriksa angka, bukan hanya melihat gambar — tujuan praktikum ini adalah membuktikan bahwa citra memang matriks.</li>
+      </ul>
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Kebiasaan yang perlu dibangun sejak sekarang</p>
+        <p style="margin-bottom:0">
+          Setiap kali memuat citra, periksa tiga hal sebelum melakukan apa pun: <code>shape</code>,
+          <code>dtype</code>, serta nilai minimum dan maksimumnya. Kebiasaan ini akan menyelamatkan Anda dari
+          banyak kebingungan di materi-materi berikutnya.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="../practical/practical-02.html" data-practical-link>🧪 Mulai Praktikum 02</a>
+        <a class="btn secondary" href="https://huggingface.co/learn/computer-vision-course/en/unit1/image_and_imaging/image" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Image ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Muat sebuah citra dan cetak <code>shape</code>, <code>dtype</code>, serta nilai minimum dan maksimumnya.</li>
+        <li>Baca nilai satu pixel tertentu, lalu bandingkan dengan warnanya saat ditampilkan.</li>
+        <li>Pisahkan kanal R, G, dan B, lalu tampilkan ketiganya sebagai citra grayscale terpisah.</li>
+        <li>Buat konversi grayscale secara manual dengan rata-rata berbobot, lalu bandingkan dengan fungsi pustaka.</li>
+        <li>Turunkan resolusi spasial secara bertahap dan amati sejak titik mana objek menjadi tak dikenali.</li>
+        <li>Turunkan resolusi intensitas dari 8 bit menjadi 4, 2, dan 1 bit, lalu amati munculnya pita warna.</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa satu pixel pada citra 8 bit tidak dapat bernilai 300? Apa yang terjadi pada nilai yang melampaui batas?</li>
+        <li>Sebuah citra RGB berukuran 2048 × 1536 dengan kedalaman 8 bit per kanal. Berapa ukurannya tanpa kompresi? Mengapa berkas JPEG-nya jauh lebih kecil?</li>
+        <li>Dua foto objek yang sama diambil siang dan malam menghasilkan matriks yang sangat berbeda. Komponen mana pada <code>f = i · r</code> yang berubah, dan mana yang tetap?</li>
+        <li>Kapan Anda memilih mempertahankan warna, dan kapan mengonversi ke grayscale? Berikan satu contoh untuk masing-masing.</li>
+        <li>Mengapa menurunkan resolusi intensitas menimbulkan pita warna pada bagian langit foto, sementara bagian berpola rapat tidak terlalu terpengaruh?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — Unit 1: <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/image_and_imaging/image" target="_blank" rel="noopener noreferrer">Image</a>, <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/image_and_imaging/imaging" target="_blank" rel="noopener noreferrer">Imaging</a>, <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/image_and_imaging/extension-image" target="_blank" rel="noopener noreferrer">Imaging in Real-life</a>.</li>
+        <li>Gonzalez, R. C., &amp; Woods, R. E. <em>Digital Image Processing</em>. Pearson. — akuisisi citra, sampling, kuantisasi, model warna, kompresi.</li>
+        <li><a href="https://numpy.org/doc/stable/user/basics.indexing.html" target="_blank" rel="noopener noreferrer">NumPy — Indexing on ndarrays</a>, untuk memahami urutan indeks baris dan kolom.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

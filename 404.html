@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halaman tidak ditemukan — COM Computer Vision Learning</title>
+<!-- Halaman ini dilayani GitHub Pages dari URL mana pun, sehingga sengaja
+     dibuat mandiri: tanpa berkas CSS/JS eksternal, agar tidak pernah rusak. -->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    background: #f6f8f9; color: #13202a; text-align: center; padding: 2rem;
+    line-height: 1.65;
+  }
+  .code { font-family: ui-monospace, Consolas, monospace; font-size: clamp(3rem, 12vw, 5.5rem); color: #0d6b78; margin: 0; line-height: 1; }
+  h1 { font-size: clamp(1.3rem, 4vw, 1.9rem); margin: .6rem 0 .8rem; }
+  p.msg { color: #405a68; max-width: 46ch; margin: 0 auto 1.8rem; }
+  .btn {
+    display: inline-block; padding: .65rem 1.15rem; border-radius: 5px;
+    background: #0d6b78; color: #fff; text-decoration: none; font-weight: 600;
+    border: 1px solid #0d6b78;
+  }
+  .btn:hover { background: #084d57; }
+  .brandline { font-size: .8rem; color: #6b8593; margin-top: 2.4rem; letter-spacing: .05em; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0c1419; color: #e7eff2; }
+    .code { color: #56c3d1; }
+    p.msg { color: #b7c9d1; }
+    .btn { background: #56c3d1; border-color: #56c3d1; color: #06222a; }
+    .btn:hover { background: #8bdbe6; }
+    .brandline { color: #8ba3ae; }
+  }
+</style>
+</head>
+<body>
+  <main>
+    <p class="code">404</p>
+    <h1>Halaman tidak ditemukan</h1>
+    <p class="msg">
+      Alamat yang Anda tuju tidak tersedia. Materi mungkin belum dibuka,
+      atau tautannya sudah berubah.
+    </p>
+    <a class="btn" id="home-link" href="./index.html">Kembali ke Beranda</a>
+    <p class="brandline">COM COMPUTER VISION · Teknik Komputer · Universitas Warmadewa</p>
+  </main>
+
+  <script>
+    // Menentukan akar situs, baik untuk user/organization pages
+    // (<user>.github.io/) maupun project pages (<user>.github.io/<repo>/).
+    (function () {
+      var link = document.getElementById("home-link");
+      var parts = location.pathname.split("/").filter(Boolean);
+      var root = "/";
+      if (/\.github\.io$/i.test(location.hostname) && parts.length > 0) {
+        root = "/" + parts[0] + "/";
+      }
+      link.setAttribute("href", root);
+    })();
+  </script>
+</body>
+</html>

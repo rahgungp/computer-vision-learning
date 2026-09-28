@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praktikum 05 · Konvolusi dari Nol — COM Computer Vision</title>
+<meta name="description" content="Praktikum 05 untuk Materi 05: Implementasi konvolusi dan pooling dengan NumPy murni, lalu CNN dengan framework">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="practical" data-week="05">
+
+<a class="skip-link" href="#content">Lewati ke konten praktikum</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <a href="../weeks/week-05.html">Materi 05</a><span aria-hidden="true">/</span>
+      <span>Praktikum</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">🧪 Praktikum 05</span>
+        <h1 class="page-title">Konvolusi dari Nol</h1>
+        <p class="page-sub">Implementasi konvolusi dan pooling dengan NumPy murni, lalu CNN dengan framework</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ 120 menit</span>
+          <span class="meta-chip">🧰 Google Colab · NumPy · Keras</span>
+          <span class="meta-chip">📖 <a href="../weeks/week-05.html">Materi 05</a></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn" href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer">▶ Buka Google Colab Baru</a>
+      <a class="btn secondary" href="../weeks/week-05.html">📖 Kembali ke Materi 05</a>
+    </div>
+
+
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Tujuan Praktikum</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah praktikum ini, mahasiswa mampu:</p>
+        <ul>
+          <li>mengimplementasikan konvolusi 2D dari nol memakai NumPy murni;</li>
+          <li>memverifikasi implementasinya terhadap contoh hitungan manual;</li>
+          <li>membuktikan rumus ukuran keluaran untuk berbagai padding dan stride;</li>
+          <li>mengimplementasikan max pooling sendiri;</li>
+          <li>menghubungkan seluruhnya dengan CNN yang dibangun memakai framework.</li>
+        </ul>
+      </div>
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Aturan praktikum ini</p>
+        <p style="margin-bottom:0">
+          Langkah 1 sampai 5 <strong>tanpa framework deep learning dan tanpa <code>scipy.signal</code></strong>.
+          Hanya NumPy. Framework baru diperkenalkan pada langkah terakhir, setelah Anda membuktikan sendiri
+          bahwa konvolusi hanyalah geser, kalikan, dan jumlahkan.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="langkah0">
+      <h2><span class="step-no">02</span>Langkah 0 — Hitung dengan tangan</h2>
+      <p>
+        Sebelum menulis satu baris kode: ambil kertas, hitung konvolusi pada posisi pusat untuk matriks dan kernel
+        berikut, lalu fotokan hasil hitungan Anda untuk dilampirkan pada laporan.
+      </p>
+<pre><code>Input            Kernel
+[1 2 3]          [-1 0 1]
+[4 5 6]    ⊛     [-1 0 1]
+[7 8 9]          [-1 0 1]
+
+Hasil di posisi pusat = ?</code></pre>
+    </section>
+
+    <section class="section" id="langkah1">
+      <h2><span class="step-no">03</span>Langkah 1 — Tulis fungsi konvolusi sendiri</h2>
+<pre><code>import numpy as np
+
+def konvolusi_2d(citra, kernel, padding=0, stride=1):
+    citra  = np.asarray(citra, dtype=float)
+    kernel = np.asarray(kernel, dtype=float)
+    kh, kw = kernel.shape
+
+    if padding &gt; 0:
+        citra = np.pad(citra, padding, mode="constant", constant_values=0)
+
+    h, w = citra.shape
+    out_h = (h - kh) // stride + 1
+    out_w = (w - kw) // stride + 1
+    keluar = np.zeros((out_h, out_w))
+
+    for i in range(out_h):
+        for j in range(out_w):
+            y, x = i * stride, j * stride
+            area = citra[y:y + kh, x:x + kw]
+            keluar[i, j] = np.sum(area * kernel)     # kalikan lalu jumlahkan
+    return keluar</code></pre>
+      <p>
+        Perhatikan bahwa inti seluruh CNN ada pada satu baris: <code>np.sum(area * kernel)</code>. Sisanya hanya
+        urusan menggeser jendela.
+      </p>
+    </section>
+
+    <section class="section" id="langkah2">
+      <h2><span class="step-no">04</span>Langkah 2 — Verifikasi terhadap materi</h2>
+<pre><code>citra  = np.array([[1, 2, 3],
+                   [4, 5, 6],
+                   [7, 8, 9]])
+
+kernel = np.array([[-1, 0, 1],
+                   [-1, 0, 1],
+                   [-1, 0, 1]])
+
+hasil = konvolusi_2d(citra, kernel, padding=1, stride=1)
+print(hasil)
+
+harapan = np.array([[  7,  4,  -7],
+                    [ 15,  6, -15],
+                    [ 13,  4, -13]])
+assert np.allclose(hasil, harapan), "belum cocok - periksa kembali implementasi Anda"
+print("Cocok dengan hitungan di Materi 05.")</code></pre>
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Bila assert gagal</p>
+        <p style="margin-bottom:0">
+          Periksa tiga hal: apakah padding benar-benar diterapkan, apakah area yang diambil berukuran sama dengan
+          kernel, dan apakah Anda menjumlahkan seluruh elemen hasil perkalian. Jangan lanjut sebelum cocok.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="langkah3">
+      <h2><span class="step-no">05</span>Langkah 3 — Prewitt pada foto Anda</h2>
+<pre><code>import cv2, matplotlib.pyplot as plt
+
+foto = cv2.imread("bangunan.jpg", cv2.IMREAD_GRAYSCALE).astype(float)
+
+prewitt_h = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])   # perubahan horizontal
+prewitt_v = np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]])   # perubahan vertikal
+
+fh = konvolusi_2d(foto, prewitt_h, padding=1)
+fv = konvolusi_2d(foto, prewitt_v, padding=1)
+magnitudo = np.sqrt(fh**2 + fv**2)
+
+fig, ax = plt.subplots(1, 4, figsize=(18, 5))
+for a, (j, c) in zip(ax, [("Asli", foto), ("Horizontal", np.abs(fh)),
+                          ("Vertikal", np.abs(fv)), ("Magnitudo", magnitudo)]):
+    a.imshow(c, cmap="gray"); a.set_title(j); a.axis("off")
+plt.show()</code></pre>
+      <p>Amati: tepi vertikal pada bangunan menyala pada feature map horizontal, dan sebaliknya. Jelaskan mengapa.</p>
+    </section>
+
+    <section class="section" id="langkah4">
+      <h2><span class="step-no">06</span>Langkah 4 — Buktikan rumus ukuran keluaran</h2>
+<pre><code>uji = np.random.randint(0, 256, (28, 28))
+k   = np.ones((3, 3))
+
+for p in [0, 1]:
+    for s in [1, 2]:
+        nyata = konvolusi_2d(uji, k, padding=p, stride=s).shape
+        rumus = ((28 + 2*p - 3) // s + 1,) * 2
+        print(f"p={p} s={s}  nyata={nyata}  rumus={rumus}  "
+              f"{'cocok' if nyata == rumus else 'TIDAK COCOK'}")</code></pre>
+    </section>
+
+    <section class="section" id="langkah5">
+      <h2><span class="step-no">07</span>Langkah 5 — Max pooling sendiri</h2>
+<pre><code>def max_pooling(peta, ukuran=2, stride=2):
+    h, w = peta.shape
+    out_h = (h - ukuran) // stride + 1
+    out_w = (w - ukuran) // stride + 1
+    keluar = np.zeros((out_h, out_w))
+    for i in range(out_h):
+        for j in range(out_w):
+            y, x = i * stride, j * stride
+            keluar[i, j] = peta[y:y + ukuran, x:x + ukuran].max()
+    return keluar
+
+contoh = np.array([[ 12,  20,  30,  0],
+                   [  8,  12,   2,  0],
+                   [ 34,  70,  37,  4],
+                   [112, 100,  25, 12]])
+print(max_pooling(contoh))       # harus menghasilkan [[20, 30], [112, 37]]</code></pre>
+      <p>Terapkan juga pada feature map foto Anda, lalu catat pengurangan jumlah elemennya.</p>
+    </section>
+
+    <section class="section" id="langkah6">
+      <h2><span class="step-no">08</span>Langkah 6 — Barulah framework</h2>
+      <p>
+        Setelah seluruh mekanismenya Anda buktikan sendiri, bangun CNN kecil dan cocokkan jumlah parameternya
+        dengan tabel pada bagian Example di Materi 05.
+      </p>
+<pre><code>import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
+model = keras.Sequential([
+    keras.Input(shape=(28, 28, 1)),
+    layers.Conv2D(32, (3, 3), activation="relu"),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation="relu"),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dropout(0.5),
+    layers.Dense(10, activation="softmax"),
+])
+model.summary()      # cocokkan: total 34.826 parameter</code></pre>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Notebook resmi Hugging Face</p>
+        <p>Sebagai jembatan menuju Materi 06, telusuri dua notebook resmi berikut:</p>
+        <div class="btn-row" style="margin:.4rem 0 0">
+          <a class="btn secondary" href="https://colab.research.google.com/github/fariddinar/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/transfer_learning_vgg19.ipynb" target="_blank" rel="noopener noreferrer">▶ Transfer Learning with VGG19 ↗</a>
+          <a class="btn secondary" href="https://colab.research.google.com/github/fariddinar/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/timm_Resnet.ipynb" target="_blank" rel="noopener noreferrer">▶ Using ResNet with timm ↗</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="checklist">
+      <h2><span class="step-no">09</span>Checklist Verifikasi</h2>
+      <ul>
+        <li>Hitungan manual sudah dikerjakan di kertas dan difoto.</li>
+        <li>Fungsi <code>konvolusi_2d</code> ditulis tanpa framework dan tanpa scipy.</li>
+        <li><code>assert</code> verifikasi terhadap contoh Materi 05 berhasil dilewati.</li>
+        <li>Prewitt horizontal dan vertikal sudah dibandingkan pada foto sendiri.</li>
+        <li>Seluruh kombinasi padding dan stride cocok dengan rumus.</li>
+        <li>Fungsi max pooling menghasilkan [[20, 30], [112, 37]] pada contoh uji.</li>
+        <li>Ringkasan model menunjukkan total 34.826 parameter.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="pengumpulan">
+      <h2><span class="step-no">10</span>Pengumpulan &amp; Refleksi</h2>
+      <ol>
+        <li>Mengapa nilai pada kolom tepi feature map jauh lebih besar daripada kolom tengah? Apa implikasinya?</li>
+        <li>Apa yang terjadi pada hasil konvolusi di area citra yang intensitasnya seragam? Mengapa?</li>
+        <li>Bandingkan waktu eksekusi fungsi Anda dengan lapisan <code>Conv2D</code>. Apa yang menjelaskan perbedaannya?</li>
+        <li>Setelah menghitung konvolusi sendiri, apa yang berubah dari pemahaman Anda tentang CNN?</li>
+      </ol>
+    </section>
+
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

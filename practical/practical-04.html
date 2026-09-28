@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praktikum 04 · Deteksi, Deskripsi, dan Pencocokan Fitur — COM Computer Vision</title>
+<meta name="description" content="Praktikum 04 untuk Materi 04: Harris, SIFT, ORB, brute-force, ratio test, FLANN, dan RANSAC">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="practical" data-week="04">
+
+<a class="skip-link" href="#content">Lewati ke konten praktikum</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <a href="../weeks/week-04.html">Materi 04</a><span aria-hidden="true">/</span>
+      <span>Praktikum</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">🧪 Praktikum 04</span>
+        <h1 class="page-title">Deteksi, Deskripsi, dan Pencocokan Fitur</h1>
+        <p class="page-sub">Harris, SIFT, ORB, brute-force, ratio test, FLANN, dan RANSAC</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ 120 menit</span>
+          <span class="meta-chip">🧰 Google Colab · OpenCV</span>
+          <span class="meta-chip">📖 <a href="../weeks/week-04.html">Materi 04</a></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn" href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer">▶ Buka Google Colab Baru</a>
+      <a class="btn secondary" href="../weeks/week-04.html">📖 Kembali ke Materi 04</a>
+    </div>
+
+
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Tujuan Praktikum</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah praktikum ini, mahasiswa mampu:</p>
+        <ul>
+          <li>mendeteksi sudut dan menjelaskan mengapa sudut ditemukan di lokasi tertentu;</li>
+          <li>membandingkan SIFT dan ORB dari sisi jumlah keypoint, waktu, dan sebaran;</li>
+          <li>menerapkan brute-force matching, ratio test, dan FLANN;</li>
+          <li>menyaring outlier dengan RANSAC dan menunjukkan dampaknya.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">02</span>Persiapan</h2>
+<pre><code>!pip install opencv-python-headless -q
+
+import cv2, time
+import numpy as np
+import matplotlib.pyplot as plt
+
+img1 = cv2.imread("objek_a.jpg", cv2.IMREAD_GRAYSCALE)   # objek, sudut 1
+img2 = cv2.imread("objek_b.jpg", cv2.IMREAD_GRAYSCALE)   # objek sama, sudut 2
+polos = cv2.imread("polos.jpg",  cv2.IMREAD_GRAYSCALE)   # permukaan tanpa tekstur
+
+print(img1.shape, img2.shape, polos.shape)</code></pre>
+    </section>
+
+    <section class="section" id="langkah1">
+      <h2><span class="step-no">03</span>Langkah 1 — Deteksi sudut Harris</h2>
+<pre><code>def harris(citra, k=0.04, ambang=0.01):
+    f = np.float32(citra)
+    respons = cv2.cornerHarris(f, blockSize=2, ksize=3, k=k)
+    warna = cv2.cvtColor(citra, cv2.COLOR_GRAY2BGR)
+    warna[respons &gt; ambang * respons.max()] = [255, 0, 0]
+    return warna
+
+plt.figure(figsize=(7, 5))
+plt.imshow(harris(img1)); plt.axis("off"); plt.title("Sudut Harris")
+plt.show()</code></pre>
+      <p>
+        Amati di mana sudut ditemukan dan di mana tidak. Cocokkan dengan penjelasan jendela pengamatan pada
+        Materi 04: area datar tidak menghasilkan sudut, dan sepanjang tepi lurus pun jarang.
+      </p>
+    </section>
+
+    <section class="section" id="langkah2">
+      <h2><span class="step-no">04</span>Langkah 2 — SIFT vs ORB</h2>
+<pre><code>sift = cv2.SIFT_create()
+orb  = cv2.ORB_create(nfeatures=2000)
+
+for nama, detektor in [("SIFT", sift), ("ORB", orb)]:
+    t0 = time.time()
+    kp, des = detektor.detectAndCompute(img1, None)
+    dt = time.time() - t0
+    print(f"{nama:5s}  keypoint={len(kp):5d}  "
+          f"bentuk deskriptor={des.shape}  dtype={des.dtype}  waktu={dt:.3f}s")</code></pre>
+      <p>
+        Perhatikan <code>dtype</code> deskriptornya. SIFT menghasilkan bilangan riil, ORB menghasilkan bilangan
+        bulat tak bertanda (deskriptor biner). Perbedaan inilah yang menentukan metrik jarak pada langkah berikutnya.
+      </p>
+    </section>
+
+    <section class="section" id="langkah3">
+      <h2><span class="step-no">05</span>Langkah 3 — Brute-force + ratio test</h2>
+<pre><code>kp1, des1 = sift.detectAndCompute(img1, None)
+kp2, des2 = sift.detectAndCompute(img2, None)
+
+bf = cv2.BFMatcher()
+kandidat = bf.knnMatch(des1, des2, k=2)
+
+for ambang in [0.4, 0.75, 0.95]:
+    lolos = [m for m, n in kandidat if m.distance &lt; ambang * n.distance]
+    print(f"ambang {ambang}: {len(lolos):4d} dari {len(kandidat)} kandidat")
+
+baik = [m for m, n in kandidat if m.distance &lt; 0.75 * n.distance]
+vis = cv2.drawMatches(img1, kp1, img2, kp2, baik[:40], None,
+                      flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+plt.figure(figsize=(14, 6)); plt.imshow(vis); plt.axis("off"); plt.show()</code></pre>
+      <p>Catat ketiga angka tersebut — perubahannya menjelaskan peran ambang ratio test secara nyata.</p>
+    </section>
+
+    <section class="section" id="langkah4">
+      <h2><span class="step-no">06</span>Langkah 4 — FLANN dan perbandingan waktu</h2>
+<pre><code>index_params  = dict(algorithm=1, trees=5)      # KD-Tree untuk deskriptor riil
+search_params = dict(checks=50)
+flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+t0 = time.time(); bf.knnMatch(des1, des2, k=2);    t_bf    = time.time() - t0
+t0 = time.time(); flann.knnMatch(des1, des2, k=2); t_flann = time.time() - t0
+print(f"brute-force: {t_bf:.3f}s   FLANN: {t_flann:.3f}s")</code></pre>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Untuk ORB</p>
+        <p style="margin-bottom:0">
+          Deskriptor biner memerlukan konfigurasi berbeda: <code>cv2.BFMatcher(cv2.NORM_HAMMING)</code> untuk
+          brute-force, atau indeks LSH (<code>algorithm=6</code>) untuk FLANN.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="langkah5">
+      <h2><span class="step-no">07</span>Langkah 5 — RANSAC menyaring outlier</h2>
+<pre><code>src = np.float32([kp1[m.queryIdx].pt for m in baik]).reshape(-1, 1, 2)
+dst = np.float32([kp2[m.trainIdx].pt for m in baik]).reshape(-1, 1, 2)
+
+H, mask = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
+inlier = int(mask.sum())
+print(f"{len(baik)} pasangan -&gt; {inlier} inlier ({inlier/len(baik):.0%})")
+
+vis = cv2.drawMatches(img1, kp1, img2, kp2, baik, None,
+                      matchesMask=mask.ravel().tolist(),
+                      flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+plt.figure(figsize=(14, 6)); plt.imshow(vis); plt.axis("off"); plt.show()</code></pre>
+    </section>
+
+    <section class="section" id="langkah6">
+      <h2><span class="step-no">08</span>Langkah 6 — Kasus gagal: permukaan polos</h2>
+<pre><code>kp_polos, des_polos = sift.detectAndCompute(polos, None)
+print("keypoint pada permukaan polos:", len(kp_polos))</code></pre>
+      <p>
+        Jumlahnya akan sangat sedikit, bahkan bisa nol. Ini bukan kesalahan kode Anda, melainkan batas
+        pendekatan berbasis detektor. Di sinilah metode detector-free seperti LoFTR menjadi relevan.
+      </p>
+    </section>
+
+    <section class="section" id="checklist">
+      <h2><span class="step-no">09</span>Checklist Verifikasi</h2>
+      <ul>
+        <li>Sudut Harris sudah divisualisasikan dan lokasinya dijelaskan.</li>
+        <li>Jumlah keypoint, bentuk deskriptor, dtype, dan waktu SIFT serta ORB sudah dicatat.</li>
+        <li>Ratio test sudah diuji pada tiga ambang berbeda dengan angka yang tercatat.</li>
+        <li>Waktu brute-force dan FLANN sudah dibandingkan.</li>
+        <li>Jumlah inlier setelah RANSAC sudah dicatat beserta persentasenya.</li>
+        <li>Kasus permukaan polos sudah diuji dan dijelaskan.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="pengumpulan">
+      <h2><span class="step-no">10</span>Pengumpulan &amp; Refleksi</h2>
+      <ol>
+        <li>Pada ambang ratio test 0,95, berapa pasangan yang lolos? Bagaimana kualitas visualnya?</li>
+        <li>Mengapa FLANN belum tentu lebih cepat pada citra Anda? Kaitkan dengan jumlah deskriptornya.</li>
+        <li>Berapa persen pasangan yang ternyata outlier? Apa yang terjadi bila RANSAC dilewati?</li>
+        <li>Untuk aplikasi waktu nyata pada ponsel, SIFT atau ORB yang Anda pilih? Dukung dengan angka dari percobaan Anda.</li>
+      </ol>
+    </section>
+
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

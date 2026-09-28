@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Materi 03 · Image Processing &amp; Preprocessing — COM Computer Vision</title>
+<meta name="description" content="Materi 03: resizing, cropping, normalisasi, konversi grayscale, derau, filtering, smoothing, kontras, histogram, thresholding, dan penyusunan preprocessing pipeline.">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="week" data-week="03">
+
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <span>Materi 03</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">Materi 03</span>
+        <h1 class="page-title" data-week-title>Image Processing &amp; Preprocessing</h1>
+        <p class="page-sub" data-week-subtitle>Resize, normalisasi, filtering, histogram, thresholding, dan pipeline preprocessing</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ <span data-week-duration>100 menit</span></span>
+          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 1</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>mengklasifikasikan operasi pengolahan citra dan memilih operasi yang tepat untuk suatu tujuan;</li>
+          <li>menjelaskan cara kerja spatial filtering serta perbedaan low-pass dan high-pass filter;</li>
+          <li>membaca histogram citra dan menyimpulkan kondisi pencahayaan serta kontrasnya;</li>
+          <li>menjelaskan prinsip thresholding dan keterbatasan threshold global;</li>
+          <li>menyusun preprocessing pipeline yang setiap langkahnya dapat dipertanggungjawabkan.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Model yang baik dengan data yang buruk akan kalah oleh model sederhana dengan data yang disiapkan dengan benar.
+      </p>
+      <p>
+        Preprocessing sering dianggap pekerjaan kasar yang dilewati secepat mungkin untuk sampai ke bagian
+        "menarik". Padahal justru di sinilah sebagian besar kegagalan sistem Computer Vision bermula. Citra dengan
+        ukuran tidak seragam membuat model tidak dapat dilatih. Rentang nilai yang tidak dinormalisasi membuat
+        pelatihan tidak stabil. Derau yang dibiarkan membuat detektor tepi menghasilkan ribuan tepi palsu.
+      </p>
+      <p>
+        Ada pula alasan kedua yang lebih halus: memahami preprocessing berarti memahami konvolusi. Filter spasial
+        yang Anda pelajari di sini — Gaussian, Sobel, Laplacian — adalah kernel yang <em>dirancang manusia</em>.
+        Pada Materi 05, CNN akan melakukan hal yang sama, dengan satu perbedaan: kernelnya dipelajari dari data,
+        bukan ditentukan sebelumnya. Bila bagian ini dilewati, konvolusi akan terasa seperti sihir.
+      </p>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-02.html">Materi 02</a> — citra sebagai matriks, pixel, intensitas, kanal, dan resolusi.</li>
+        <li>Operasi aritmetika pada matriks: penjumlahan, perkalian per elemen, dan rata-rata.</li>
+        <li>Pemahaman dasar tentang histogram sebagai distribusi frekuensi.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <p>
+        Preprocessing adalah rangkaian operasi yang mengubah citra mentah menjadi bentuk yang lebih sesuai untuk
+        tahap berikutnya. Kata kuncinya adalah <strong>untuk tahap berikutnya</strong> — tidak ada preprocessing
+        yang "benar" secara mutlak; yang ada adalah preprocessing yang tepat untuk tujuan tertentu.
+      </p>
+
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Concept First</p>
+        <p style="margin-bottom:0">
+          Setiap operasi preprocessing menjawab satu pertanyaan: <em>informasi apa yang ingin saya tonjolkan, dan
+          informasi apa yang bersedia saya buang?</em> Menghaluskan citra membuang detail halus untuk menekan derau.
+          Mengubah ke grayscale membuang warna untuk menghemat komputasi. Semua operasi adalah pertukaran.
+        </p>
+      </div>
+
+      <h3>Kategori operasi</h3>
+      <p>Operasi pada citra digital dapat dikelompokkan menjadi:</p>
+      <dl class="defs">
+        <dt>Logical</dt>
+        <dd>Operasi berbasis logika, termasuk operasi morfologi yang memakai structuring element untuk memeriksa nilai pixel tetangga — dilasi, erosi, opening, closing.</dd>
+        <dt>Statistical</dt>
+        <dd>Operasi berbasis statistik nilai pixel: rata-rata, median, simpangan baku, histogram.</dd>
+        <dt>Geometrical</dt>
+        <dd>Operasi yang mengubah posisi atau bentuk: resize, crop, rotasi, translasi, flip, transformasi perspektif.</dd>
+        <dt>Mathematical</dt>
+        <dd>Operasi aritmetika per elemen maupun operasi matriks: penjumlahan, pengurangan, perkalian, pemangkatan.</dd>
+        <dt>Transform</dt>
+        <dd>Perpindahan ke domain lain, seperti transformasi Fourier atau Principal Component Analysis.</dd>
+      </dl>
+      <p>
+        Perbedaan penting yang perlu dipegang: operasi <strong>per elemen</strong> memproses setiap pixel secara
+        mandiri, sedangkan operasi <strong>matriks</strong> memanfaatkan sifat-sifat aljabar matriks. Filtering
+        berada di antara keduanya — ia memproses setiap pixel, tetapi dengan melihat tetangganya.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 210" role="img" aria-label="Diagram pipeline pemrosesan: citra mentah menuju preprocessing menuju citra yang diperbaiki menuju ekstraksi fitur menuju model, dengan catatan bahwa informasi yang dibuang tidak dapat dikembalikan">
+            <defs>
+              <marker id="arE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .p  { fill: var(--dg-fill);   stroke: var(--dg-stroke);   stroke-width: 1.6; }
+              .pa { fill: var(--dg-fill-2); stroke: var(--dg-accent);   stroke-width: 1.6; }
+              .pb { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .t1 { font: 700 12px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .t2 { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .74; }
+              .fl { stroke: var(--dg-stroke); stroke-width: 1.8; fill: none; marker-end: url(#arE); }
+            </style>
+
+            <rect class="p"  x="16"  y="44" width="124" height="66" rx="7"/>
+            <text x="78" y="72" class="t1" text-anchor="middle">Raw Image</text>
+            <text x="78" y="90" class="t2" text-anchor="middle">apa adanya dari sensor</text>
+
+            <rect class="pa" x="172" y="44" width="150" height="66" rx="7"/>
+            <text x="247" y="68" class="t1" text-anchor="middle">Preprocessing</text>
+            <text x="247" y="84" class="t2" text-anchor="middle">resize · normalisasi</text>
+            <text x="247" y="98" class="t2" text-anchor="middle">denoise · kontras</text>
+
+            <rect class="pa" x="354" y="44" width="134" height="66" rx="7"/>
+            <text x="421" y="72" class="t1" text-anchor="middle">Enhanced Image</text>
+            <text x="421" y="90" class="t2" text-anchor="middle">siap diproses</text>
+
+            <rect class="pb" x="520" y="44" width="134" height="66" rx="7"/>
+            <text x="587" y="68" class="t1" text-anchor="middle">Feature Extraction</text>
+            <text x="587" y="86" class="t2" text-anchor="middle">Materi 04 / 05</text>
+
+            <rect class="pb" x="686" y="44" width="60" height="66" rx="7"/>
+            <text x="716" y="78" class="t1" text-anchor="middle">Model</text>
+
+            <path class="fl" d="M140 77h24M322 77h24M488 77h24M654 77h24"/>
+
+            <path d="M247 118 v28 H587 v-28" stroke="var(--dg-accent-2)" stroke-width="1.5" stroke-dasharray="5 5" fill="none"/>
+            <text x="417" y="166" class="t2" text-anchor="middle">
+              Pilihan preprocessing ditentukan oleh kebutuhan tahap berikutnya — bukan sebaliknya.
+            </text>
+            <text x="417" y="190" class="t2" text-anchor="middle" font-style="italic">
+              Informasi yang dibuang pada tahap ini tidak dapat dikembalikan di tahap mana pun.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 3.1.</b> Kedudukan preprocessing dalam pipeline Computer Vision.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 1 — Pre-processing for Computer Vision Tasks.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Resizing dan cropping</h3>
+      <p>
+        Sebagian besar model membutuhkan masukan berukuran tetap, sehingga resize hampir selalu diperlukan.
+        Persoalannya, memperkecil citra berarti membuang pixel dan memperbesar berarti mengarang pixel baru.
+        Keduanya dilakukan lewat interpolasi:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Metode</th><th>Cara kerja</th><th>Cocok untuk</th></tr></thead>
+          <tbody>
+            <tr><td>Nearest neighbour</td><td>Mengambil nilai pixel terdekat</td><td>Mask dan citra berlabel — nilai label tidak boleh tercampur</td></tr>
+            <tr><td>Bilinear</td><td>Rata-rata berbobot dari empat pixel terdekat</td><td>Citra umum, cepat dan halus</td></tr>
+            <tr><td>Bicubic</td><td>Interpolasi dari enam belas pixel tetangga</td><td>Pembesaran yang mengutamakan kualitas</td></tr>
+            <tr><td>Area</td><td>Rata-rata seluruh pixel di area sumber</td><td>Pengecilan citra — paling minim aliasing</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Cropping berbeda dari resize: ia membuang bagian citra tanpa mengubah skala bagian yang tersisa. Ketika
+        rasio aspek citra tidak sama dengan rasio masukan model, kita harus memilih antara memotong sebagian objek
+        (crop) atau membuat objek menjadi gepeng (resize paksa). Pilihan ketiga yang sering lebih baik adalah
+        <em>letterboxing</em>: menambahkan bidang kosong agar rasio tetap terjaga.
+      </p>
+
+      <h3>Normalisasi</h3>
+      <p>
+        Normalisasi mengubah rentang nilai pixel agar konsisten. Bentuk paling sederhana adalah membagi seluruh
+        nilai dengan 255 sehingga rentangnya menjadi 0 sampai 1. Bentuk yang lebih umum pada deep learning adalah
+        standardisasi: mengurangi rerata lalu membagi dengan simpangan baku setiap kanal. Tujuannya membuat
+        distribusi masukan stabil, sehingga proses optimasi berjalan lebih mulus.
+      </p>
+
+      <h3>Konversi grayscale</h3>
+      <p>
+        Konversi tidak dilakukan dengan rata-rata sederhana, melainkan rata-rata berbobot yang mencerminkan
+        kepekaan mata manusia — mata kita paling peka terhadap hijau dan paling kurang peka terhadap biru:
+      </p>
+      <pre><code>Y = 0,299·R + 0,587·G + 0,114·B</code></pre>
+
+      <h3>Derau dan penapisan</h3>
+      <p>
+        Derau adalah variasi nilai pixel yang tidak berasal dari scene, melainkan dari proses akuisisi atau
+        transmisi. Bentuknya bermacam-macam: derau Gaussian yang menyebar merata, derau salt-and-pepper berupa
+        titik hitam-putih ekstrem, dan derau speckle yang khas pada citra ultrasonik atau radar.
+      </p>
+      <p>
+        <strong>Spatial filtering</strong> mengubah nilai setiap pixel berdasarkan nilai pixel-pixel tetangganya.
+        Inilah keluarga operasi terpenting pada materi ini:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Jenis</th><th>Yang diloloskan</th><th>Efek</th><th>Contoh kernel</th></tr></thead>
+          <tbody>
+            <tr><td>Low-pass</td><td>Perubahan lambat</td><td>Menghaluskan, menekan derau, mengaburkan tepi</td><td>Box filter, Gaussian</td></tr>
+            <tr><td>High-pass</td><td>Perubahan cepat</td><td>Menonjolkan tepi dan detail, memperkuat derau</td><td>Laplacian, Sobel, Prewitt</td></tr>
+            <tr><td>Non-linear</td><td>—</td><td>Menghapus derau ekstrem tanpa mengaburkan tepi</td><td>Median filter</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Filter penajam pada dasarnya adalah diferensiasi digital: ia menonjolkan transisi intensitas. Laplacian
+        adalah contoh paling langsung — ia menyoroti tepi dan diskontinuitas. Perhatikan pertukarannya: filter
+        yang menekan derau juga mengaburkan tepi, sedangkan filter yang menajamkan tepi juga memperkuat derau.
+        Tidak ada filter yang unggul pada keduanya sekaligus.
+      </p>
+
+      <h3>Kontras dan histogram</h3>
+      <p>
+        Histogram citra menunjukkan berapa banyak pixel yang memiliki setiap tingkat intensitas. Bentuknya
+        menceritakan banyak hal sebelum kita melihat citranya:
+      </p>
+      <ul>
+        <li>menumpuk di kiri → citra gelap, kemungkinan kurang pencahayaan;</li>
+        <li>menumpuk di kanan → citra terlalu terang, mungkin ada bagian yang tersaturasi;</li>
+        <li>menumpuk sempit di tengah → kontras rendah, citra terlihat kelabu dan datar;</li>
+        <li>menyebar merata → kontras baik;</li>
+        <li>dua puncak terpisah → ada dua kelompok intensitas, biasanya objek dan latar belakang. Bentuk inilah yang ideal untuk thresholding.</li>
+      </ul>
+      <p>
+        <em>Histogram equalization</em> menyebarkan kembali nilai intensitas agar histogram lebih merata,
+        sehingga kontras meningkat. Versi yang lebih aman adalah CLAHE, yang melakukannya per blok kecil dengan
+        pembatasan agar derau pada area datar tidak ikut diperkuat.
+      </p>
+
+      <h3>Thresholding</h3>
+      <p>
+        Thresholding mengubah citra grayscale menjadi citra biner: pixel di atas ambang menjadi 1, sisanya 0.
+        Hasilnya adalah mask — konsep yang sudah dikenalkan di Materi 02. Threshold global memakai satu nilai
+        untuk seluruh citra dan hanya bekerja baik bila pencahayaan merata. Metode Otsu memilih ambang tersebut
+        secara otomatis dari bentuk histogram. Ketika pencahayaan tidak merata, threshold adaptif yang menghitung
+        ambang berbeda untuk tiap area lokal jauh lebih andal.
+      </p>
+
+      <h3>Augmentasi data</h3>
+      <p>
+        Augmentasi berbeda dari preprocessing meskipun memakai operasi yang mirip. Preprocessing diterapkan pada
+        semua citra, termasuk saat pengujian. Augmentasi hanya diterapkan pada data latih, dan tujuannya justru
+        <em>menambah</em> keragaman: flip, rotasi, crop acak, perubahan kecerahan, penambahan derau. Hasilnya,
+        model tidak menghafal, melainkan belajar sifat yang tetap bertahan meski citranya berubah. Augmentasi
+        menjadi sangat berharga ketika data latih terbatas — situasi yang nyaris selalu terjadi di luar dataset
+        standar.
+      </p>
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Augmentasi tidak boleh sembarangan</p>
+        <p style="margin-bottom:0">
+          Membalik citra secara horizontal wajar untuk klasifikasi kucing, tetapi merusak untuk pengenalan huruf —
+          "b" yang dibalik menjadi "d". Setiap augmentasi harus mempertahankan makna labelnya.
+        </p>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Spatial filtering langkah demi langkah</h3>
+      <p>
+        Filter spasial bekerja dengan menempatkan sebuah kernel di atas citra, mengalikan nilai yang bertindihan,
+        menjumlahkan hasilnya, lalu menuliskan jumlah tersebut pada posisi yang disentuh pusat kernel.
+        Operasi ini diulang untuk setiap pixel.
+      </p>
+
+      <p>Ambil potongan citra 3×3 dan sebuah box filter 3×3 untuk penghalusan:</p>
+
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Potongan citra</span>
+          <div class="matrix" style="grid-template-columns: repeat(3, auto)" role="img" aria-label="Matriks citra tiga kali tiga berisi 120, 124, 130, 118, 200, 128, 122, 126, 132">
+            <span>120</span><span>124</span><span>130</span>
+            <span>118</span><span class="hl">200</span><span>128</span>
+            <span>122</span><span>126</span><span>132</span>
+          </div>
+        </div>
+        <span class="op" aria-hidden="true">⊛</span>
+        <div>
+          <span class="matrix-cap">Box filter (rata-rata)</span>
+          <div class="matrix" style="grid-template-columns: repeat(3, auto)" role="img" aria-label="Kernel tiga kali tiga dengan seluruh elemen bernilai satu per sembilan">
+            <span>1/9</span><span>1/9</span><span>1/9</span>
+            <span>1/9</span><span class="hl">1/9</span><span>1/9</span>
+            <span>1/9</span><span>1/9</span><span>1/9</span>
+          </div>
+        </div>
+        <span class="op" aria-hidden="true">=</span>
+        <div>
+          <span class="matrix-cap">Hasil di pusat</span>
+          <div class="matrix" style="grid-template-columns: auto">
+            <span class="hl">133</span>
+          </div>
+        </div>
+      </div>
+
+      <pre><code>(120 + 124 + 130 + 118 + 200 + 128 + 122 + 126 + 132) ÷ 9
+= 1200 ÷ 9
+= 133,3  →  133</code></pre>
+
+      <p>
+        Nilai 200 di pusat — yang menyimpang jauh dari tetangganya dan kemungkinan besar adalah derau — ditarik
+        turun menjadi 133. Itulah cara kerja penghalusan. Perhatikan juga efek sampingnya: seandainya 200 tersebut
+        bukan derau melainkan tepi asli sebuah objek, tepi itu ikut hilang. Filter tidak tahu bedanya.
+      </p>
+
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Median filter untuk kasus ini</p>
+        <p style="margin-bottom:0">
+          Bila nilai-nilai di atas diurutkan — 118, 120, 122, 124, 126, 128, 130, 132, 200 — nilai tengahnya
+          adalah 126. Median filter langsung mengabaikan nilai ekstrem tanpa mencampurnya ke dalam rata-rata,
+          sehingga jauh lebih efektif untuk derau salt-and-pepper dan tidak terlalu mengaburkan tepi.
+        </p>
+      </div>
+
+      <h3>Membandingkan tiga kernel</h3>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Box — menghaluskan</span>
+          <div class="matrix" style="grid-template-columns: repeat(3, auto)" role="img" aria-label="Kernel box filter dengan seluruh elemen satu dibagi sembilan">
+            <span>1</span><span>1</span><span>1</span>
+            <span>1</span><span>1</span><span>1</span>
+            <span>1</span><span>1</span><span>1</span>
+          </div>
+          <span class="matrix-cap">× 1/9</span>
+        </div>
+        <div>
+          <span class="matrix-cap">Gaussian — menghaluskan halus</span>
+          <div class="matrix" style="grid-template-columns: repeat(3, auto)" role="img" aria-label="Kernel Gaussian dengan bobot satu dua satu, dua empat dua, satu dua satu">
+            <span>1</span><span>2</span><span>1</span>
+            <span>2</span><span>4</span><span>2</span>
+            <span>1</span><span>2</span><span>1</span>
+          </div>
+          <span class="matrix-cap">× 1/16</span>
+        </div>
+        <div>
+          <span class="matrix-cap">Laplacian — menajamkan</span>
+          <div class="matrix" style="grid-template-columns: repeat(3, auto)" role="img" aria-label="Kernel Laplacian dengan nilai nol satu nol, satu minus empat satu, nol satu nol">
+            <span>0</span><span>1</span><span>0</span>
+            <span>1</span><span>−4</span><span>1</span>
+            <span>0</span><span>1</span><span>0</span>
+          </div>
+        </div>
+      </div>
+      <p>
+        Perhatikan pola yang menentukan sifat kernel: bila seluruh bobot bernilai positif dan jumlahnya satu,
+        kernel tersebut <em>menghaluskan</em>. Bila terdapat bobot negatif dan jumlah totalnya nol, kernel tersebut
+        <em>mendeteksi perubahan</em>. Pola ini akan kembali muncul di Materi 05, dan di sana kita akan melihat
+        bahwa CNN menemukan sendiri bobot-bobot semacam ini dari data.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 280" role="img" aria-label="Diagram kernel tiga kali tiga yang digeser di atas citra, hasil perkalian dan penjumlahan dituliskan pada posisi pusat kernel di citra keluaran">
+            <style>
+              .g  { stroke: var(--dg-grid); stroke-width: 1; fill: var(--dg-fill); }
+              .k  { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 2.2; }
+              .o  { stroke: var(--dg-grid); stroke-width: 1; fill: var(--dg-fill); }
+              .nv { font: 10px monospace; fill: var(--dg-text); }
+              .h1 { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .h2 { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .74; }
+            </style>
+
+            <text x="20" y="26" class="h1">Citra masukan</text>
+            <g transform="translate(20,36)">
+              <g>
+                <rect class="g" x="0"   y="0"  width="34" height="30"/><rect class="g" x="34"  y="0"  width="34" height="30"/>
+                <rect class="g" x="68"  y="0"  width="34" height="30"/><rect class="g" x="102" y="0"  width="34" height="30"/>
+                <rect class="g" x="136" y="0"  width="34" height="30"/>
+                <rect class="g" x="0"   y="30" width="34" height="30"/><rect class="g" x="34"  y="30" width="34" height="30"/>
+                <rect class="g" x="68"  y="30" width="34" height="30"/><rect class="g" x="102" y="30" width="34" height="30"/>
+                <rect class="g" x="136" y="30" width="34" height="30"/>
+                <rect class="g" x="0"   y="60" width="34" height="30"/><rect class="g" x="34"  y="60" width="34" height="30"/>
+                <rect class="g" x="68"  y="60" width="34" height="30"/><rect class="g" x="102" y="60" width="34" height="30"/>
+                <rect class="g" x="136" y="60" width="34" height="30"/>
+                <rect class="g" x="0"   y="90" width="34" height="30"/><rect class="g" x="34"  y="90" width="34" height="30"/>
+                <rect class="g" x="68"  y="90" width="34" height="30"/><rect class="g" x="102" y="90" width="34" height="30"/>
+                <rect class="g" x="136" y="90" width="34" height="30"/>
+              </g>
+              <g class="nv" text-anchor="middle">
+                <text x="17" y="19">120</text><text x="51" y="19">124</text><text x="85" y="19">130</text><text x="119" y="19">126</text><text x="153" y="19">121</text>
+                <text x="17" y="49">118</text><text x="51" y="49">200</text><text x="85" y="49">128</text><text x="119" y="49">124</text><text x="153" y="49">119</text>
+                <text x="17" y="79">122</text><text x="51" y="79">126</text><text x="85" y="79">132</text><text x="119" y="79">128</text><text x="153" y="79">125</text>
+                <text x="17" y="109">119</text><text x="51" y="109">123</text><text x="85" y="109">127</text><text x="119" y="109">130</text><text x="153" y="109">124</text>
+              </g>
+              <rect class="k" x="0" y="0" width="102" height="90" style="fill:none;"/>
+              </g>
+
+            <!-- arrow + formula -->
+            <g transform="translate(210,70)">
+              <path d="M0 26 h40" stroke="var(--dg-stroke)" stroke-width="1.8" marker-end="url(#arF)"/>
+              <defs>
+                <marker id="arF" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+                </marker>
+              </defs>
+            </g>
+
+            <g transform="translate(266,36)">
+              <rect x="0" y="0" width="176" height="122" rx="7" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.6"/>
+              <text x="88" y="24" class="h1" text-anchor="middle">Operasi per posisi</text>
+              <text x="14" y="48" class="h2">1 · kalikan nilai bertindihan</text>
+              <text x="14" y="68" class="h2">2 · jumlahkan hasilnya</text>
+              <text x="14" y="88" class="h2">3 · tulis di posisi pusat kernel</text>
+              <text x="14" y="110" class="h2" style="font-family:monospace;">Σ (citra × kernel) = 133</text>
+            </g>
+
+            <g transform="translate(462,70)">
+              <path d="M0 26 h40" stroke="var(--dg-stroke)" stroke-width="1.8" marker-end="url(#arF)"/>
+            </g>
+
+            <text x="518" y="26" class="h1">Feature map</text>
+            <g transform="translate(518,36)">
+              <g>
+                <rect class="o" x="0"   y="0"  width="34" height="30"/><rect class="o" x="34"  y="0"  width="34" height="30"/><rect class="o" x="68" y="0"  width="34" height="30"/>
+                <rect class="o" x="0"   y="30" width="34" height="30"/><rect class="o" x="34"  y="30" width="34" height="30"/><rect class="o" x="68" y="30" width="34" height="30"/>
+                <rect class="o" x="0"   y="60" width="34" height="30"/><rect class="o" x="34"  y="60" width="34" height="30"/><rect class="o" x="68" y="60" width="34" height="30"/>
+              </g>
+              <rect x="0" y="0" width="34" height="30" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="2"/>
+              <g class="nv" text-anchor="middle">
+                <text x="17" y="19" font-weight="700">133</text><text x="51" y="19">134</text><text x="85" y="19">126</text>
+                <text x="17" y="49">—</text><text x="51" y="49">—</text><text x="85" y="49">—</text>
+                <text x="17" y="79">—</text><text x="51" y="79">—</text><text x="85" y="79">—</text>
+              </g>
+            </g>
+
+            <text x="370" y="216" class="h2" text-anchor="middle">
+              Kernel digeser satu posisi ke kanan, operasi diulang, sampai seluruh citra tercakup.
+            </text>
+            <text x="370" y="240" class="h2" text-anchor="middle" font-style="italic">
+              Operasi yang sama persis inilah yang dipelajari CNN pada Materi 05 — bedanya, nilai kernel dicari dari data.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 3.2.</b> Spatial filtering: kernel digeser ke seluruh citra, menghasilkan feature map.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 1 — Pre-processing dan Unit 2 — Introduction to CNN.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration — Histogram &amp; Thresholding</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 300" role="img" aria-label="Tiga histogram: kontras rendah menumpuk di tengah, hasil peregangan kontras menyebar merata, dan histogram dua puncak dengan garis ambang di lembah antara kedua puncak">
+            <style>
+              .bar  { fill: var(--dg-accent); opacity: .78; }
+              .bar2 { fill: var(--dg-accent-2); opacity: .78; }
+              .fr   { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; rx: 6; }
+              .hl1  { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .hl2  { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .74; }
+              .axl  { font: 9.5px monospace; fill: var(--dg-text); opacity: .6; }
+            </style>
+
+            <!-- low contrast -->
+            <text x="16" y="24" class="hl1">Kontras rendah</text>
+            <rect class="fr" x="16" y="34" width="216" height="128"/>
+            <g class="bar" transform="translate(16,162)">
+              <rect x="86" y="-14" width="7" height="14"/><rect x="94" y="-26" width="7" height="26"/>
+              <rect x="102" y="-46" width="7" height="46"/><rect x="110" y="-72" width="7" height="72"/>
+              <rect x="118" y="-88" width="7" height="88"/><rect x="126" y="-74" width="7" height="74"/>
+              <rect x="134" y="-50" width="7" height="50"/><rect x="142" y="-28" width="7" height="28"/>
+              <rect x="150" y="-12" width="7" height="12"/>
+            </g>
+            <text x="20" y="176" class="axl">0</text><text x="212" y="176" class="axl">255</text>
+            <text x="16" y="196" class="hl2">nilai menumpuk sempit → citra</text>
+            <text x="16" y="210" class="hl2">terlihat kelabu dan datar</text>
+
+            <!-- equalized -->
+            <text x="262" y="24" class="hl1">Setelah peregangan kontras</text>
+            <rect class="fr" x="262" y="34" width="216" height="128"/>
+            <g class="bar" transform="translate(262,162)">
+              <rect x="14" y="-30" width="9" height="30"/><rect x="34" y="-52" width="9" height="52"/>
+              <rect x="54" y="-70" width="9" height="70"/><rect x="74" y="-86" width="9" height="86"/>
+              <rect x="94" y="-92" width="9" height="92"/><rect x="114" y="-84" width="9" height="84"/>
+              <rect x="134" y="-68" width="9" height="68"/><rect x="154" y="-50" width="9" height="50"/>
+              <rect x="174" y="-34" width="9" height="34"/><rect x="194" y="-20" width="9" height="20"/>
+            </g>
+            <text x="266" y="176" class="axl">0</text><text x="458" y="176" class="axl">255</text>
+            <text x="262" y="196" class="hl2">nilai menyebar ke seluruh rentang</text>
+            <text x="262" y="210" class="hl2">→ detail lebih terbaca</text>
+
+            <!-- bimodal + threshold -->
+            <text x="508" y="24" class="hl1">Histogram dua puncak</text>
+            <rect class="fr" x="508" y="34" width="216" height="128"/>
+            <g class="bar2" transform="translate(508,162)">
+              <rect x="18" y="-42" width="8" height="42"/><rect x="28" y="-70" width="8" height="70"/>
+              <rect x="38" y="-88" width="8" height="88"/><rect x="48" y="-64" width="8" height="64"/>
+              <rect x="58" y="-36" width="8" height="36"/><rect x="68" y="-16" width="8" height="16"/>
+              <rect x="78" y="-8" width="8" height="8"/><rect x="88" y="-6" width="8" height="6"/>
+              <rect x="120" y="-10" width="8" height="10"/><rect x="130" y="-26" width="8" height="26"/>
+              <rect x="140" y="-58" width="8" height="58"/><rect x="150" y="-84" width="8" height="84"/>
+              <rect x="160" y="-92" width="8" height="92"/><rect x="170" y="-66" width="8" height="66"/>
+              <rect x="180" y="-38" width="8" height="38"/><rect x="190" y="-18" width="8" height="18"/>
+            </g>
+            <path d="M614 40 V162" stroke="var(--dg-accent)" stroke-width="2.2" stroke-dasharray="6 4"/>
+            <text x="618" y="52" class="hl2" style="fill:var(--dg-accent);">ambang</text>
+            <text x="512" y="176" class="axl">0</text><text x="704" y="176" class="axl">255</text>
+            <text x="508" y="196" class="hl2">dua kelompok terpisah: latar dan</text>
+            <text x="508" y="210" class="hl2">objek → ideal untuk thresholding</text>
+
+            <line x1="16" y1="236" x2="724" y2="236" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="370" y="262" class="hl2" text-anchor="middle">
+              Histogram dibaca sebelum memilih operasi: bentuknya memberi tahu operasi apa yang sebenarnya dibutuhkan.
+            </text>
+            <text x="370" y="282" class="hl2" text-anchor="middle" font-style="italic">
+              Bila histogram tidak memiliki dua puncak yang jelas, threshold global hampir pasti gagal.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 3.3.</b> Membaca histogram: kontras rendah, hasil peregangan kontras, dan histogram dua puncak beserta letak ambangnya.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 1 — Pre-processing for Computer Vision Tasks.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 220" role="img" aria-label="Perbandingan sebelum dan sesudah empat operasi: citra asli berderau, hasil penghalusan, hasil penajaman tepi, dan hasil thresholding biner">
+            <style>
+              .fm { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.5; rx: 6; }
+              .cp { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .cq { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .72; }
+            </style>
+            <defs>
+              <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter>
+              <clipPath id="cl1"><rect x="0" y="0" width="150" height="110" rx="6"/></clipPath>
+              <clipPath id="cl2"><rect x="0" y="0" width="150" height="110" rx="6"/></clipPath>
+              <filter id="blurF"><feGaussianBlur stdDeviation="2.4"/></filter>
+            </defs>
+
+            <!-- original noisy -->
+            <g transform="translate(16,26)">
+              <rect class="fm" x="0" y="0" width="150" height="110"/>
+              <g clip-path="url(#cl1)">
+                <circle cx="62" cy="52" r="32" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.6"/>
+                <rect x="92" y="62" width="44" height="36" rx="4" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1.6"/>
+                <rect x="0" y="0" width="150" height="110" filter="url(#grain)" opacity=".38"/>
+              </g>
+              <text x="0" y="130" class="cp">Asli — berderau</text>
+              <text x="0" y="146" class="cq">titik acak tersebar</text>
+            </g>
+
+            <!-- smoothed -->
+            <g transform="translate(196,26)">
+              <rect class="fm" x="0" y="0" width="150" height="110"/>
+              <g clip-path="url(#cl2)" filter="url(#blurF)">
+                <circle cx="62" cy="52" r="32" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.6"/>
+                <rect x="92" y="62" width="44" height="36" rx="4" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1.6"/>
+              </g>
+              <text x="0" y="130" class="cp">Gaussian blur</text>
+              <text x="0" y="146" class="cq">derau hilang, tepi ikut kabur</text>
+            </g>
+
+            <!-- edges -->
+            <g transform="translate(376,26)">
+              <rect class="fm" x="0" y="0" width="150" height="110" style="fill:#10181c;"/>
+              <circle cx="62" cy="52" r="32" fill="none" stroke="#e8e8e8" stroke-width="2.4"/>
+              <rect x="92" y="62" width="44" height="36" rx="4" fill="none" stroke="#e8e8e8" stroke-width="2.4"/>
+              <text x="0" y="130" class="cp">Deteksi tepi</text>
+              <text x="0" y="146" class="cq">hanya perubahan yang tersisa</text>
+            </g>
+
+            <!-- threshold -->
+            <g transform="translate(556,26)">
+              <rect class="fm" x="0" y="0" width="150" height="110" style="fill:#ffffff;"/>
+              <circle cx="62" cy="52" r="32" fill="#111111"/>
+              <rect x="92" y="62" width="44" height="36" rx="4" fill="#111111"/>
+              <text x="0" y="130" class="cp">Thresholding</text>
+              <text x="0" y="146" class="cq">mask biner: objek vs latar</text>
+            </g>
+
+            <text x="370" y="192" class="cq" text-anchor="middle">
+              Empat operasi, empat tujuan berbeda. Urutan penerapannya menentukan hasil akhir.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 3.4.</b> Perbandingan sebelum dan sesudah empat operasi preprocessing yang paling sering dipakai.
+          <span class="src">Sumber: ilustrasi orisinal COM Computer Vision (bentuk sintetis, bukan foto), dibuat untuk menunjukkan efek tiap operasi.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        <strong>Kasus:</strong> memisahkan objek gelap dari latar terang pada foto hasil pemindaian dokumen yang
+        difoto memakai ponsel di ruangan dengan pencahayaan tidak merata.
+      </p>
+
+      <p>Rancangan pipeline beserta alasan setiap langkah:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Urutan</th><th>Operasi</th><th>Alasan</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Konversi grayscale</td><td>Warna tidak membawa informasi untuk memisahkan teks dari kertas; komputasi berkurang tiga kali.</td></tr>
+            <tr><td>2</td><td>Gaussian blur ringan (3×3)</td><td>Menekan derau sensor agar tidak menjadi titik palsu saat thresholding.</td></tr>
+            <tr><td>3</td><td>Threshold adaptif</td><td>Pencahayaan tidak merata, sehingga satu ambang global akan menggelapkan sisi kiri dan memutihkan sisi kanan.</td></tr>
+            <tr><td>4</td><td>Morfologi opening</td><td>Menghapus bintik kecil sisa thresholding tanpa merusak bentuk huruf.</td></tr>
+            <tr><td>5</td><td>Resize ke ukuran masukan model</td><td>Dilakukan paling akhir agar operasi sebelumnya bekerja pada resolusi penuh.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Urutan bukan hal sepele</p>
+        <p style="margin-bottom:0">
+          Bila resize dilakukan lebih dahulu, detail huruf tipis sudah hilang sebelum sempat diproses, dan tidak
+          ada operasi berikutnya yang dapat mengembalikannya. Bila thresholding dilakukan sebelum denoise, setiap
+          titik derau menjadi objek hitam tersendiri. Preprocessing adalah rangkaian berurutan, bukan sekumpulan
+          operasi yang bebas ditukar-tukar.
+        </p>
+      </div>
+
+      <details class="acc">
+        <summary>Setelah memahami alurnya — bentuk kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python · OpenCV</span>
+<pre><code>import cv2
+
+img  = cv2.imread("dokumen.jpg")          # BGR, bukan RGB
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)   # langkah 1
+blur = cv2.GaussianBlur(gray, (3, 3), 0)       # langkah 2
+
+binar = cv2.adaptiveThreshold(                 # langkah 3
+    blur, 255,
+    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    cv2.THRESH_BINARY_INV,
+    blockSize=31, C=10
+)
+
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+clean  = cv2.morphologyEx(binar, cv2.MORPH_OPEN, kernel)   # langkah 4
+
+final = cv2.resize(clean, (640, 640), interpolation=cv2.INTER_AREA)  # langkah 5</code></pre>
+          <p style="margin-bottom:0">
+            Perhatikan <code>blockSize=31</code>: ambang dihitung dari area 31×31 pixel di sekitar setiap pixel,
+            bukan dari seluruh citra. Di situlah letak keunggulan threshold adaptif. Perhatikan pula
+            <code>INTER_AREA</code> yang dipilih karena kita mengecilkan citra.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Pengenalan teks otomatis (OCR)</dt>
+        <dd>Hampir seluruh sistem OCR memakai koreksi kemiringan, threshold adaptif, dan operasi morfologi sebelum karakter dikenali. Kualitas preprocessing di sini menentukan keberhasilan lebih besar daripada pemilihan model.</dd>
+        <dt>Citra medis</dt>
+        <dd>CLAHE lazim dipakai pada citra rontgen agar perbedaan halus antar jaringan lebih terbaca tanpa memperkuat derau secara berlebihan.</dd>
+        <dt>Inspeksi permukaan industri</dt>
+        <dd>Filter high-pass dipakai untuk menonjolkan goresan dan retakan yang nyaris tak terlihat pada citra asli.</dd>
+        <dt>Pertanian presisi</dt>
+        <dd>Citra drone dinormalisasi antar-penerbangan agar perbedaan kecerahan akibat cuaca tidak dikira sebagai perubahan kondisi tanaman.</dd>
+        <dt>Pelatihan model modern</dt>
+        <dd>Augmentasi batch-wise dilakukan saat pelatihan berlangsung, bukan disimpan sebagai berkas, sehingga menghemat ruang penyimpanan sekaligus menambah keragaman data.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Lebih banyak preprocessing selalu lebih baik."</p>
+        <p style="margin-bottom:0">
+          Setiap operasi membuang sesuatu. Menumpuk penghalusan berulang kali menghapus justru tepi yang
+          dibutuhkan detektor fitur. Setiap langkah harus punya alasan yang dapat dijelaskan.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Deep learning membuat preprocessing tidak diperlukan."</p>
+        <p style="margin-bottom:0">
+          Sebagian benar: CNN memang dapat mempelajari operasi tingkat rendah sendiri. Namun resize, normalisasi,
+          dan penyeragaman format tetap wajib. Dan ketika data terbatas, preprocessing yang tepat sering
+          memberikan peningkatan lebih besar daripada mengganti arsitektur.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Threshold global cukup asal nilainya pas."</p>
+        <p style="margin-bottom:0">
+          Tidak ada nilai yang pas ketika pencahayaan tidak merata. Bayangan di satu sisi citra membuat pixel
+          latar belakang di sana lebih gelap daripada pixel objek di sisi lain — satu nilai ambang tidak mungkin
+          benar untuk keduanya.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Augmentasi sama dengan preprocessing."</p>
+        <p style="margin-bottom:0">
+          Preprocessing diterapkan pada semua data termasuk saat pengujian dan bertujuan menyeragamkan. Augmentasi
+          hanya pada data latih dan justru bertujuan menambah keragaman. Menerapkan augmentasi acak pada data uji
+          membuat hasil evaluasi tidak dapat direproduksi.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Preprocessing adalah rangkaian pertukaran.</strong> Setiap operasi menonjolkan sesuatu dengan membuang sesuatu yang lain.</li>
+        <li><strong>Filtering spasial mengubah pixel berdasarkan tetangganya.</strong> Low-pass menghaluskan, high-pass menajamkan.</li>
+        <li><strong>Kernel positif berjumlah satu menghaluskan; kernel dengan bobot negatif berjumlah nol mendeteksi perubahan.</strong></li>
+        <li><strong>Median filter unggul untuk derau ekstrem</strong> karena tidak mencampurkan nilai menyimpang ke dalam rata-rata.</li>
+        <li><strong>Histogram dibaca sebelum memilih operasi.</strong> Bentuknya menunjukkan apa yang sebenarnya diperlukan.</li>
+        <li><strong>Threshold adaptif untuk pencahayaan tidak merata;</strong> threshold global hanya untuk pencahayaan terkendali.</li>
+        <li><strong>Urutan operasi menentukan hasil.</strong> Resize di awal membuang detail yang tak bisa dikembalikan.</li>
+        <li><strong>Augmentasi ≠ preprocessing.</strong> Tujuan dan cakupan penerapannya berbeda.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <ul>
+        <li>Google Colab atau Python lokal dengan OpenCV, NumPy, dan Matplotlib.</li>
+        <li>Tiga citra dengan karakteristik berbeda: satu terlalu gelap, satu berderau, satu dengan pencahayaan tidak merata. Ambil sendiri — justru itulah bagian pembelajarannya.</li>
+        <li>Catatan untuk menuliskan alasan setiap operasi yang Anda pilih. Laporan praktikum menilai alasan, bukan sekadar hasil.</li>
+      </ul>
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Cara kerja yang disarankan</p>
+        <p style="margin-bottom:0">
+          Tampilkan histogram <em>sebelum</em> memutuskan operasi. Kebiasaan ini membedakan praktik yang beralasan
+          dari sekadar mencoba-coba fungsi sampai hasilnya kebetulan terlihat bagus.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="../practical/practical-03.html" data-practical-link>🧪 Mulai Praktikum 03</a>
+        <a class="btn secondary" href="https://huggingface.co/learn/computer-vision-course/en/unit1/image_and_imaging/examples-preprocess" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Pre-processing ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Tampilkan histogram ketiga citra Anda, lalu simpulkan kondisi masing-masing sebelum melakukan apa pun.</li>
+        <li>Terapkan konversi grayscale, resize dengan empat metode interpolasi, dan bandingkan hasilnya.</li>
+        <li>Tambahkan derau salt-and-pepper secara sengaja, lalu bandingkan efektivitas box filter, Gaussian, dan median.</li>
+        <li>Terapkan histogram equalization dan CLAHE pada citra berkontras rendah, lalu bandingkan.</li>
+        <li>Bandingkan threshold global, Otsu, dan adaptif pada citra dengan pencahayaan tidak merata.</li>
+        <li>Susun satu pipeline lengkap untuk tujuan yang Anda tentukan sendiri, dan tuliskan alasan setiap langkahnya.</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa median filter lebih baik daripada rata-rata untuk derau salt-and-pepper, padahal keduanya sama-sama melihat pixel tetangga?</li>
+        <li>Sebuah kernel berisi bobot negatif dan jumlah seluruhnya nol. Apa yang terjadi bila kernel ini diterapkan pada area citra yang nilainya seragam? Apa maknanya?</li>
+        <li>Anda ingin mendeteksi retakan halus pada permukaan logam. Operasi apa yang sebaiknya dihindari, dan mengapa?</li>
+        <li>Histogram sebuah citra hanya memiliki satu puncak lebar tanpa lembah. Apa yang akan terjadi bila Anda menerapkan thresholding Otsu?</li>
+        <li>Mengapa augmentasi tidak boleh diterapkan pada data uji, padahal operasinya sama dengan yang dipakai saat pelatihan?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/image_and_imaging/examples-preprocess" target="_blank" rel="noopener noreferrer">Unit 1: Pre-processing for Computer Vision Tasks</a>.</li>
+        <li>Gonzalez, R. C., &amp; Woods, R. E. <em>Digital Image Processing</em>. Pearson. — intensity transformation, spatial filtering, histogram processing, morfologi.</li>
+        <li><a href="https://docs.opencv.org/4.x/d2/d96/tutorial_py_table_of_contents_imgproc.html" target="_blank" rel="noopener noreferrer">OpenCV — Image Processing Tutorials</a>.</li>
+        <li><a href="https://scikit-image.org/docs/stable/auto_examples/" target="_blank" rel="noopener noreferrer">scikit-image — Gallery of Examples</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

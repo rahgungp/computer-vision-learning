@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Materi 04 · Feature Extraction &amp; Feature Matching — COM Computer Vision</title>
+<meta name="description" content="Materi 04: fitur, edge, corner, texture, kriteria deskriptor yang baik, SIFT, SURF, ORB, brute-force matching, ratio test, FLANN, LoFTR, dan RANSAC.">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="week" data-week="04">
+
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <span>Materi 04</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">Materi 04</span>
+        <h1 class="page-title" data-week-title>Feature Extraction &amp; Feature Matching</h1>
+        <p class="page-sub" data-week-subtitle>Edge, corner, texture, deskriptor, dan korespondensi antar citra</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ <span data-week-duration>110 menit</span></span>
+          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 1</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan apa yang membuat suatu titik pada citra layak disebut fitur;</li>
+          <li>membedakan edge, corner, dan texture serta menjelaskan mengapa corner paling berguna untuk matching;</li>
+          <li>menyebutkan dan menjelaskan kriteria deskriptor yang baik;</li>
+          <li>menguraikan tahapan SIFT serta membandingkannya dengan SURF dan ORB;</li>
+          <li>menjelaskan brute-force matching, ratio test, FLANN, dan peran RANSAC dalam menyaring pasangan yang salah.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Materi ini adalah puncak Computer Vision klasik sekaligus jembatan menuju deep learning.
+      </p>
+      <p>
+        Persoalan yang diangkat di sini adalah persoalan inti Computer Vision, yang sudah kita singgung sejak
+        Materi 01: sebuah objek yang sama, difoto dari sudut berbeda, dengan pencahayaan berbeda, pada jarak
+        berbeda, menghasilkan matriks angka yang sama sekali berbeda. Bagaimana mesin dapat mengenalinya sebagai
+        objek yang sama?
+      </p>
+      <p>
+        Jawaban klasiknya adalah: jangan bandingkan pixel, bandingkan <strong>fitur</strong>. Temukan
+        titik-titik yang menonjol, deskripsikan lingkungannya dengan cara yang tidak berubah meski citranya
+        berubah, lalu cocokkan deskripsi tersebut antar citra. Seluruh gagasan ini tetap relevan hari ini, dan
+        ia juga menjelaskan apa sebenarnya yang dilakukan CNN — hanya saja CNN mempelajari fiturnya sendiri,
+        sementara di sini kita merancangnya.
+      </p>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-02.html">Materi 02</a> — citra sebagai matriks dan konsep intensitas.</li>
+        <li><a href="./week-03.html">Materi 03</a> — spatial filtering, kernel, dan gradien intensitas.</li>
+        <li>Konsep vektor dan jarak antar vektor (Euclidean), secukupnya untuk memahami perbandingan deskriptor.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <h3>Apa itu fitur</h3>
+      <p>
+        Fitur adalah atribut yang dipelajari dari data dan kemudian dipakai untuk mengenali data baru. Pada citra,
+        fitur adalah bagian citra yang <strong>menonjol</strong> dan <strong>dapat ditemukan kembali</strong>.
+        Dua syarat itu sama pentingnya: menonjol tetapi tidak dapat ditemukan kembali pada citra lain tidak ada
+        gunanya untuk matching.
+      </p>
+
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Concept First — tiga jenis wilayah</p>
+        <p style="margin-bottom:0">
+          Bayangkan Anda mengintip citra lewat jendela kecil, lalu menggeser jendela itu sedikit ke segala arah.
+          Bila isinya <em>tidak berubah sama sekali</em>, Anda sedang melihat area datar. Bila berubah hanya pada
+          satu arah, Anda melihat tepi. Bila berubah pada <em>semua</em> arah, Anda menemukan sudut — dan sudut
+          itulah fitur terbaik.
+        </p>
+      </div>
+
+      <h3>Tiga jenis fitur dasar</h3>
+      <dl class="defs">
+        <dt>Edge (tepi)</dt>
+        <dd>Batas tempat intensitas berubah tajam, biasanya menandai batas objek atau perubahan permukaan. Sudah dapat dideteksi dengan filter high-pass yang Anda pelajari di Materi 03. Kelemahannya untuk matching: setiap titik di sepanjang tepi terlihat sama, sehingga posisi pastinya ambigu.</dd>
+        <dt>Corner (sudut)</dt>
+        <dd>Titik tempat dua tepi bertemu, sehingga intensitas berubah ke segala arah. Inilah fitur paling berguna karena posisinya tidak ambigu — pergeseran sekecil apa pun langsung terdeteksi.</dd>
+        <dt>Texture (tekstur)</dt>
+        <dd>Pola yang berulang pada suatu area: serat kayu, anyaman kain, pori-pori kulit. Berguna untuk mengenali material dan mengelompokkan area, tetapi tidak menunjuk satu titik tertentu.</dd>
+      </dl>
+
+      <h3>Tiga tahap yang selalu berurutan</h3>
+      <p>Seluruh Computer Vision berbasis fitur mengikuti rantai yang sama:</p>
+      <ol>
+        <li><strong>Feature Detection</strong> — menemukan <em>di mana</em> titik-titik menonjol berada. Keluarannya disebut keypoint.</li>
+        <li><strong>Feature Description</strong> — mendeskripsikan <em>seperti apa</em> lingkungan di sekitar setiap keypoint, dalam bentuk vektor angka.</li>
+        <li><strong>Feature Matching</strong> — mencocokkan vektor deskriptor dari dua citra untuk menemukan pasangan titik yang bersesuaian.</li>
+      </ol>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 200" role="img" aria-label="Diagram rantai: citra menuju feature detection menghasilkan keypoint, menuju feature description menghasilkan vektor deskriptor, menuju feature matching menghasilkan pasangan korespondensi">
+            <defs>
+              <marker id="arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .q  { fill: var(--dg-fill);   stroke: var(--dg-stroke);   stroke-width: 1.6; }
+              .qa { fill: var(--dg-fill-2); stroke: var(--dg-accent);   stroke-width: 1.6; }
+              .qb { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .u1 { font: 700 12px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .u2 { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .74; }
+              .fw { stroke: var(--dg-stroke); stroke-width: 1.8; fill: none; marker-end: url(#arG); }
+            </style>
+
+            <rect class="q" x="16" y="42" width="120" height="72" rx="7"/>
+            <circle cx="52" cy="72" r="16" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.3"/>
+            <path d="M84 96 l18 -26 l18 26 z" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1.3"/>
+            <text x="76" y="134" class="u1" text-anchor="middle">Image</text>
+
+            <rect class="qa" x="184" y="42" width="140" height="72" rx="7"/>
+            <g fill="var(--dg-accent-2)">
+              <circle cx="212" cy="66" r="3.5"/><circle cx="244" cy="58" r="3.5"/>
+              <circle cx="272" cy="80" r="3.5"/><circle cx="300" cy="64" r="3.5"/>
+              <circle cx="228" cy="96" r="3.5"/><circle cx="288" cy="100" r="3.5"/>
+            </g>
+            <text x="254" y="134" class="u1" text-anchor="middle">Feature Detection</text>
+            <text x="254" y="150" class="u2" text-anchor="middle">di mana? → keypoint</text>
+
+            <rect class="qa" x="372" y="42" width="150" height="72" rx="7"/>
+            <g font-family="monospace" font-size="10" fill="var(--dg-text)">
+              <text x="390" y="66">[0.12, 0.88, 0.04,</text>
+              <text x="390" y="82"> 0.71, 0.33, 0.95,</text>
+              <text x="390" y="98"> 0.27, … ]</text>
+            </g>
+            <text x="447" y="134" class="u1" text-anchor="middle">Feature Description</text>
+            <text x="447" y="150" class="u2" text-anchor="middle">seperti apa? → vektor</text>
+
+            <rect class="qb" x="570" y="42" width="174" height="72" rx="7"/>
+            <g>
+              <circle cx="596" cy="62" r="3.5" fill="var(--dg-accent)"/>
+              <circle cx="596" cy="94" r="3.5" fill="var(--dg-accent)"/>
+              <circle cx="716" cy="70" r="3.5" fill="var(--dg-accent)"/>
+              <circle cx="716" cy="100" r="3.5" fill="var(--dg-accent)"/>
+              <path d="M596 62 L716 70M596 94 L716 100" stroke="var(--dg-accent-2)" stroke-width="1.6"/>
+            </g>
+            <text x="657" y="134" class="u1" text-anchor="middle">Feature Matching</text>
+            <text x="657" y="150" class="u2" text-anchor="middle">pasangan yang sesuai</text>
+
+            <path class="fw" d="M136 78h32M324 78h32M522 78h32"/>
+            <text x="380" y="186" class="u2" text-anchor="middle">
+              Urutannya tidak dapat ditukar: tanpa keypoint tidak ada yang dideskripsikan, tanpa deskriptor tidak ada yang dicocokkan.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 4.1.</b> Rantai kerja Computer Vision berbasis fitur.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 1 — Feature Description dan Feature Matching.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Kriteria deskriptor yang baik</h3>
+      <p>
+        Deskriptor adalah sekumpulan angka yang mewakili informasi kunci tentang suatu objek atau area pada citra.
+        Berikut kriteria yang menentukan kualitasnya:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kriteria</th><th>Artinya</th><th>Mengapa penting</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Invariant</strong></td><td>Tidak berubah terhadap rotasi, translasi, penskalaan, dan perubahan pencahayaan</td><td>Objek yang sama harus menghasilkan deskripsi yang sama meski citranya berbeda</td></tr>
+            <tr><td><strong>Distinctive</strong></td><td>Menangkap informasi yang khas</td><td>Agar dapat dibedakan dari area lain yang serupa</td></tr>
+            <tr><td><strong>Dimensionality</strong></td><td>Ukuran vektor yang terkendali</td><td>Efisiensi penyimpanan dan kecepatan pembandingan</td></tr>
+            <tr><td><strong>Locality</strong></td><td>Hanya menggambarkan area kecil di sekitar keypoint</td><td>Agar tetap bekerja meski sebagian objek terhalang</td></tr>
+            <tr><td><strong>Repeatability</strong></td><td>Konsisten pada pengamatan berulang</td><td>Hasil harus stabil meski ada derau dan variasi kecil</td></tr>
+            <tr><td><strong>Compatibility</strong></td><td>Sesuai dengan algoritma pencocokan yang dipakai</td><td>Deskriptor biner memerlukan metrik jarak yang berbeda dari deskriptor bernilai riil</td></tr>
+            <tr><td><strong>Efficiency</strong></td><td>Cepat dihitung</td><td>Menentukan kelayakan untuk aplikasi waktu nyata seperti robotika</td></tr>
+            <tr><td><strong>Noise robustness</strong></td><td>Tahan terhadap derau</td><td>Citra dunia nyata tidak pernah bersih</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Perhatikan bahwa kriteria-kriteria ini saling bertentangan. Deskriptor yang sangat distinktif biasanya
+        berdimensi besar dan lambat. Deskriptor yang sangat cepat biasanya kurang distinktif. Setiap algoritma
+        yang akan kita bahas adalah satu titik kompromi yang berbeda.
+      </p>
+
+      <h3>SIFT — Scale Invariant Feature Transform</h3>
+      <p>SIFT bekerja dalam lima tahap yang berurutan:</p>
+      <ol>
+        <li><strong>Scale space extrema detection.</strong> Mencari calon titik menarik pada berbagai skala sekaligus, yaitu lokasi tempat fungsi difference of Gaussian mencapai nilai maksimum atau minimum terhadap ruang maupun skala. Titik yang bertahan pada beberapa skala dianggap stabil terhadap perubahan ukuran.</li>
+        <li><strong>Keypoint localization.</strong> Memperhalus posisi keypoint sampai ketelitian sub-pixel, lalu membuang keypoint berkontras rendah dan keypoint yang terletak di sepanjang tepi — persis karena posisi di sepanjang tepi bersifat ambigu.</li>
+        <li><strong>Orientation assignment.</strong> Menghitung orientasi dominan setiap keypoint dari arah gradien lokal. Inilah langkah yang membuat deskriptor menjadi invarian terhadap rotasi: semua perhitungan berikutnya dilakukan relatif terhadap orientasi ini.</li>
+        <li><strong>Descriptor generation.</strong> Menyusun vektor yang merangkum gradien di sekitar keypoint menjadi representasi ringkas.</li>
+        <li><strong>Descriptor matching.</strong> Membandingkan deskriptor satu citra dengan deskriptor citra lain untuk menemukan korespondensi.</li>
+      </ol>
+      <p>
+        Ketahanan SIFT terhadap berbagai transformasi membuatnya bernilai untuk pengenalan objek, penyatuan citra
+        (image stitching), dan rekonstruksi tiga dimensi.
+      </p>
+
+      <h3>SURF — Speeded Up Robust Features</h3>
+      <p>
+        SURF dirancang dengan tujuan yang sama tetapi menekankan kecepatan. Perbedaan utamanya:
+        ia memakai <em>integral image</em>, yaitu representasi terprakomputasi yang memungkinkan penjumlahan nilai
+        pada area persegi dihitung sangat cepat. Deteksi titiknya memakai matriks Hessian untuk menemukan blob,
+        yaitu area dengan variasi intensitas signifikan ke berbagai arah dan skala. Orientasinya ditentukan dari
+        respons wavelet Haar — berbeda dari SIFT yang memakai histogram gradien. Hasilnya: lebih cepat, tetap
+        tahan terhadap perubahan skala, rotasi, dan pencahayaan, sehingga cocok untuk aplikasi waktu nyata.
+      </p>
+
+      <h3>ORB dan deskriptor biner</h3>
+      <p>
+        ORB menghasilkan deskriptor <strong>biner</strong> — barisan bit, bukan bilangan riil. Konsekuensinya
+        penting: jaraknya tidak dihitung dengan Euclidean, melainkan dengan <em>Hamming distance</em>, yaitu
+        jumlah posisi bit yang berbeda. Operasi ini dapat dikerjakan dengan XOR dan penghitungan bit, sehingga
+        sangat cepat dan hemat memori. ORB juga bebas paten, yang membuatnya menjadi pilihan praktis di banyak
+        proyek.
+      </p>
+
+      <h3>Mencocokkan fitur</h3>
+      <dl class="defs">
+        <dt>Brute-force search</dt>
+        <dd>Bandingkan setiap deskriptor citra pertama dengan setiap deskriptor citra kedua, lalu ambil yang paling mirip. Sederhana dan pasti menemukan pasangan terbaik, tetapi biayanya tumbuh sebagai perkalian jumlah fitur kedua citra.</dd>
+        <dt>Ratio test</dt>
+        <dd>Untuk setiap deskriptor, ambil dua tetangga terdekat. Bila jarak ke yang terdekat tidak jauh lebih kecil daripada jarak ke yang kedua, pasangan itu diragukan dan dibuang. Ambang yang lazim adalah 0,75. Penyaringan sederhana ini membuang sebagian besar pasangan palsu.</dd>
+        <dt>FLANN</dt>
+        <dd>Alih-alih membandingkan semua pasangan, FLANN menyusun deskriptor ke dalam struktur pohon k-D sehingga pencarian dapat diarahkan ke kelompok yang paling mungkin cocok. Hasilnya adalah tetangga terdekat <em>perkiraan</em>: sedikit ketelitian dikorbankan demi kecepatan yang jauh lebih tinggi. Untuk deskriptor biner seperti ORB, FLANN dikonfigurasi dengan indeks LSH.</dd>
+        <dt>LoFTR</dt>
+        <dd>Pendekatan modern berbasis transformer yang bersifat <em>detector-free</em>: ia tidak mendeteksi keypoint lebih dulu, melainkan langsung mempelajari korespondensi antar citra dan memberi skor kemiripan pada setiap pasangan. Berguna pada citra bertekstur minim, tempat detektor klasik sering gagal menemukan keypoint.</dd>
+        <dt>RANSAC</dt>
+        <dd>Setelah pencocokan, selalu tersisa pasangan yang salah. RANSAC mengambil sampel acak berulang kali untuk menemukan model geometris yang paling banyak didukung pasangan, lalu menandai sisanya sebagai outlier. Inilah langkah penyaring terakhir sebelum hasil matching dipakai.</dd>
+      </dl>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Mengapa sudut lebih baik daripada tepi</h3>
+      <p>
+        Gagasannya dapat dipahami tanpa turunan matematis yang rumit. Ambil sebuah jendela kecil, geser sedikit
+        ke segala arah, dan ukur seberapa besar isinya berubah:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Jenis area</th><th>Perubahan ketika jendela digeser</th><th>Nilai untuk matching</th></tr></thead>
+          <tbody>
+            <tr><td>Datar (flat)</td><td>Hampir nol ke semua arah</td><td>Tidak berguna — semua posisi terlihat sama</td></tr>
+            <tr><td>Tepi (edge)</td><td>Besar tegak lurus tepi, hampir nol sepanjang tepi</td><td>Ambigu — posisi di sepanjang tepi tidak dapat ditentukan</td></tr>
+            <tr><td>Sudut (corner)</td><td>Besar ke semua arah</td><td>Sangat berguna — posisi tunggal dan pasti</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Inilah dasar detektor sudut Harris, dan ini pula alasan SIFT membuang keypoint yang terletak di sepanjang
+        tepi pada tahap kedua.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 260" role="img" aria-label="Tiga panel yang menunjukkan jendela pengamatan pada area datar, pada tepi, dan pada sudut, beserta arah perubahan intensitas ketika jendela digeser">
+            <style>
+              .pl { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.5; rx: 7; }
+              .wn { fill: none; stroke: var(--dg-accent-2); stroke-width: 2.4; stroke-dasharray: 5 3; }
+              .lt { font: 700 12px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .ls { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+              .ag { stroke: var(--dg-accent); stroke-width: 2; fill: none; }
+            </style>
+            <defs>
+              <marker id="arH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-accent)"/>
+              </marker>
+            </defs>
+
+            <!-- flat -->
+            <g transform="translate(16,24)">
+              <rect class="pl" x="0" y="0" width="210" height="140"/>
+              <rect x="1" y="1" width="208" height="138" rx="7" fill="var(--dg-fill-2)" opacity=".55"/>
+              <rect class="wn" x="76" y="46" width="56" height="48" rx="4"/>
+              <text x="105" y="168" class="lt" text-anchor="middle">Area datar</text>
+              <text x="105" y="186" class="ls" text-anchor="middle">geser ke mana pun:</text>
+              <text x="105" y="200" class="ls" text-anchor="middle">tidak ada perubahan</text>
+            </g>
+
+            <!-- edge -->
+            <g transform="translate(262,24)">
+              <rect class="pl" x="0" y="0" width="210" height="140"/>
+              <path d="M0 0 h104 v140 h-104 z" fill="var(--dg-fill-2)" opacity=".8"/>
+              <path d="M104 0 h106 v140 h-106 z" fill="var(--dg-fill-3)" opacity=".8"/>
+              <path d="M104 0 v140" stroke="var(--dg-stroke)" stroke-width="2"/>
+              <rect class="wn" x="76" y="46" width="56" height="48" rx="4"/>
+              <path class="ag" d="M138 70 h34" marker-end="url(#arH)"/>
+              <path class="ag" d="M70 70 h-34" marker-end="url(#arH)"/>
+              <text x="105" y="168" class="lt" text-anchor="middle">Tepi</text>
+              <text x="105" y="186" class="ls" text-anchor="middle">berubah tegak lurus tepi,</text>
+              <text x="105" y="200" class="ls" text-anchor="middle">tetap sama sepanjang tepi</text>
+            </g>
+
+            <!-- corner -->
+            <g transform="translate(508,24)">
+              <rect class="pl" x="0" y="0" width="210" height="140"/>
+              <path d="M0 0 h104 v70 h106 v70 h-210 z" fill="var(--dg-fill-2)" opacity=".8"/>
+              <path d="M104 0 v70 h106" stroke="var(--dg-stroke)" stroke-width="2" fill="none"/>
+              <rect class="wn" x="76" y="46" width="56" height="48" rx="4"/>
+              <path class="ag" d="M138 70 h30" marker-end="url(#arH)"/>
+              <path class="ag" d="M70 70 h-30" marker-end="url(#arH)"/>
+              <path class="ag" d="M104 100 v28" marker-end="url(#arH)"/>
+              <path class="ag" d="M104 40 v-28" marker-end="url(#arH)"/>
+              <text x="105" y="168" class="lt" text-anchor="middle">Sudut</text>
+              <text x="105" y="186" class="ls" text-anchor="middle">berubah ke semua arah:</text>
+              <text x="105" y="200" class="ls" text-anchor="middle">posisinya tidak ambigu</text>
+            </g>
+
+            <text x="370" y="240" class="ls" text-anchor="middle">
+              Inilah sebabnya detektor fitur mencari sudut, bukan tepi — dan mengapa SIFT membuang keypoint yang berada di sepanjang tepi.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 4.2.</b> Perilaku jendela pengamatan pada area datar, tepi, dan sudut.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari prinsip deteksi sudut dan penjelasan Unit 1 — Feature Description.</span>
+        </figcaption>
+      </figure>
+
+      <h3>Jarak antar deskriptor</h3>
+      <p>Dua metrik yang dipakai, bergantung pada jenis deskriptornya:</p>
+      <pre><code>Deskriptor bernilai riil (SIFT, SURF) → Euclidean distance
+    d(a, b) = √( Σ (aᵢ − bᵢ)² )
+
+Deskriptor biner (ORB, BRIEF)        → Hamming distance
+    d(a, b) = jumlah posisi bit yang berbeda</code></pre>
+
+      <p>Contoh Hamming distance pada deskriptor biner 8 bit:</p>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Deskriptor A</span>
+          <div class="matrix" style="grid-template-columns: repeat(8, auto)" role="img" aria-label="Deskriptor A: 1 0 1 1 0 0 1 0">
+            <span>1</span><span>0</span><span>1</span><span>1</span><span>0</span><span>0</span><span>1</span><span>0</span>
+          </div>
+        </div>
+      </div>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Deskriptor B</span>
+          <div class="matrix" style="grid-template-columns: repeat(8, auto)" role="img" aria-label="Deskriptor B: 1 0 0 1 0 1 1 0">
+            <span>1</span><span>0</span><span class="hl">0</span><span>1</span><span>0</span><span class="hl">1</span><span>1</span><span>0</span>
+          </div>
+          <span class="matrix-cap">dua posisi berbeda → jarak Hamming = 2</span>
+        </div>
+      </div>
+
+      <h3>Ratio test secara numerik</h3>
+      <pre><code>Deskriptor X dari citra 1:
+    jarak ke tetangga terdekat  (d₁) = 120
+    jarak ke tetangga kedua     (d₂) = 150
+
+    d₁ / d₂ = 120 / 150 = 0,80   →  0,80 > 0,75  →  DIBUANG
+    (terlalu mirip dengan kandidat lain — kemungkinan besar keliru)
+
+Deskriptor Y dari citra 1:
+    d₁ = 90,  d₂ = 220
+    d₁ / d₂ = 0,41              →  0,41 < 0,75  →  DITERIMA
+    (jauh lebih mirip ke satu kandidat saja — pasangan meyakinkan)</code></pre>
+      <p>
+        Gagasan di baliknya sederhana dan elegan: pasangan yang benar seharusnya <em>jauh lebih mirip</em>
+        daripada kandidat terbaik berikutnya. Bila dua kandidat sama-sama mirip, kita tidak punya dasar untuk
+        memilih salah satunya.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration — Korespondensi Dua Citra</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 300" role="img" aria-label="Dua citra objek yang sama diambil dari sudut berbeda, dengan garis penghubung antar keypoint yang bersesuaian; sebagian garis ditandai sebagai pasangan salah yang disaring RANSAC">
+            <style>
+              .im { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.6; rx: 7; }
+              .kp { fill: var(--dg-accent-2); }
+              .ok { stroke: var(--dg-accent); stroke-width: 1.7; opacity: .9; }
+              .bad{ stroke: #d9534f; stroke-width: 1.7; stroke-dasharray: 5 4; }
+              .m1 { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .m2 { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <!-- image 1 -->
+            <g transform="translate(16,34)">
+              <rect class="im" x="0" y="0" width="250" height="176"/>
+              <g transform="translate(58,42)">
+                <rect x="0" y="0" width="120" height="92" rx="5" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.6"/>
+                <path d="M0 30 h120M40 0 v92" stroke="var(--dg-accent)" stroke-width="1.1" opacity=".55"/>
+              </g>
+              <g class="kp">
+                <circle cx="58"  cy="42"  r="4"/>
+                <circle cx="178" cy="42"  r="4"/>
+                <circle cx="98"  cy="72"  r="4"/>
+                <circle cx="58"  cy="134" r="4"/>
+                <circle cx="178" cy="134" r="4"/>
+                <circle cx="132" cy="108" r="4"/>
+              </g>
+              <text x="125" y="200" class="m1" text-anchor="middle">Citra 1</text>
+              <text x="125" y="216" class="m2" text-anchor="middle">tampak depan</text>
+            </g>
+
+            <!-- image 2 (rotated / scaled) -->
+            <g transform="translate(474,34)">
+              <rect class="im" x="0" y="0" width="250" height="176"/>
+              <g transform="translate(64,40) rotate(14) scale(0.86)">
+                <rect x="0" y="0" width="120" height="92" rx="5" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1.6"/>
+                <path d="M0 30 h120M40 0 v92" stroke="var(--dg-accent-2)" stroke-width="1.1" opacity=".55"/>
+              </g>
+              <g class="kp">
+                <circle cx="64"  cy="40"  r="4"/>
+                <circle cx="164" cy="65"  r="4"/>
+                <circle cx="96"  cy="68"  r="4"/>
+                <circle cx="44"  cy="118" r="4"/>
+                <circle cx="144" cy="142" r="4"/>
+                <circle cx="112" cy="118" r="4"/>
+              </g>
+              <text x="125" y="200" class="m1" text-anchor="middle">Citra 2</text>
+              <text x="125" y="216" class="m2" text-anchor="middle">diputar &amp; diperkecil</text>
+            </g>
+
+            <!-- correspondence lines -->
+            <g>
+              <path class="ok" d="M74 76 L538 74"/>
+              <path class="ok" d="M194 76 L638 99"/>
+              <path class="ok" d="M114 106 L570 102"/>
+              <path class="ok" d="M74 168 L518 152"/>
+              <path class="ok" d="M148 142 L586 152"/>
+              <path class="bad" d="M194 168 L570 102"/>
+            </g>
+
+            <g transform="translate(272,244)">
+              <line x1="0" y1="0" x2="26" y2="0" stroke="var(--dg-accent)" stroke-width="2"/>
+              <text x="34" y="4" class="m2">pasangan benar (inlier)</text>
+              <line x1="0" y1="20" x2="26" y2="20" stroke="#d9534f" stroke-width="2" stroke-dasharray="5 4"/>
+              <text x="34" y="24" class="m2">pasangan salah (outlier) — disaring RANSAC</text>
+            </g>
+
+            <text x="370" y="292" class="m2" text-anchor="middle">
+              Objek yang sama menghasilkan matriks pixel yang sangat berbeda, tetapi deskriptor fiturnya tetap bersesuaian.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 4.3.</b> Pencocokan fitur antara dua citra objek yang sama dengan sudut dan skala berbeda.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 1 — Feature Matching.</span>
+        </figcaption>
+      </figure>
+
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Perhatikan yang terjadi di sini</p>
+        <p style="margin-bottom:0">
+          Kedua citra memiliki nilai pixel yang sama sekali berbeda — objek diputar dan diperkecil. Namun karena
+          deskriptor dirancang agar invarian terhadap rotasi dan skala, pasangan titik tetap ditemukan. Inilah
+          jawaban Computer Vision klasik atas persoalan yang diangkat di Materi 01.
+        </p>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        <strong>Kasus:</strong> menyatukan dua foto pemandangan yang saling bertampalan menjadi satu panorama.
+        Mari telusuri pilihan teknis pada setiap tahap.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tahap</th><th>Pilihan</th><th>Alasan</th></tr></thead>
+          <tbody>
+            <tr><td>Persiapan</td><td>Konversi grayscale</td><td>Detektor fitur bekerja pada intensitas; warna tidak menambah informasi di sini.</td></tr>
+            <tr><td>Deteksi + deskripsi</td><td>SIFT</td><td>Kedua foto berbeda sudut dan sedikit berbeda skala; invariansi lebih penting daripada kecepatan.</td></tr>
+            <tr><td>Pencocokan</td><td>Brute-force + kNN (k = 2)</td><td>Jumlah fitur masih wajar; dua tetangga terdekat diperlukan untuk ratio test.</td></tr>
+            <tr><td>Penyaringan awal</td><td>Ratio test 0,75</td><td>Membuang pasangan yang tidak meyakinkan sebelum estimasi geometri.</td></tr>
+            <tr><td>Penyaringan akhir</td><td>RANSAC</td><td>Mencari transformasi yang didukung paling banyak pasangan, lalu membuang sisanya.</td></tr>
+            <tr><td>Penyatuan</td><td>Transformasi + blending</td><td>Citra kedua diwarp ke sistem koordinat citra pertama lalu digabungkan.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Bila fotonya adalah dinding polos</p>
+        <p style="margin-bottom:0">
+          Detektor tidak akan menemukan keypoint yang cukup, karena tidak ada sudut untuk ditemukan. Di sinilah
+          pendekatan detector-free seperti LoFTR menjadi relevan: ia tidak bergantung pada keberadaan keypoint
+          yang menonjol.
+        </p>
+      </div>
+
+      <details class="acc">
+        <summary>Setelah memahami alurnya — bentuk kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python · OpenCV</span>
+<pre><code>import cv2
+
+img1 = cv2.imread("kiri.jpg",  cv2.IMREAD_GRAYSCALE)
+img2 = cv2.imread("kanan.jpg", cv2.IMREAD_GRAYSCALE)
+
+# 1 & 2 — deteksi keypoint dan hitung deskriptor
+sift = cv2.SIFT_create()
+kp1, des1 = sift.detectAndCompute(img1, None)
+kp2, des2 = sift.detectAndCompute(img2, None)
+
+# 3 — cari dua tetangga terdekat untuk setiap deskriptor
+bf = cv2.BFMatcher()
+matches = bf.knnMatch(des1, des2, k=2)
+
+# 4 — ratio test
+good = []
+for m, n in matches:
+    if m.distance &lt; 0.75 * n.distance:
+        good.append(m)
+
+print(f"{len(matches)} kandidat -&gt; {len(good)} lolos ratio test")
+
+# 5 — visualisasi
+hasil = cv2.drawMatches(img1, kp1, img2, kp2, good[:40], None,
+                        flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)</code></pre>
+          <p>Untuk ORB, satu-satunya perbedaan penting adalah metrik jaraknya:</p>
+<pre><code>orb = cv2.ORB_create()
+kp1, des1 = orb.detectAndCompute(img1, None)
+kp2, des2 = orb.detectAndCompute(img2, None)
+
+# ORB menghasilkan deskriptor biner -> Hamming distance
+bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+matches = sorted(bf.match(des1, des2), key=lambda x: x.distance)</code></pre>
+          <p style="margin-bottom:0">
+            Perhatikan <code>cv2.NORM_HAMMING</code>. Memakai metrik Euclidean pada deskriptor biner akan
+            memberikan hasil yang secara teknis tetap berjalan, tetapi tidak bermakna.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Panorama dan pemetaan</dt>
+        <dd>Fitur yang bersesuaian antar foto dipakai untuk menghitung transformasi geometris yang menyatukan citra — mulai dari fitur panorama di ponsel sampai penyusunan mosaik citra udara.</dd>
+        <dt>Pelacakan posisi robot (SLAM)</dt>
+        <dd>Robot dan drone menentukan posisinya dengan menjejaki fitur yang sama antar frame. ORB dipilih secara luas di sini karena cepat dan hemat daya.</dd>
+        <dt>Augmented reality</dt>
+        <dd>Objek virtual dapat menempel pada permukaan nyata karena fitur pada permukaan tersebut dikenali dan dilacak terus-menerus.</dd>
+        <dt>Rekonstruksi tiga dimensi</dt>
+        <dd>Korespondensi fitur dari banyak foto menjadi dasar untuk memperkirakan posisi kamera dan bentuk objek — pembahasan lanjutnya ada di Materi 13.</dd>
+        <dt>Pencarian citra dan verifikasi</dt>
+        <dd>Mendeteksi apakah dua citra menampilkan objek yang sama, termasuk untuk memeriksa citra duplikat atau hasil manipulasi.</dd>
+        <dt>Pencitraan medis</dt>
+        <dd>Registrasi citra: menyelaraskan dua pemeriksaan yang diambil pada waktu berbeda agar perubahannya dapat dibandingkan secara tepat.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Semakin banyak fitur terdeteksi, semakin baik."</p>
+        <p style="margin-bottom:0">
+          Yang menentukan adalah kualitas, bukan jumlah. Ribuan keypoint berkontras rendah justru memperlambat
+          pencocokan dan menghasilkan banyak pasangan palsu. Itulah sebabnya SIFT secara sengaja membuang keypoint
+          berkontras rendah.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Fitur sama dengan tepi."</p>
+        <p style="margin-bottom:0">
+          Tepi adalah salah satu jenis fitur, tetapi bukan yang paling berguna untuk matching. Posisi di sepanjang
+          tepi bersifat ambigu — semua titiknya terlihat serupa.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "FLANN selalu lebih baik daripada brute-force."</p>
+        <p style="margin-bottom:0">
+          FLANN memberikan tetangga terdekat perkiraan. Pada jumlah fitur yang kecil, brute-force justru lebih
+          cepat sekaligus lebih tepat. Keunggulan FLANN baru terasa ketika jumlah deskriptor sangat besar.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Setelah matching, pekerjaan selesai."</p>
+        <p style="margin-bottom:0">
+          Hasil matching selalu mengandung outlier. Tanpa ratio test dan RANSAC, satu pasangan yang salah dapat
+          merusak seluruh estimasi transformasi geometrisnya.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Metode klasik sudah usang karena ada deep learning."</p>
+        <p style="margin-bottom:0">
+          ORB masih menjadi tulang punggung banyak sistem SLAM yang berjalan di perangkat berdaya rendah.
+          Metode klasik tidak memerlukan data berlabel, berjalan cepat, dan perilakunya dapat dijelaskan —
+          tiga hal yang sering justru menjadi persyaratan utama.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Fitur harus menonjol sekaligus dapat ditemukan kembali.</strong> Dua syarat ini tidak dapat dipisahkan.</li>
+        <li><strong>Sudut adalah fitur terbaik</strong> karena berubah ke segala arah, sehingga posisinya tidak ambigu.</li>
+        <li><strong>Rantainya selalu sama:</strong> Detection → Description → Matching.</li>
+        <li><strong>Kriteria deskriptor saling bertentangan.</strong> Setiap algoritma adalah kompromi yang berbeda.</li>
+        <li><strong>SIFT unggul pada invariansi, SURF pada kecepatan, ORB pada efisiensi</strong> deskriptor biner.</li>
+        <li><strong>Jenis deskriptor menentukan metrik jarak:</strong> Euclidean untuk bernilai riil, Hamming untuk biner.</li>
+        <li><strong>Ratio test dan RANSAC bukan tambahan opsional,</strong> melainkan bagian dari proses.</li>
+        <li><strong>Pendekatan klasik dan modern saling melengkapi,</strong> bukan saling menggantikan.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <ul>
+        <li>Google Colab atau Python lokal dengan OpenCV (<code>opencv-python</code>), NumPy, dan Matplotlib.</li>
+        <li>Dua pasang foto: satu pasang objek yang sama dari dua sudut berbeda, satu pasang pemandangan bertampalan untuk panorama.</li>
+        <li>Satu foto permukaan polos (dinding, meja kosong) sebagai kasus uji ketika detektor gagal menemukan fitur.</li>
+      </ul>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Catatan tentang ketersediaan algoritma</p>
+        <p style="margin-bottom:0">
+          SIFT tersedia pada OpenCV versi terbaru lewat <code>cv2.SIFT_create()</code>. SURF berada di modul
+          kontribusi dan mungkin tidak tersedia pada instalasi standar karena alasan paten — bila demikian,
+          gunakan ORB sebagai pembanding cepat. Hal ini bukan kegagalan; justru menjadi bahan diskusi tentang
+          aspek lisensi dalam pemilihan algoritma.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="../practical/practical-04.html" data-practical-link>🧪 Mulai Praktikum 04</a>
+        <a class="btn secondary" href="https://huggingface.co/learn/computer-vision-course/en/unit1/feature-extraction/feature-matching" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Feature Matching ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Deteksi sudut dengan Harris, lalu amati di bagian mana sudut ditemukan dan di bagian mana tidak.</li>
+        <li>Bandingkan jumlah dan sebaran keypoint hasil SIFT dan ORB pada citra yang sama.</li>
+        <li>Lakukan brute-force matching dengan kNN, lalu terapkan ratio test dan catat berapa pasangan yang tersisa.</li>
+        <li>Ulangi pencocokan memakai FLANN, lalu bandingkan waktu eksekusi dan jumlah pasangan yang diperoleh.</li>
+        <li>Terapkan RANSAC untuk menyaring outlier, dan tampilkan pasangan sebelum serta sesudah penyaringan.</li>
+        <li>Uji pada foto permukaan polos, lalu jelaskan mengapa hasilnya berbeda dari kasus sebelumnya.</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa posisi sebuah titik di sepanjang tepi bersifat ambigu, padahal tepi jelas terlihat oleh mata kita?</li>
+        <li>Deskriptor biner jauh lebih cepat dibandingkan. Apa yang dikorbankan sebagai gantinya?</li>
+        <li>Ratio test memakai ambang 0,75. Apa yang terjadi bila ambang dinaikkan menjadi 0,95? Bila diturunkan menjadi 0,4?</li>
+        <li>Anda membangun sistem AR untuk ponsel kelas menengah. SIFT atau ORB yang Anda pilih, dan pertimbangan apa yang menentukannya?</li>
+        <li>LoFTR tidak mendeteksi keypoint terlebih dahulu. Pada situasi seperti apa sifat ini menjadi keunggulan, dan pada situasi apa pendekatan klasik tetap lebih masuk akal?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — Unit 1: <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/feature-extraction/feature_description" target="_blank" rel="noopener noreferrer">Feature Description</a>, <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/feature-extraction/feature-matching" target="_blank" rel="noopener noreferrer">Feature Matching</a>, <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/feature-extraction/real-world-applications" target="_blank" rel="noopener noreferrer">Real-world Applications of Feature Extraction</a>.</li>
+        <li><a href="https://docs.opencv.org/4.x/da/df5/tutorial_py_sift_intro.html" target="_blank" rel="noopener noreferrer">OpenCV — Introduction to SIFT</a> dan <a href="https://docs.opencv.org/4.x/d1/d89/tutorial_py_orb.html" target="_blank" rel="noopener noreferrer">Introduction to ORB</a>.</li>
+        <li><a href="https://docs.opencv.org/4.x/dc/dc3/tutorial_py_matcher.html" target="_blank" rel="noopener noreferrer">OpenCV — Feature Matching</a>.</li>
+        <li><a href="https://kornia.readthedocs.io/" target="_blank" rel="noopener noreferrer">Kornia</a> — implementasi LoFTR untuk pencocokan berbasis transformer.</li>
+        <li>Szeliski, R. <em>Computer Vision: Algorithms and Applications</em>. Springer — bab tentang fitur lokal dan matching.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

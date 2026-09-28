@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Materi 01 · Fundamentals of Computer Vision — COM Computer Vision</title>
+<meta name="description" content="Materi 01: vision, human vision, computer vision, posisi CV terhadap AI/ML dan image processing, taksonomi tugas Computer Vision, dan pipeline CV.">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="week" data-week="01">
+
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <span>Materi 01</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">Materi 01</span>
+        <h1 class="page-title" data-week-title>Fundamentals of Computer Vision</h1>
+        <p class="page-sub" data-week-subtitle>Vision, tugas-tugas CV, dan posisi CV di antara AI, ML, dan Image Processing</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ <span data-week-duration>90 menit</span></span>
+          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 1</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan apa itu <em>vision</em> dan mengapa melihat merupakan proses menafsirkan, bukan sekadar menangkap cahaya;</li>
+          <li>membandingkan cara kerja penglihatan manusia dan penglihatan mesin beserta keterbatasannya masing-masing;</li>
+          <li>memposisikan Computer Vision terhadap Artificial Intelligence, Machine Learning, dan Image Processing;</li>
+          <li>mengidentifikasi dan membedakan tugas-tugas dasar Computer Vision: klasifikasi, deteksi, segmentasi, tracking, dan captioning;</li>
+          <li>menguraikan tahapan Computer Vision pipeline dari akuisisi sampai keputusan.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Melihat terasa mudah bagi manusia, dan justru karena itulah Computer Vision sulit.
+      </p>
+      <p>
+        Ketika Anda menangkap bola yang dilemparkan ke arah Anda, otak menyelesaikan puluhan persoalan dalam
+        sepersekian detik: mengenali bahwa objek itu bola, memperkirakan jaraknya, memprediksi lintasannya,
+        menyesuaikan posisi tangan. Tidak satu pun dari proses itu terasa sebagai "perhitungan". Karena terasa
+        otomatis, kita cenderung meremehkan betapa rumitnya memindahkan kemampuan tersebut ke mesin.
+      </p>
+      <p>
+        Komputer tidak memiliki pengetahuan awal tentang dunia. Yang diterimanya hanyalah deretan angka.
+        Tidak ada konsep "bola", "jarak", atau "gerak" — semuanya harus dibangun dari angka-angka tersebut.
+        Inilah sebabnya materi pertama ini tidak dimulai dari kode, melainkan dari pertanyaan yang jauh lebih
+        mendasar: <em>apa artinya melihat?</em>
+      </p>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">🎯</span> Posisi materi ini</p>
+        <p style="margin-bottom:0">
+          Materi 01 adalah peta. Setelah materi ini Anda belum bisa membuat sistem Computer Vision, tetapi Anda
+          akan tahu persis di bagian mana setiap materi berikutnya berada dan persoalan apa yang dipecahkannya.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <p>Materi ini adalah titik awal. Bekal yang diperlukan sangat ringan:</p>
+      <ul>
+        <li>pemahaman dasar tentang matriks dan array dua dimensi;</li>
+        <li>pengalaman dasar pemrograman (bahasa apa pun) — belum diperlukan pada materi ini, tetapi mulai dibutuhkan pada Materi 02;</li>
+        <li>rasa ingin tahu terhadap persoalan yang belum tentu punya jawaban tunggal.</li>
+      </ul>
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Tidak diperlukan</p>
+        <p style="margin-bottom:0">
+          Anda <strong>tidak</strong> perlu memahami deep learning, neural network, atau PyTorch untuk memulai.
+          Semua itu dibangun secara bertahap mulai Materi 05.
+        </p>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <h3>Vision: menafsirkan, bukan menangkap</h3>
+      <p>
+        <em>Vision</em> adalah proses memperoleh informasi bermakna dari cahaya yang dipantulkan dunia.
+        Kata kuncinya adalah <strong>bermakna</strong>. Kamera pengawas yang merekam sepanjang malam menangkap
+        cahaya, tetapi tidak melihat apa pun — tidak ada penafsiran yang terjadi. Melihat baru terjadi ketika
+        sinyal berubah menjadi pemahaman: ada orang, ia berjalan ke kiri, ia membawa sesuatu.
+      </p>
+
+      <h3>Human vision</h3>
+      <p>
+        Pada manusia, cahaya masuk melalui kornea dan lensa, diproyeksikan ke retina, lalu ditangkap oleh dua
+        jenis fotoreseptor: <em>rod</em> yang peka terhadap intensitas dan bekerja baik dalam cahaya redup, serta
+        <em>cone</em> yang peka terhadap warna. Sinyal tersebut dikirim lewat saraf optik menuju korteks visual,
+        tempat otak menyusunnya menjadi tepi, bentuk, kedalaman, gerak, dan akhirnya makna. Yang penting untuk
+        dicatat: sebagian besar pekerjaan "melihat" terjadi di otak, bukan di mata.
+      </p>
+
+      <h3>Computer vision</h3>
+      <p>
+        Computer Vision adalah ilmu dan teknologi yang membuat mesin mampu melihat: mengembangkan metode teoretis
+        dan algoritmik untuk memperoleh, memproses, menganalisis, dan memahami data visual, lalu menggunakan
+        informasi tersebut untuk menghasilkan representasi, deskripsi, dan interpretasi tentang dunia.
+        Definisi ini diadaptasi dari Forsyth &amp; Ponce, <em>Computer Vision: A Modern Approach</em>, dan dipakai
+        pula oleh kurikulum Hugging Face sebagai rujukan.
+      </p>
+
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Concept First</p>
+        <p style="margin-bottom:0">
+          Mata ↔ sensor. Saraf optik ↔ kabel data. Korteks visual ↔ algoritma. Kesulitan Computer Vision bukan
+          pada bagian sensornya — sensor kamera modern sudah sangat baik — melainkan pada bagian "korteks":
+          mengubah angka menjadi makna.
+        </p>
+      </div>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 300" role="img" aria-label="Diagram perbandingan alur penglihatan manusia dan penglihatan mesin: dunia nyata menuju mata, retina, saraf optik, korteks visual, dan makna; sejajar dengan dunia nyata menuju lensa, sensor, memori, algoritma, dan makna">
+            <defs>
+              <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .bx { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.6; rx: 6; }
+              .bx2 { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.6; }
+              .bx3 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .tl { font: 600 12px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .tm { font: 11px var(--font-sans, sans-serif); fill: var(--dg-text); opacity:.8 }
+              .hd { font: 700 12px var(--font-sans, sans-serif); fill: var(--dg-accent); letter-spacing: .08em; }
+              .ln { stroke: var(--dg-stroke); stroke-width: 1.6; marker-end: url(#ar1); fill: none; }
+            </style>
+
+            <text x="16" y="28" class="hd">PENGLIHATAN MANUSIA</text>
+            <g>
+              <rect class="bx" x="16" y="44" width="110" height="52"/>
+              <text x="71" y="68" class="tl" text-anchor="middle">Dunia Nyata</text>
+              <text x="71" y="84" class="tm" text-anchor="middle">cahaya</text>
+
+              <rect class="bx bx2" x="156" y="44" width="110" height="52" rx="6"/>
+              <text x="211" y="68" class="tl" text-anchor="middle">Mata</text>
+              <text x="211" y="84" class="tm" text-anchor="middle">kornea + lensa</text>
+
+              <rect class="bx bx2" x="296" y="44" width="110" height="52" rx="6"/>
+              <text x="351" y="68" class="tl" text-anchor="middle">Retina</text>
+              <text x="351" y="84" class="tm" text-anchor="middle">rod &amp; cone</text>
+
+              <rect class="bx" x="436" y="44" width="110" height="52" rx="6"/>
+              <text x="491" y="68" class="tl" text-anchor="middle">Saraf Optik</text>
+              <text x="491" y="84" class="tm" text-anchor="middle">transmisi</text>
+
+              <rect class="bx bx3" x="576" y="44" width="164" height="52" rx="6"/>
+              <text x="658" y="68" class="tl" text-anchor="middle">Korteks Visual</text>
+              <text x="658" y="84" class="tm" text-anchor="middle">penafsiran → makna</text>
+
+              <path class="ln" d="M126 70h26M266 70h26M406 70h26M546 70h26"/>
+            </g>
+
+            <line x1="16" y1="128" x2="744" y2="128" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="5 6"/>
+
+            <text x="16" y="164" class="hd">PENGLIHATAN MESIN</text>
+            <g>
+              <rect class="bx" x="16" y="180" width="110" height="52" rx="6"/>
+              <text x="71" y="204" class="tl" text-anchor="middle">Dunia Nyata</text>
+              <text x="71" y="220" class="tm" text-anchor="middle">cahaya</text>
+
+              <rect class="bx bx2" x="156" y="180" width="110" height="52" rx="6"/>
+              <text x="211" y="204" class="tl" text-anchor="middle">Lensa</text>
+              <text x="211" y="220" class="tm" text-anchor="middle">optik kamera</text>
+
+              <rect class="bx bx2" x="296" y="180" width="110" height="52" rx="6"/>
+              <text x="351" y="204" class="tl" text-anchor="middle">Sensor</text>
+              <text x="351" y="220" class="tm" text-anchor="middle">CCD / CMOS</text>
+
+              <rect class="bx" x="436" y="180" width="110" height="52" rx="6"/>
+              <text x="491" y="204" class="tl" text-anchor="middle">Matriks Angka</text>
+              <text x="491" y="220" class="tm" text-anchor="middle">f(x, y)</text>
+
+              <rect class="bx bx3" x="576" y="180" width="164" height="52" rx="6"/>
+              <text x="658" y="204" class="tl" text-anchor="middle">Algoritma</text>
+              <text x="658" y="220" class="tm" text-anchor="middle">penafsiran → makna</text>
+
+              <path class="ln" d="M126 206h26M266 206h26M406 206h26M546 206h26"/>
+            </g>
+
+            <text x="380" y="272" class="tm" text-anchor="middle">
+              Bagian tersulit berada di ujung kanan kedua baris: mengubah sinyal menjadi makna.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 1.1.</b> Perbandingan alur penglihatan manusia dan penglihatan mesin.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun berdasarkan penjelasan Hugging Face Community Computer Vision Course, Unit 1 — Vision.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Mengapa Computer Vision dibutuhkan</h3>
+      <p>
+        Alasannya bukan sekadar "supaya mesin bisa melihat". Ada tiga dorongan nyata:
+      </p>
+      <dl class="defs">
+        <dt>Skala</dt>
+        <dd>Satu rumah sakit menghasilkan ribuan citra medis per hari; satu pabrik memproduksi puluhan ribu unit per shift. Manusia tidak dapat memeriksa semuanya dengan konsisten.</dd>
+        <dt>Konsistensi</dt>
+        <dd>Penilaian manusia dipengaruhi kelelahan dan subjektivitas. Sistem otomatis memberikan kriteria yang sama pada citra pertama dan citra ke sepuluh ribu.</dd>
+        <dt>Jangkauan</dt>
+        <dd>Kamera dapat bekerja pada panjang gelombang yang tidak terlihat mata manusia — inframerah, sinar-X, ultrasonik — dan pada tempat yang tidak dapat dijangkau manusia.</dd>
+      </dl>
+
+      <h3>Computer Vision dan Image Processing</h3>
+      <p>
+        Batas keduanya tidak tegas, dan cara paling jernih untuk memisahkannya adalah lewat konsep
+        <strong>image understanding</strong>, yang dapat dibagi menjadi tiga tingkat:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Tingkat</th><th>Input → Output</th><th>Contoh operasi</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Low-level</strong></td>
+              <td>citra → citra</td>
+              <td>penajaman, pengaturan kontras, penghilangan derau</td>
+            </tr>
+            <tr>
+              <td><strong>Mid-level</strong></td>
+              <td>citra → atribut</td>
+              <td>segmentasi, deskripsi objek, klasifikasi objek</td>
+            </tr>
+            <tr>
+              <td><strong>High-level</strong></td>
+              <td>citra → pemahaman</td>
+              <td>pengenalan objek, rekonstruksi scene, image-to-text</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Image processing berkonsentrasi pada tingkat rendah dan menengah, sedangkan Computer Vision pada tingkat
+        menengah dan tinggi. Keduanya beririsan di tingkat menengah — dan irisan itulah yang membuat banyak orang
+        bingung membedakannya. Konsekuensi praktisnya penting: tidak semua persoalan penglihatan membutuhkan
+        neural network. Menghitung nilai rata-rata intensitas untuk mendeteksi citra yang terlalu gelap cukup
+        diselesaikan dengan aritmetika sederhana.
+      </p>
+
+      <h3>AI, Machine Learning, dan Computer Vision</h3>
+      <p>
+        Computer Vision adalah bidang yang ditentukan oleh <strong>jenis datanya</strong> (data visual), bukan oleh
+        metodenya. Machine learning dan deep learning adalah <strong>metode</strong> yang saat ini paling banyak
+        dipakai untuk menyelesaikan persoalan CV, tetapi bukan satu-satunya. Sebelum deep learning populer,
+        Computer Vision sudah berjalan bertahun-tahun dengan fitur yang dirancang manual — pendekatan yang akan
+        Anda pelajari di Materi 03 dan Materi 04, dan yang sampai hari ini masih dipakai ketika data sedikit atau
+        komputasi terbatas.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 330" role="img" aria-label="Diagram irisan bidang: Artificial Intelligence memuat Machine Learning yang memuat Deep Learning; Computer Vision beririsan dengan ketiganya dan juga dengan Image Processing">
+            <style>
+              .ring { fill: none; stroke-width: 1.8; }
+              .lbl { font: 600 13px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .lbs { font: 11px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <ellipse cx="270" cy="160" rx="250" ry="140" opacity=".35" stroke="var(--dg-accent)" class="ring" style="fill:var(--dg-fill-2);"/>
+            <text x="90" y="52" class="lbl">Artificial Intelligence</text>
+
+            <ellipse cx="250" cy="170" rx="185" ry="105" opacity=".45" stroke="var(--dg-accent)" class="ring" style="fill:var(--dg-fill-2);"/>
+            <text x="120" y="92" class="lbl">Machine Learning</text>
+
+            <ellipse cx="235" cy="180" rx="120" ry="70" opacity=".6" stroke="var(--dg-accent)" class="ring" style="fill:var(--dg-fill-2);"/>
+            <text x="165" y="130" class="lbl">Deep Learning</text>
+
+            <ellipse cx="455" cy="190" rx="165" ry="92" opacity=".55" stroke="var(--dg-accent-2)" class="ring" style="fill:var(--dg-fill-3);"/>
+            <text x="470" y="128" class="lbl">Computer Vision</text>
+            <text x="470" y="146" class="lbs">ditentukan oleh jenis data: visual</text>
+
+            <ellipse cx="560" cy="248" rx="120" ry="62" stroke="var(--dg-stroke)" stroke-dasharray="6 5" class="ring" style="fill:none;"/>
+            <text x="580" y="300" class="lbl" text-anchor="middle">Image Processing</text>
+
+            <text x="330" y="196" class="lbs" text-anchor="middle">CNN · ViT</text>
+            <text x="566" y="238" class="lbs" text-anchor="middle">filtering · fitur klasik</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 1.2.</b> Posisi Computer Vision terhadap AI, Machine Learning, Deep Learning, dan Image Processing.
+          Perhatikan bahwa Computer Vision tidak seluruhnya berada di dalam Machine Learning.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, mengacu pada pembahasan Unit 1 — What Is Computer Vision.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 720 260" role="img" aria-label="Diagram tiga tingkat image understanding: low-level dari citra ke citra, mid-level dari citra ke atribut, high-level dari citra ke pemahaman">
+            <style>
+              .tier { stroke: var(--dg-stroke); stroke-width: 1.6; rx: 8; }
+              .t1 { font: 700 13px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .t2 { font: 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .82; }
+              .tag { font: 700 10px var(--font-sans, sans-serif); fill: var(--dg-accent); letter-spacing: .1em; }
+            </style>
+
+            <rect class="tier" x="20" y="176" width="680" height="62" fill="var(--dg-fill)"/>
+            <text x="40" y="200" class="t1">Low-level</text>
+            <text x="40" y="220" class="t2">citra → citra · penajaman, kontras, penghalusan, penghilangan derau</text>
+            <text x="684" y="200" class="tag" text-anchor="end">IMAGE PROC.</text>
+
+            <rect class="tier" x="20" y="102" width="680" height="62" fill="var(--dg-fill-2)"/>
+            <text x="40" y="126" class="t1">Mid-level</text>
+            <text x="40" y="146" class="t2">citra → atribut · segmentasi, deskripsi objek, klasifikasi objek</text>
+            <text x="684" y="126" class="tag" text-anchor="end">IRISAN KEDUANYA</text>
+
+            <rect class="tier" x="20" y="28" width="680" height="62" fill="var(--dg-fill-3)"/>
+            <text x="40" y="52" class="t1">High-level</text>
+            <text x="40" y="72" class="t2">citra → pemahaman · pengenalan objek, rekonstruksi scene, image-to-text</text>
+            <text x="684" y="52" class="tag" text-anchor="end">COMPUTER VISION</text>
+
+            <path d="M10 238 L10 28" stroke="var(--dg-accent)" stroke-width="2" fill="none"/>
+            <path d="M10 28 l-5 8 h10 z" fill="var(--dg-accent)"/>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 1.3.</b> Tiga tingkat image understanding dan pembagian wilayahnya.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari penjelasan Unit 1 — What Is Computer Vision.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Technical Foundation</h2>
+      <p>
+        Materi ini belum memerlukan matematika berat, tetapi satu gagasan perlu ditanam sejak sekarang karena
+        akan dipakai di seluruh materi berikutnya: <strong>citra adalah fungsi</strong>.
+      </p>
+      <p>
+        Sebuah citra dua dimensi dapat dituliskan sebagai <code>f(x, y)</code>, dengan <code>x</code> dan
+        <code>y</code> sebagai koordinat spasial, dan <code>f(x, y)</code> sebagai intensitas pada titik tersebut.
+        Pasangan koordinat itu disebut <em>pixel</em>. Seluruh operasi Computer Vision — mulai dari penghalusan
+        sederhana sampai konvolusi pada CNN — pada dasarnya adalah operasi terhadap fungsi ini.
+      </p>
+      <p>
+        Perhatikan konsekuensi berikut, karena ia menjelaskan mengapa Computer Vision sulit:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Yang dilihat manusia</th><th>Yang diterima komputer</th></tr></thead>
+          <tbody>
+            <tr><td>Sebuah wajah</td><td>Matriks berisi ratusan ribu bilangan bulat</td></tr>
+            <tr><td>Wajah yang sama di ruangan gelap</td><td>Matriks dengan nilai yang seluruhnya berbeda</td></tr>
+            <tr><td>Wajah yang sama, kepala dimiringkan</td><td>Matriks dengan susunan yang seluruhnya berbeda</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Bagi manusia, ketiganya adalah "wajah yang sama". Bagi komputer, ketiganya adalah tiga matriks yang sangat
+        berbeda. Seluruh Computer Vision, pada akhirnya, adalah usaha mencari representasi yang tetap stabil
+        meskipun angka-angkanya berubah. Materi 04 menyebut sifat ini <em>invariance</em>.
+      </p>
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Kompleksitas ditentukan oleh data, bukan oleh judul tugas</p>
+        <p style="margin-bottom:0">
+          "Mendeteksi pejalan kaki" terdengar sederhana bagi manusia. Namun tingkat kesulitannya melonjak drastis
+          ketika pencahayaan buruk, objek terhalang sebagian, atau resolusi kamera rendah. Menilai sulit-mudahnya
+          sebuah persoalan CV harus dilakukan dengan melihat datanya, bukan dari rumusan tugasnya.
+        </p>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration — Taksonomi Tugas Computer Vision</h2>
+      <p>
+        Lima tugas berikut adalah kosakata dasar yang akan Anda pakai sepanjang semester. Perbedaannya terletak
+        pada <strong>bentuk keluarannya</strong>, bukan pada jenis modelnya.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 250" role="img" aria-label="Lima panel yang membandingkan keluaran tugas computer vision: klasifikasi menghasilkan satu label, deteksi menghasilkan kotak pembatas, segmentasi menghasilkan mask per pixel, tracking menghasilkan lintasan antar frame, dan captioning menghasilkan kalimat">
+            <style>
+              .pn { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.5; rx: 7; }
+              .ttl { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .sub { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .7; }
+              .obj { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .box { fill: none; stroke: var(--dg-accent-2); stroke-width: 2; }
+              .msk { fill: var(--dg-accent); opacity: .45; }
+            </style>
+
+            <!-- 1 classification -->
+            <g transform="translate(10,20)">
+              <rect class="pn" x="0" y="0" width="134" height="120"/>
+              <circle class="obj" cx="67" cy="58" r="30"/>
+              <rect x="14" y="94" width="106" height="18" rx="4" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1"/>
+              <text x="67" y="107" class="sub" text-anchor="middle">label: "kucing"</text>
+              <text x="0" y="146" class="ttl">Classification</text>
+              <text x="0" y="162" class="sub">satu label untuk</text>
+              <text x="0" y="176" class="sub">seluruh citra</text>
+            </g>
+
+            <!-- 2 detection -->
+            <g transform="translate(160,20)">
+              <rect class="pn" x="0" y="0" width="134" height="120"/>
+              <circle class="obj" cx="50" cy="52" r="24"/>
+              <circle class="obj" cx="96" cy="86" r="18"/>
+              <rect class="box" x="24" y="26" width="52" height="52" rx="3"/>
+              <rect class="box" x="76" y="66" width="40" height="40" rx="3"/>
+              <text x="0" y="146" class="ttl">Object Detection</text>
+              <text x="0" y="162" class="sub">kotak pembatas +</text>
+              <text x="0" y="176" class="sub">label per objek</text>
+            </g>
+
+            <!-- 3 segmentation -->
+            <g transform="translate(310,20)">
+              <rect class="pn" x="0" y="0" width="134" height="120"/>
+              <circle class="msk" cx="52" cy="54" r="26"/>
+              <path class="msk" d="M86 74 q22 -8 34 10 q-6 24 -34 22 q-12 -16 0 -32z"/>
+              <text x="0" y="146" class="ttl">Segmentation</text>
+              <text x="0" y="162" class="sub">label untuk</text>
+              <text x="0" y="176" class="sub">setiap pixel</text>
+            </g>
+
+            <!-- 4 tracking -->
+            <g transform="translate(460,20)">
+              <rect class="pn" x="0" y="0" width="134" height="120"/>
+              <circle class="obj" cx="30" cy="86" r="12"/>
+              <circle class="obj" cx="66" cy="60" r="12" opacity=".75"/>
+              <circle class="obj" cx="104" cy="36" r="12" opacity=".5"/>
+              <path d="M30 86 L66 60 L104 36" stroke="var(--dg-accent-2)" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+              <text x="0" y="146" class="ttl">Tracking</text>
+              <text x="0" y="162" class="sub">identitas objek</text>
+              <text x="0" y="176" class="sub">lintas frame</text>
+            </g>
+
+            <!-- 5 captioning -->
+            <g transform="translate(610,20)">
+              <rect class="pn" x="0" y="0" width="134" height="120"/>
+              <circle class="obj" cx="46" cy="50" r="20"/>
+              <rect class="obj" x="74" y="56" width="40" height="26" rx="4"/>
+              <rect x="12" y="92" width="110" height="7" rx="3" fill="var(--dg-grid)"/>
+              <rect x="12" y="104" width="78" height="7" rx="3" fill="var(--dg-grid)"/>
+              <text x="0" y="146" class="ttl">Image Captioning</text>
+              <text x="0" y="162" class="sub">deskripsi citra</text>
+              <text x="0" y="176" class="sub">dalam bahasa alami</text>
+            </g>
+
+            <line x1="10" y1="205" x2="750" y2="205" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="380" y="228" class="sub" text-anchor="middle">
+              Keluaran makin rinci dari kiri ke kanan: satu label → kotak → pixel → lintasan → kalimat.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 1.4.</b> Taksonomi lima tugas dasar Computer Vision berdasarkan bentuk keluarannya.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari daftar tugas pada Unit 1 — What Is Computer Vision dan Unit 6 — Basic CV Tasks.</span>
+        </figcaption>
+      </figure>
+
+      <details class="acc">
+        <summary>Rincian setiap tugas</summary>
+        <div class="acc-body">
+          <dl class="defs">
+            <dt>Image Classification</dt>
+            <dd>Memberi satu label untuk keseluruhan citra. "Ada apa di citra ini?" Keluarannya paling sederhana, dan karena itu menjadi titik masuk paling umum ke Computer Vision.</dd>
+            <dt>Object Detection</dt>
+            <dd>Menjawab "ada apa, dan di mana?" Keluarannya berupa kotak pembatas beserta labelnya. Satu citra dapat memuat banyak objek dengan kelas berbeda.</dd>
+            <dt>Segmentation</dt>
+            <dd>Memberi label pada setiap pixel. Segmentasi semantik memberi label kelas, segmentasi instance membedakan objek individual dari kelas yang sama, segmentasi panoptic menggabungkan keduanya.</dd>
+            <dt>Tracking</dt>
+            <dd>Menjaga identitas objek dari frame ke frame pada video. Persoalan intinya bukan mendeteksi, melainkan memastikan objek nomor 3 pada frame ke-10 adalah objek yang sama pada frame ke-11.</dd>
+            <dt>Image Captioning</dt>
+            <dd>Menghasilkan kalimat yang mendeskripsikan isi citra. Menjembatani penglihatan dan bahasa — dibahas lebih dalam pada Materi 09.</dd>
+          </dl>
+          <p style="margin-bottom:0">
+            Di luar lima tugas ini masih banyak yang lain: anomaly detection, image generation, image restoration,
+            localization, path planning, dan scene recognition.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Mari telusuri satu kasus konkret: <strong>sistem penghitung kendaraan di sebuah persimpangan</strong>.
+        Perhatikan bagaimana pemilihan tugas menentukan seluruh rancangan sistem.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Pertanyaan</th><th>Tugas yang sesuai</th><th>Alasan</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>"Apakah jalan ini macet?"</td>
+              <td>Classification</td>
+              <td>Cukup satu label per frame: macet / lancar. Tidak perlu tahu posisi kendaraan.</td>
+            </tr>
+            <tr>
+              <td>"Ada berapa kendaraan saat ini?"</td>
+              <td>Object Detection</td>
+              <td>Perlu posisi tiap kendaraan agar dapat dihitung.</td>
+            </tr>
+            <tr>
+              <td>"Berapa persen badan jalan tertutup kendaraan?"</td>
+              <td>Segmentation</td>
+              <td>Perlu ketelitian tingkat pixel, bukan sekadar kotak.</td>
+            </tr>
+            <tr>
+              <td>"Berapa kendaraan yang lewat dalam satu jam?"</td>
+              <td>Tracking</td>
+              <td>Tanpa identitas antar-frame, satu kendaraan akan terhitung berkali-kali.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Pelajaran dari contoh ini</p>
+        <p style="margin-bottom:0">
+          Tugas Computer Vision tidak dipilih berdasarkan mana yang paling canggih, melainkan berdasarkan
+          pertanyaan yang ingin dijawab. Menggunakan segmentasi untuk menjawab "macet atau tidak" adalah
+          pemborosan komputasi, dan menggunakan klasifikasi untuk menghitung kendaraan tidak akan pernah berhasil.
+        </p>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <p>Computer Vision sudah menjadi infrastruktur di banyak bidang:</p>
+      <dl class="defs">
+        <dt>Kesehatan</dt>
+        <dd>Deteksi kelainan pada citra rontgen, CT, dan MRI; penghitungan sel pada citra mikroskop; pemantauan pertumbuhan lesi antar pemeriksaan.</dd>
+        <dt>Industri manufaktur</dt>
+        <dd>Inspeksi visual otomatis untuk menemukan cacat produk, pembacaan kode, dan verifikasi perakitan pada kecepatan lini produksi.</dd>
+        <dt>Pertanian</dt>
+        <dd>Identifikasi penyakit tanaman dari citra daun, estimasi hasil panen, dan penyemprotan selektif berbasis citra drone.</dd>
+        <dt>Transportasi</dt>
+        <dd>Pengenalan rambu, deteksi pejalan kaki, estimasi jarak, dan pemantauan arus lalu lintas.</dd>
+        <dt>Keamanan dan forensik</dt>
+        <dd>Pencarian objek pada rekaman panjang, verifikasi dokumen, dan analisis citra pada penyelidikan.</dd>
+        <dt>Konservasi dan lingkungan</dt>
+        <dd>Penghitungan populasi satwa dari citra kamera jebak, pemantauan tutupan lahan dari citra satelit, dan deteksi titik api.</dd>
+      </dl>
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚖</span> Setiap penerapan membawa tanggung jawab</p>
+        <p style="margin-bottom:0">
+          Model yang menyatakan sampel kanker sebagai sehat memiliki konsekuensi serius. Sistem yang mampu
+          melacak orang menimbulkan persoalan privasi. Pertimbangan etis bukan topik tambahan di akhir semester —
+          ia melekat pada setiap keputusan teknis. Pembahasan penuhnya ada di Materi 15.
+        </p>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Computer Vision sama dengan deep learning."</p>
+        <p style="margin-bottom:0">
+          Computer Vision adalah bidang yang ditentukan oleh jenis data; deep learning adalah salah satu metode
+          untuk menyelesaikannya. Banyak persoalan CV justru lebih baik diselesaikan dengan metode klasik yang
+          lebih ringan, lebih mudah dijelaskan, dan tidak memerlukan data berlabel dalam jumlah besar.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Kamera yang lebih baik menyelesaikan masalah."</p>
+        <p style="margin-bottom:0">
+          Resolusi tinggi membantu, tetapi tidak mengatasi persoalan pencahayaan buruk, sudut pandang ekstrem,
+          objek terhalang, atau data latih yang tidak mewakili kondisi lapangan.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Karena mudah bagi manusia, pasti mudah bagi komputer."</p>
+        <p style="margin-bottom:0">
+          Justru sering sebaliknya. Membaca teks tercetak rapi relatif mudah bagi mesin; memahami bahwa dua foto
+          menunjukkan orang yang sama pada usia berbeda jauh lebih sulit, padahal manusia melakukannya seketika.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Akurasi 95% berarti sistemnya siap dipakai."</p>
+        <p style="margin-bottom:0">
+          Bergantung pada distribusi datanya. Jika hanya 2% citra yang mengandung cacat, model yang selalu
+          menjawab "tidak cacat" sudah mencapai akurasi 98% tanpa pernah berguna sama sekali. Metrik evaluasi
+          dibahas pada Materi 11.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Vision adalah penafsiran.</strong> Menangkap cahaya belum berarti melihat.</li>
+        <li><strong>Bagian tersulit ada di "korteks", bukan di sensor.</strong> Mengubah angka menjadi makna adalah inti persoalan Computer Vision.</li>
+        <li><strong>Computer Vision ditentukan oleh jenis datanya,</strong> bukan oleh metodenya. Deep learning adalah salah satu alat, bukan definisi bidangnya.</li>
+        <li><strong>Image processing dan computer vision beririsan di tingkat menengah.</strong> Tidak semua persoalan membutuhkan model besar.</li>
+        <li><strong>Tugas CV dibedakan oleh bentuk keluarannya:</strong> label, kotak, mask per pixel, lintasan, atau kalimat.</li>
+        <li><strong>Kompleksitas persoalan ditentukan oleh datanya,</strong> bukan oleh rumusan tugasnya.</li>
+      </ul>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 200" role="img" aria-label="Diagram alur pipeline computer vision: akuisisi, preprocessing, ekstraksi fitur atau representasi, model, keputusan, dan evaluasi yang mengalir kembali ke tahap sebelumnya">
+            <defs>
+              <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .st { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.6; }
+              .sa { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.6; }
+              .sb { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .n1 { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .n2 { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .72; }
+              .fl { stroke: var(--dg-stroke); stroke-width: 1.7; fill: none; marker-end: url(#ar2); }
+            </style>
+
+            <g>
+              <rect class="st" x="14" y="46" width="108" height="56" rx="7"/>
+              <text x="68" y="70" class="n1" text-anchor="middle">Akuisisi</text>
+              <text x="68" y="86" class="n2" text-anchor="middle">kamera, sensor</text>
+
+              <rect class="sa" x="146" y="46" width="108" height="56" rx="7"/>
+              <text x="200" y="70" class="n1" text-anchor="middle">Preprocessing</text>
+              <text x="200" y="86" class="n2" text-anchor="middle">Materi 03</text>
+
+              <rect class="sa" x="278" y="46" width="118" height="56" rx="7"/>
+              <text x="337" y="70" class="n1" text-anchor="middle">Representasi</text>
+              <text x="337" y="86" class="n2" text-anchor="middle">fitur — Materi 04/05</text>
+
+              <rect class="sb" x="420" y="46" width="108" height="56" rx="7"/>
+              <text x="474" y="70" class="n1" text-anchor="middle">Model</text>
+              <text x="474" y="86" class="n2" text-anchor="middle">klasik / CNN / ViT</text>
+
+              <rect class="sb" x="552" y="46" width="108" height="56" rx="7"/>
+              <text x="606" y="70" class="n1" text-anchor="middle">Keputusan</text>
+              <text x="606" y="86" class="n2" text-anchor="middle">label, kotak, mask</text>
+
+              <rect class="st" x="672" y="46" width="76" height="56" rx="7"/>
+              <text x="710" y="70" class="n1" text-anchor="middle">Evaluasi</text>
+              <text x="710" y="86" class="n2" text-anchor="middle">metrik</text>
+
+              <path class="fl" d="M122 74h18M254 74h18M396 74h18M528 74h18M660 74h6"/>
+              <path class="fl" d="M710 108 v26 H200 v-26" stroke-dasharray="6 5"/>
+              <text x="440" y="152" class="n2" text-anchor="middle">umpan balik: hasil evaluasi memperbaiki tahap sebelumnya</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 1.5.</b> Computer Vision pipeline dan pemetaannya ke materi perkuliahan.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun berdasarkan alur pembelajaran Hugging Face Community Computer Vision Course.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini sengaja dirancang tanpa pelatihan model sama sekali. Tujuannya melatih mata Anda
+        sebagai perancang sistem: melihat sebuah citra lalu menentukan tugas Computer Vision apa yang sesuai
+        untuk menjawab pertanyaan tertentu.
+      </p>
+      <p>Yang perlu disiapkan:</p>
+      <ul>
+        <li>akun Google untuk membuka Google Colab (tidak perlu instalasi apa pun di komputer);</li>
+        <li>sepuluh sampai lima belas citra dari lingkungan sekitar — kampus, jalan, pasar, laboratorium;</li>
+        <li>buku catatan untuk menuliskan alasan setiap keputusan, karena alasannya lebih dinilai daripada jawabannya.</li>
+      </ul>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Catatan tentang notebook resmi</p>
+        <p style="margin-bottom:0">
+          Unit 1 Hugging Face tidak menyediakan notebook hands-on, sehingga praktikum Materi 01–04 disusun sendiri
+          oleh tim pengajar COM Computer Vision. Notebook resmi Hugging Face mulai tersedia pada Unit 2 dan
+          diperkenalkan pada Materi 05.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <p>
+        Kerjakan praktikum berikut setelah Anda yakin dapat menjelaskan perbedaan kelima tugas Computer Vision
+        tanpa melihat catatan.
+      </p>
+      <div class="btn-row">
+        <a class="btn" href="../practical/practical-01.html" data-practical-link>🧪 Mulai Praktikum 01</a>
+        <a class="btn secondary" href="https://huggingface.co/learn/computer-vision-course/en/unit1/chapter1/definition" target="_blank" rel="noopener noreferrer">📖 Baca sumber: What Is Computer Vision ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Susun sepuluh citra yang Anda kumpulkan ke dalam satu folder.</li>
+        <li>Untuk setiap citra, tuliskan satu pertanyaan yang ingin dijawab oleh sebuah sistem.</li>
+        <li>Tentukan tugas CV yang paling sesuai untuk pertanyaan tersebut, dan jelaskan alasannya.</li>
+        <li>Tentukan pula tugas yang <em>tidak</em> sesuai, beserta alasan mengapa tidak.</li>
+        <li>Tandai citra mana yang menurut Anda akan sulit diproses sistem, dan sebutkan penyebab teknisnya.</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <p>Jawab dengan kalimat Anda sendiri, bukan dengan menyalin definisi:</p>
+      <ol>
+        <li>Mengapa kamera pengawas yang merekam sepanjang malam belum dapat dikatakan "melihat"?</li>
+        <li>Anda diminta membuat sistem untuk menghitung jumlah orang yang masuk perpustakaan setiap hari. Tugas Computer Vision apa yang Anda pilih, dan mengapa pilihan lain kurang tepat?</li>
+        <li>Berikan satu contoh persoalan penglihatan yang menurut Anda <em>tidak</em> memerlukan deep learning. Jelaskan alasan teknisnya.</li>
+        <li>Wajah yang sama pada pencahayaan berbeda menghasilkan matriks angka yang sangat berbeda. Menurut Anda, strategi seperti apa yang mungkin ditempuh agar sistem tetap mengenalinya sebagai wajah yang sama?</li>
+        <li>Sebutkan satu penerapan Computer Vision di sekitar Anda yang menurut Anda menimbulkan persoalan etis. Apa persisnya yang menjadi persoalan?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — Unit 1: <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/chapter1/motivation" target="_blank" rel="noopener noreferrer">Vision</a>, <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/chapter1/definition" target="_blank" rel="noopener noreferrer">What Is Computer Vision</a>, <a href="https://huggingface.co/learn/computer-vision-course/en/unit1/chapter1/applications" target="_blank" rel="noopener noreferrer">Applications of Computer Vision</a>.</li>
+        <li>Forsyth, D. A., &amp; Ponce, J. <em>Computer Vision: A Modern Approach</em>. Pearson. — sumber definisi Computer Vision yang dipakai pada materi ini.</li>
+        <li>Gonzalez, R. C., &amp; Woods, R. E. <em>Digital Image Processing</em>. Pearson. — pembagian tingkat image understanding.</li>
+        <li>Szeliski, R. <em>Computer Vision: Algorithms and Applications</em>. Springer. — gambaran umum tugas dan aplikasi Computer Vision.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision untuk daftar lengkap.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

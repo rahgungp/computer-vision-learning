@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Materi 05 · Introduction to Convolutional Neural Networks — COM Computer Vision</title>
+<meta name="description" content="Materi 05: keterbatasan CV klasik, motivasi CNN, konvolusi 1D dan 2D dihitung manual, kernel, feature map, padding, stride, activation, pooling, arsitektur CNN, backpropagation, parameter sharing, dan sparse interaction.">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="week" data-week="05">
+
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <span>Materi 05</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">Materi 05</span>
+        <h1 class="page-title" data-week-title>Introduction to Convolutional Neural Networks</h1>
+        <p class="page-sub" data-week-subtitle>Konvolusi, kernel, feature map, padding, stride, pooling, dan arsitektur CNN</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ <span data-week-duration>120 menit</span></span>
+          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 2</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan keterbatasan Computer Vision klasik yang mendorong lahirnya CNN;</li>
+          <li>menghitung konvolusi 1D dan 2D secara manual tanpa bantuan framework apa pun;</li>
+          <li>menjelaskan pengaruh padding dan stride terhadap ukuran feature map serta menghitungnya;</li>
+          <li>menjelaskan peran fungsi aktivasi dan pooling di dalam CNN;</li>
+          <li>menjelaskan parameter sharing dan sparse interaction beserta keuntungan keduanya;</li>
+          <li>menguraikan arsitektur CNN dari citra masukan sampai keluaran klasifikasi.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        CNN bukan sihir. CNN adalah filter spasial dari Materi 03 — dengan satu perbedaan: nilai kernelnya dicari
+        dari data, bukan ditentukan manusia.
+      </p>
+      <p>
+        Pendekatan yang Anda pelajari pada Materi 03 dan 04 bekerja baik pada dataset yang kecil dan terkendali.
+        Namun keterbatasannya muncul ketika berhadapan dengan data dunia nyata berskala besar. Filter Prewitt
+        mendeteksi tepi dengan sangat baik, tetapi siapa yang merancang filter untuk mendeteksi "telinga kucing"?
+        Tidak ada yang dapat merancangnya secara manual.
+      </p>
+      <p>
+        Gagasan CNN persis menjawab persoalan itu: bila kita tidak tahu filter apa yang dibutuhkan, biarkan mesin
+        mencarinya sendiri. Inisialisasi filter secara acak, hitung feature map, umpankan ke pengklasifikasi,
+        ukur kesalahannya, lalu perbaiki nilai filternya. Ulangi. Pada akhirnya diperoleh filter yang paling tepat
+        untuk persoalan tersebut.
+      </p>
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Satu kalimat yang merangkum seluruh materi ini</p>
+        <p style="margin-bottom:0">
+          Melatih CNN pada dasarnya adalah menjawab pertanyaan: <em>kernel seperti apa yang harus saya terapkan
+          agar dapat membedakan foto kucing dari foto anjing?</em> Jawabannya ditemukan lewat backpropagation.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-03.html">Materi 03</a> — spatial filtering dan kernel. Ini prasyarat terpenting: bila bagian tersebut belum jelas, ulangi dulu sebelum melanjutkan.</li>
+        <li><a href="./week-04.html">Materi 04</a> — gagasan bahwa citra diwakili oleh fitur, bukan oleh pixel mentah.</li>
+        <li>Perkalian dan penjumlahan matriks dasar.</li>
+        <li>Gagasan umum tentang optimasi: parameter diperbaiki berulang kali untuk menurunkan kesalahan.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <h3>Keterbatasan Computer Vision klasik</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Keterbatasan</th><th>Penjelasan</th></tr></thead>
+          <tbody>
+            <tr><td>Fitur harus dirancang manusia</td><td>Memerlukan pengetahuan domain yang mendalam dan proses rekayasa fitur yang melelahkan.</td></tr>
+            <tr><td>Tidak dapat digeneralisasi</td><td>Filter yang bekerja baik pada satu dataset sering gagal pada dataset lain, bahkan untuk tugas serupa.</td></tr>
+            <tr><td>Sulit untuk konsep abstrak</td><td>Tepi dan sudut dapat dirumuskan. "Wajah", "kendaraan", atau "kerusakan" tidak dapat dirumuskan sebagai kernel tunggal.</td></tr>
+            <tr><td>Tidak berskala</td><td>Menambah kelas objek berarti merancang ulang fitur, bukan sekadar menambah data.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Konvolusi: gagasan dasarnya</h3>
+      <p>
+        Konvolusi adalah operasi untuk mengekstraksi fitur dari data. Datanya bisa berdimensi satu, dua, atau tiga.
+        Operasinya sendiri sederhana: ambil sebuah matriks berisi angka, geser matriks itu di atas data, lalu
+        hitung jumlah perkalian antara data dan matriks tersebut. Matriks itulah yang disebut
+        <strong>kernel</strong> atau <strong>filter</strong>. Hasil operasinya disebut <strong>feature map</strong>.
+      </p>
+      <p>
+        Anda sudah melakukannya di Materi 03. Yang baru di sini hanyalah satu hal: nilai di dalam kernel tidak
+        lagi ditentukan manusia, melainkan menjadi parameter yang dioptimasi.
+      </p>
+
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Mulai dari satu dimensi</p>
+        <p style="margin-bottom:0">
+          Cara paling jernih memahami konvolusi adalah memulainya pada data satu dimensi dengan kernel yang sangat
+          kecil. Setelah itu, versi dua dimensi hanyalah pengulangan hal yang sama pada dua arah.
+        </p>
+      </div>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 300" role="img" aria-label="Konvolusi satu dimensi dengan kernel minus satu dan satu, digeser sepanjang deret data, menghasilkan deret baru yang menunjukkan laju perubahan data">
+            <style>
+              .dc { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .dk { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 2; }
+              .dr { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .dv { font: 11px monospace; fill: var(--dg-text); }
+              .dl { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .dm { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <text x="16" y="24" class="dl">Data 1D</text>
+            <g transform="translate(16,32)">
+              <rect class="dc" x="0"   y="0" width="52" height="34"/>
+              <rect class="dc" x="52"  y="0" width="52" height="34"/>
+              <rect class="dc" x="104" y="0" width="52" height="34"/>
+              <rect class="dc" x="156" y="0" width="52" height="34"/>
+              <rect class="dc" x="208" y="0" width="52" height="34"/>
+              <rect class="dc" x="260" y="0" width="52" height="34"/>
+              <g class="dv" text-anchor="middle">
+                <text x="26" y="22">10</text><text x="78" y="22">10</text><text x="130" y="22">10</text>
+                <text x="182" y="22">60</text><text x="234" y="22">60</text><text x="286" y="22">60</text>
+              </g>
+              <text x="330" y="22" class="dm">← ada lompatan nilai di sini</text>
+            </g>
+
+            <text x="16" y="104" class="dl">Kernel</text>
+            <g transform="translate(16,112)">
+              <rect class="dk" x="104" y="0" width="52" height="34"/>
+              <rect class="dk" x="156" y="0" width="52" height="34"/>
+              <g class="dv" text-anchor="middle" style="font-weight:700;">
+                <text x="130" y="22">−1</text><text x="182" y="22">+1</text>
+              </g>
+              <text x="222" y="22" class="dm">digeser satu posisi setiap langkah (stride = 1)</text>
+            </g>
+
+            <text x="16" y="184" class="dl">Perhitungan</text>
+            <g class="dm" transform="translate(16,196)" style="font-family:monospace;">
+              <text x="0" y="0">posisi 1:  (−1 × 10) + (1 × 10) = 0</text>
+              <text x="250" y="0">posisi 3:  (−1 × 10) + (1 × 60) = 50</text>
+              <text x="0" y="18">posisi 2:  (−1 × 10) + (1 × 10) = 0</text>
+              <text x="250" y="18">posisi 4:  (−1 × 60) + (1 × 60) = 0</text>
+            </g>
+
+            <text x="16" y="256" class="dl">Feature map</text>
+            <g transform="translate(120,236)">
+              <rect class="dr" x="0"   y="0" width="52" height="34"/>
+              <rect class="dr" x="52"  y="0" width="52" height="34"/>
+              <rect class="dr" x="104" y="0" width="52" height="34" style="stroke-width:2;stroke:var(--dg-accent-2);fill:var(--dg-fill-3);"/>
+              <rect class="dr" x="156" y="0" width="52" height="34"/>
+              <rect class="dr" x="208" y="0" width="52" height="34"/>
+              <g class="dv" text-anchor="middle">
+                <text x="26" y="22">0</text><text x="78" y="22">0</text>
+                <text x="130" y="22" font-weight="700">50</text>
+                <text x="182" y="22">0</text><text x="234" y="22">0</text>
+              </g>
+              <text x="278" y="22" class="dm">hanya lokasi perubahan yang menyala</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 5.1.</b> Konvolusi satu dimensi dengan kernel [−1, 1]: hasilnya adalah laju perubahan data, yaitu turunannya.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Hugging Face Community Computer Vision Course, Unit 2 — Introduction to CNN.</span>
+        </figcaption>
+      </figure>
+
+      <p>
+        Perhatikan apa yang terjadi: filter tersebut menghasilkan <em>laju perubahan</em> data. Pada area yang
+        nilainya seragam, hasilnya nol. Pada tempat nilainya melompat, hasilnya besar. Inilah yang dilakukan
+        filter deteksi tepi — dan inilah karakteristik pertama yang berhasil kita ekstraksi dari data.
+      </p>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Dari kernel manusia ke kernel yang dipelajari</h3>
+      <p>
+        Mencoba-coba filter secara paksa tidak bekerja dengan baik untuk semua citra. Bayangkan bila kita dapat
+        menemukan filter optimal untuk mengekstraksi informasi penting, bahkan untuk mendeteksi objek. Di situlah
+        CNN masuk. Kita mengonvolusikan citra dengan berbagai filter; nilai-nilai pada feature map akhirnya menjadi
+        parameter yang dioptimasi, dan pada akhirnya kita memperoleh filter terbaik untuk persoalan yang dihadapi.
+      </p>
+      <p>
+        Alurnya: inisialisasi beberapa filter secara acak → hasilkan feature map → umpankan ke pengklasifikasi →
+        lakukan backpropagation untuk memperbaiki nilai filter. Sebelum deep learning, orang mencoba banyak filter
+        secara manual, padahal filter generik seperti Prewitt atau Sobel tidak selalu sesuai untuk semua citra,
+        bahkan di dalam dataset yang sama. Inilah alasan mendasar mengapa CNN mengungguli teknik pengolahan citra
+        tradisional.
+      </p>
+
+      <h3>Fungsi aktivasi</h3>
+      <p>
+        Setelah konvolusi, hasilnya dilewatkan melalui fungsi aktivasi non-linear, yang paling umum adalah ReLU:
+      </p>
+      <pre><code>ReLU(x) = max(0, x)
+
+    −50  →  0
+     −3  →  0
+      0  →  0
+     18  →  18
+     73  →  73</code></pre>
+      <p>
+        Mengapa perlu? Karena konvolusi adalah operasi linear, dan menumpuk operasi linear tanpa non-linearitas
+        menghasilkan sesuatu yang secara matematis setara dengan satu operasi linear saja. Tanpa aktivasi,
+        jaringan sedalam apa pun tidak lebih kuat daripada satu lapisan tunggal. Aktivasi jugalah yang memungkinkan
+        jaringan memilih: nilai negatif dianggap "fitur ini tidak ada di sini" dan dibuang.
+      </p>
+
+      <h3>Pooling</h3>
+      <p>
+        Pada feature map, banyak pixel yang menunjukkan adanya perubahan. Padahal untuk mengetahui bahwa ada tepi,
+        kita cukup tahu bahwa <em>ada</em> perubahan di sekitar situ — itu saja. Operasi mengambil elemen terpenting
+        dari suatu area feature map disebut <strong>pooling</strong>.
+      </p>
+      <p>Pooling memberi tiga keuntungan sekaligus:</p>
+      <ul>
+        <li><strong>Parameter lebih sedikit.</strong> Ukuran feature map mengecil, sehingga komputasi berikutnya lebih ringan.</li>
+        <li><strong>Lebih tahan terhadap perubahan kecil.</strong> Kita hanya perlu tahu bahwa ada dua mata, satu hidung, dan satu mulut untuk mengenali wajah; jarak dan ukuran bagian-bagian itu berbeda-beda antar wajah, dan pooling membuat model lebih toleran terhadap variasi tersebut.</li>
+        <li><strong>Menangani ukuran masukan yang bervariasi.</strong></li>
+      </ul>
+      <p>
+        Harganya: kita kehilangan informasi posisi pasti tempat tepi itu berada. Untuk klasifikasi, ini hampir
+        selalu merupakan pertukaran yang menguntungkan. Untuk segmentasi, yang justru membutuhkan ketelitian
+        posisi, konsekuensinya harus ditangani secara khusus. Selain max pooling, dikenal pula average pooling,
+        weighted pooling, dan L2 pooling.
+      </p>
+
+      <h3>Parameter sharing</h3>
+      <p>
+        Pada CNN, kita melakukan konvolusi dengan filter yang sama untuk seluruh pixel, seluruh kanal, dan seluruh
+        citra. Ini jauh lebih hemat dibandingkan memproses citra dengan jaringan padat. Istilahnya adalah
+        <em>weight tying</em>, dan bobot yang dipakai bersama itu disebut <em>tied weights</em>.
+      </p>
+      <p>
+        Maknanya secara konseptual: detektor tepi vertikal berguna di seluruh bagian citra, bukan hanya di sudut
+        kiri atas. Jadi tidak masuk akal mempelajari detektor yang berbeda untuk setiap posisi.
+      </p>
+
+      <h3>Sparse interaction</h3>
+      <p>
+        Pada jaringan padat, seluruh data dimasukkan sekaligus — sangat berat karena citra memiliki ratusan ribu
+        pixel. Pada convnet, kita memakai kernel-kernel kecil untuk mengekstraksi fitur. Inilah yang disebut
+        sparse interaction, dan ia membuat pemakaian memori jauh lebih hemat.
+      </p>
+      <p>Mari bandingkan secara angka pada citra 100×100 grayscale:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pendekatan</th><th>Jumlah bobot</th><th>Keterangan</th></tr></thead>
+          <tbody>
+            <tr><td>Dense layer (100 neuron)</td><td>10.000 × 100 = 1.000.000</td><td>Setiap neuron terhubung ke setiap pixel</td></tr>
+            <tr><td>Conv layer (32 kernel 3×3)</td><td>32 × 9 = 288</td><td>Kernel yang sama dipakai di seluruh posisi</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Selisihnya lebih dari tiga ribu kali lipat — dan CNN tetap bekerja lebih baik. Penghematan ini bukan
+        sekadar soal efisiensi: parameter yang lebih sedikit berarti model lebih kecil kemungkinannya menghafal
+        data latih.
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <p>Sekarang kita hitung konvolusi dua dimensi secara manual, langkah demi langkah.</p>
+
+      <h3>Bahan perhitungan</h3>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Input (citra 3×3)</span>
+          <div class="matrix" style="grid-template-columns: repeat(3, auto)" role="img" aria-label="Matriks masukan tiga kali tiga berisi 1 2 3, 4 5 6, 7 8 9">
+            <span>1</span><span>2</span><span>3</span>
+            <span>4</span><span>5</span><span>6</span>
+            <span>7</span><span>8</span><span>9</span>
+          </div>
+        </div>
+        <span class="op" aria-hidden="true">⊛</span>
+        <div>
+          <span class="matrix-cap">Kernel 3×3</span>
+          <div class="matrix" style="grid-template-columns: repeat(3, auto)" role="img" aria-label="Kernel tiga kali tiga berisi minus satu nol satu, minus satu nol satu, minus satu nol satu">
+            <span>−1</span><span>0</span><span>1</span>
+            <span>−1</span><span>0</span><span>1</span>
+            <span>−1</span><span>0</span><span>1</span>
+          </div>
+          <span class="matrix-cap">kolom kiri negatif, kolom kanan positif</span>
+        </div>
+      </div>
+
+      <p>
+        Bacalah kernel ini terlebih dahulu sebelum menghitung. Kolom kirinya bernilai −1, kolom kanannya +1, dan
+        kolom tengahnya 0. Artinya kernel ini menghitung <strong>selisih antara sisi kanan dan sisi kiri</strong>
+        suatu area. Dengan kata lain, ia mengukur perubahan intensitas pada arah horizontal — persis seperti
+        filter Prewitt yang sudah Anda temui di Materi 03.
+      </p>
+
+      <h3>Langkah 1 — pusat kernel harus dapat menyentuh setiap pixel</h3>
+      <p>
+        Kernel memiliki pusat, yaitu elemen tengahnya. Agar pusat tersebut dapat menyentuh setiap pixel termasuk
+        pixel di tepi, kita menambahkan bingkai nol di sekeliling citra. Bingkai itulah yang disebut
+        <strong>padding</strong>.
+      </p>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Input setelah zero padding (5×5)</span>
+          <div class="matrix" style="grid-template-columns: repeat(5, auto)" role="img" aria-label="Matriks lima kali lima berisi bingkai nol mengelilingi matriks masukan tiga kali tiga">
+            <span>0</span><span>0</span><span>0</span><span>0</span><span>0</span>
+            <span>0</span><span class="hl">1</span><span class="hl">2</span><span class="hl">3</span><span>0</span>
+            <span>0</span><span class="hl">4</span><span class="hl">5</span><span class="hl">6</span><span>0</span>
+            <span>0</span><span class="hl">7</span><span class="hl">8</span><span class="hl">9</span><span>0</span>
+            <span>0</span><span>0</span><span>0</span><span>0</span><span>0</span>
+          </div>
+        </div>
+      </div>
+
+      <h3>Langkah 2 — hitung satu posisi</h3>
+      <p>Tempatkan pusat kernel pada nilai 5 (pusat citra). Seluruh citra 3×3 tertutupi kernel:</p>
+      <pre><code>Perkalian elemen demi elemen:
+
+  (−1 × 1) + (0 × 2) + (1 × 3)   =  −1 + 0 + 3  =  2
+  (−1 × 4) + (0 × 5) + (1 × 6)   =  −4 + 0 + 6  =  2
+  (−1 × 7) + (0 × 8) + (1 × 9)   =  −7 + 0 + 9  =  2
+
+Penjumlahan seluruh hasil:
+
+  2 + 2 + 2 = 6      →  ditulis di posisi pusat kernel</code></pre>
+
+      <h3>Langkah 3 — ulangi untuk seluruh posisi</h3>
+      <p>Geser kernel satu posisi setiap kali (stride = 1) sampai seluruh citra tercakup:</p>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Feature map (3×3)</span>
+          <div class="matrix" style="grid-template-columns: repeat(3, auto)" role="img" aria-label="Feature map hasil konvolusi berisi 7 4 minus 7, 15 6 minus 15, 13 4 minus 13">
+            <span>7</span><span>4</span><span>−7</span>
+            <span>15</span><span class="hl">6</span><span>−15</span>
+            <span>13</span><span>4</span><span>−13</span>
+          </div>
+        </div>
+      </div>
+
+      <p>Sekarang bacalah hasilnya — inilah bagian terpenting dari seluruh materi ini:</p>
+      <ul>
+        <li><strong>Kolom tengah bernilai positif kecil (4, 6, 4).</strong> Di tengah citra, intensitas naik secara mulus dari kiri ke kanan. Kernel menangkap gradien horizontal yang lemah namun konsisten.</li>
+        <li><strong>Kolom kiri bernilai positif besar, kolom kanan negatif besar.</strong> Ini efek padding: di tepi, kernel membandingkan nilai citra dengan nol, sehingga selisihnya menjadi ekstrem. Nilai tepi pada feature map selalu perlu dibaca dengan hati-hati.</li>
+        <li><strong>Tanda menunjukkan arah.</strong> Positif berarti nilai naik ke arah kanan, negatif berarti turun. Kernel ini tidak hanya mendeteksi keberadaan tepi, tetapi juga arahnya.</li>
+      </ul>
+
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Inilah yang tersembunyi di balik <code>Conv2D(...)</code></p>
+        <p style="margin-bottom:0">
+          Ketika nanti Anda menulis <code>layers.Conv2D(32, kernel_size=(3, 3))</code>, yang terjadi adalah
+          perhitungan di atas — diulang untuk 32 kernel berbeda, pada setiap posisi, pada setiap kanal. Bedanya,
+          angka −1, 0, dan 1 pada kernel tadi tidak Anda tentukan sendiri; angka-angka itu dimulai secara acak
+          dan diperbaiki oleh backpropagation sampai berguna untuk tugas yang sedang dilatih.
+        </p>
+      </div>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 320" role="img" aria-label="Diagram perhitungan konvolusi dua dimensi: matriks masukan tiga kali tiga dengan padding nol, kernel tiga kali tiga, rincian perkalian dan penjumlahan, serta feature map keluaran">
+            <style>
+              .cA { fill: var(--dg-fill);   stroke: var(--dg-grid);   stroke-width: 1; }
+              .cP { fill: var(--dg-surface, transparent); stroke: var(--dg-grid); stroke-width: 1; opacity:.55 }
+              .cK { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.4; }
+              .cO { fill: var(--dg-fill-2); stroke: var(--dg-accent);  stroke-width: 1.2; }
+              .vv { font: 11px monospace; fill: var(--dg-text); }
+              .hh { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .ss { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+            <defs>
+              <marker id="arI" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+
+            <!-- input with padding -->
+            <text x="16" y="24" class="hh">Input + zero padding</text>
+            <g transform="translate(16,34)">
+              <g>
+                <rect class="cP" x="0"   y="0"  width="30" height="30"/><rect class="cP" x="30"  y="0"  width="30" height="30"/>
+                <rect class="cP" x="60"  y="0"  width="30" height="30"/><rect class="cP" x="90"  y="0"  width="30" height="30"/>
+                <rect class="cP" x="120" y="0"  width="30" height="30"/>
+                <rect class="cP" x="0"   y="30" width="30" height="30"/>
+                <rect class="cA" x="30"  y="30" width="30" height="30"/><rect class="cA" x="60" y="30" width="30" height="30"/>
+                <rect class="cA" x="90"  y="30" width="30" height="30"/>
+                <rect class="cP" x="120" y="30" width="30" height="30"/>
+                <rect class="cP" x="0"   y="60" width="30" height="30"/>
+                <rect class="cA" x="30"  y="60" width="30" height="30"/><rect class="cA" x="60" y="60" width="30" height="30"/>
+                <rect class="cA" x="90"  y="60" width="30" height="30"/>
+                <rect class="cP" x="120" y="60" width="30" height="30"/>
+                <rect class="cP" x="0"   y="90" width="30" height="30"/>
+                <rect class="cA" x="30"  y="90" width="30" height="30"/><rect class="cA" x="60" y="90" width="30" height="30"/>
+                <rect class="cA" x="90"  y="90" width="30" height="30"/>
+                <rect class="cP" x="120" y="90" width="30" height="30"/>
+                <rect class="cP" x="0"   y="120" width="30" height="30"/><rect class="cP" x="30" y="120" width="30" height="30"/>
+                <rect class="cP" x="60"  y="120" width="30" height="30"/><rect class="cP" x="90" y="120" width="30" height="30"/>
+                <rect class="cP" x="120" y="120" width="30" height="30"/>
+              </g>
+              <g class="vv" text-anchor="middle" opacity=".45">
+                <text x="15" y="20">0</text><text x="45" y="20">0</text><text x="75" y="20">0</text><text x="105" y="20">0</text><text x="135" y="20">0</text>
+                <text x="15" y="50">0</text><text x="135" y="50">0</text>
+                <text x="15" y="80">0</text><text x="135" y="80">0</text>
+                <text x="15" y="110">0</text><text x="135" y="110">0</text>
+                <text x="15" y="140">0</text><text x="45" y="140">0</text><text x="75" y="140">0</text><text x="105" y="140">0</text><text x="135" y="140">0</text>
+              </g>
+              <g class="vv" text-anchor="middle" style="font-weight:700;">
+                <text x="45" y="50">1</text><text x="75" y="50">2</text><text x="105" y="50">3</text>
+                <text x="45" y="80">4</text><text x="75" y="80">5</text><text x="105" y="80">6</text>
+                <text x="45" y="110">7</text><text x="75" y="110">8</text><text x="105" y="110">9</text>
+              </g>
+              <rect x="30" y="30" width="90" height="90" fill="none" stroke="var(--dg-accent-2)" stroke-width="2.6"/>
+              <text x="75" y="172" class="ss" text-anchor="middle">pusat kernel di nilai 5</text>
+            </g>
+
+            <text x="192" y="104" font-size="20" fill="var(--dg-text)" opacity=".6">⊛</text>
+
+            <!-- kernel -->
+            <text x="222" y="24" class="hh">Kernel</text>
+            <g transform="translate(222,34)">
+              <rect class="cK" x="0"  y="0"  width="30" height="30"/><rect class="cK" x="30" y="0"  width="30" height="30"/><rect class="cK" x="60" y="0"  width="30" height="30"/>
+              <rect class="cK" x="0"  y="30" width="30" height="30"/><rect class="cK" x="30" y="30" width="30" height="30"/><rect class="cK" x="60" y="30" width="30" height="30"/>
+              <rect class="cK" x="0"  y="60" width="30" height="30"/><rect class="cK" x="30" y="60" width="30" height="30"/><rect class="cK" x="60" y="60" width="30" height="30"/>
+              <g class="vv" text-anchor="middle" style="font-weight:700;">
+                <text x="15" y="20">−1</text><text x="45" y="20">0</text><text x="75" y="20">1</text>
+                <text x="15" y="50">−1</text><text x="45" y="50">0</text><text x="75" y="50">1</text>
+                <text x="15" y="80">−1</text><text x="45" y="80">0</text><text x="75" y="80">1</text>
+              </g>
+              <text x="45" y="112" class="ss" text-anchor="middle">kanan − kiri</text>
+            </g>
+
+            <path d="M330 104 h26" stroke="var(--dg-stroke)" stroke-width="1.8" marker-end="url(#arI)"/>
+
+            <!-- computation -->
+            <g transform="translate(368,34)">
+              <rect x="0" y="0" width="188" height="120" rx="7" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.6"/>
+              <text x="94" y="22" class="hh" text-anchor="middle">Perhitungan di pusat</text>
+              <g class="vv" style="font-size:10.5;">
+                <text x="14" y="44">(−1×1) + (0×2) + (1×3) = 2</text>
+                <text x="14" y="64">(−1×4) + (0×5) + (1×6) = 2</text>
+                <text x="14" y="84">(−1×7) + (0×8) + (1×9) = 2</text>
+                <text x="14" y="108" font-weight="700">jumlah = 6</text>
+              </g>
+            </g>
+
+            <path d="M568 104 h26" stroke="var(--dg-stroke)" stroke-width="1.8" marker-end="url(#arI)"/>
+
+            <!-- output -->
+            <text x="606" y="24" class="hh">Feature map</text>
+            <g transform="translate(606,34)">
+              <rect class="cO" x="0"  y="0"  width="38" height="30"/><rect class="cO" x="38" y="0"  width="38" height="30"/><rect class="cO" x="76" y="0"  width="38" height="30"/>
+              <rect class="cO" x="0"  y="30" width="38" height="30"/>
+              <rect x="38" y="30" width="38" height="30" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="2"/>
+              <rect class="cO" x="76" y="30" width="38" height="30"/>
+              <rect class="cO" x="0"  y="60" width="38" height="30"/><rect class="cO" x="38" y="60" width="38" height="30"/><rect class="cO" x="76" y="60" width="38" height="30"/>
+              <g class="vv" text-anchor="middle">
+                <text x="19" y="20">7</text><text x="57" y="20">4</text><text x="95" y="20">−7</text>
+                <text x="19" y="50">15</text><text x="57" y="50" font-weight="700">6</text><text x="95" y="50">−15</text>
+                <text x="19" y="80">13</text><text x="57" y="80">4</text><text x="95" y="80">−13</text>
+              </g>
+            </g>
+
+            <line x1="16" y1="236" x2="724" y2="236" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="370" y="262" class="ss" text-anchor="middle">
+              Tanda menunjukkan arah perubahan: positif = intensitas naik ke kanan, negatif = turun.
+            </text>
+            <text x="370" y="284" class="ss" text-anchor="middle">
+              Nilai besar di kolom tepi berasal dari padding, bukan dari isi citra — selalu baca tepi dengan hati-hati.
+            </text>
+            <text x="370" y="308" class="ss" text-anchor="middle" font-style="italic">
+              Pada CNN, angka −1, 0, dan 1 di dalam kernel inilah yang dipelajari dari data.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 5.2.</b> Konvolusi dua dimensi dihitung langkah demi langkah: perkalian per elemen, penjumlahan, dan penulisan hasil pada posisi pusat kernel.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 2 — Introduction to CNN.</span>
+        </figcaption>
+      </figure>
+
+      <h3>Padding dan stride secara kuantitatif</h3>
+      <p>Ukuran feature map dapat dihitung sebelum satu baris kode dijalankan:</p>
+      <pre><code>          n + 2p − f
+output =  ──────────  + 1
+              s
+
+n = ukuran input       f = ukuran kernel
+p = padding            s = stride
+
+Contoh A — n=5, f=3, p=1, s=1 →  (5 + 2 − 3)/1 + 1 = 5   (ukuran terjaga)
+Contoh B — n=5, f=3, p=0, s=1 →  (5 + 0 − 3)/1 + 1 = 3   (menyusut)
+Contoh C — n=5, f=3, p=0, s=2 →  (5 + 0 − 3)/2 + 1 = 2   (menyusut cepat)
+Contoh D — n=28, f=3, p=0, s=1 → (28 − 3)/1 + 1   = 26   (informasi tepi hilang)</code></pre>
+      <p>
+        Contoh D menjelaskan hal yang sering membingungkan pemula: mengapa keluaran lapisan konvolusi pertama pada
+        citra 28×28 berukuran 26×26. Sebagian besar implementasi convnet memang tidak memakai padding, agar kernel
+        hanya menyentuh area yang benar-benar berisi data. Padding dengan nol membawa asumsi bahwa mungkin ada
+        fitur di tepi, dan ia menambah beban perhitungan. Konsekuensinya, informasi di sepanjang tepi memang hilang.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 250" role="img" aria-label="Perbandingan tiga pengaturan konvolusi: dengan padding ukuran keluaran tetap, tanpa padding keluaran menyusut, dan stride dua keluaran menyusut lebih cepat">
+            <style>
+              .z  { fill: var(--dg-fill); stroke: var(--dg-grid); stroke-width: .9; }
+              .zp { fill: none; stroke: var(--dg-grid); stroke-width: .9; stroke-dasharray: 3 3; }
+              .zo { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1; }
+              .zh { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .zs { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+              .zf { font: 10px monospace; fill: var(--dg-accent); }
+            </style>
+
+            <!-- A: padding=1 -->
+            <text x="16" y="24" class="zh">p = 1, s = 1</text>
+            <g transform="translate(16,34)">
+              <g>
+                <rect class="zp" x="0" y="0" width="100" height="100"/>
+                <rect class="z" x="14" y="14" width="72" height="72"/>
+                <g stroke="var(--dg-grid)" stroke-width=".8">
+                  <path d="M28 14v72M42 14v72M56 14v72M70 14v72M14 28h72M14 42h72M14 56h72M14 70h72"/>
+                </g>
+              </g>
+              <text x="50" y="118" class="zs" text-anchor="middle">input 5×5 + bingkai nol</text>
+              <path d="M110 50 h22" stroke="var(--dg-stroke)" stroke-width="1.6" marker-end="url(#arJ)"/>
+              <defs>
+                <marker id="arJ" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+                </marker>
+              </defs>
+              <g transform="translate(142,14)">
+                <rect class="zo" x="0" y="0" width="72" height="72"/>
+                <g stroke="var(--dg-accent)" stroke-width=".8" opacity=".6">
+                  <path d="M14 0v72M28 0v72M42 0v72M56 0v72M0 14h72M0 28h72M0 42h72M0 56h72"/>
+                </g>
+                <text x="36" y="104" class="zf" text-anchor="middle">5 × 5</text>
+              </g>
+            </g>
+
+            <!-- B: padding=0 -->
+            <text x="266" y="24" class="zh">p = 0, s = 1</text>
+            <g transform="translate(266,34)">
+              <rect class="z" x="0" y="0" width="72" height="72"/>
+              <g stroke="var(--dg-grid)" stroke-width=".8">
+                <path d="M14 0v72M28 0v72M42 0v72M56 0v72M0 14h72M0 28h72M0 42h72M0 56h72"/>
+              </g>
+              <text x="36" y="104" class="zs" text-anchor="middle">input 5×5</text>
+              <path d="M84 36 h22" stroke="var(--dg-stroke)" stroke-width="1.6" marker-end="url(#arJ)"/>
+              <g transform="translate(116,8)">
+                <rect class="zo" x="0" y="0" width="43" height="43"/>
+                <g stroke="var(--dg-accent)" stroke-width=".8" opacity=".6">
+                  <path d="M14 0v43M28 0v43M0 14h43M0 28h43"/>
+                </g>
+                <text x="21" y="70" class="zf" text-anchor="middle">3 × 3</text>
+              </g>
+            </g>
+
+            <!-- C: stride 2 -->
+            <text x="506" y="24" class="zh">p = 0, s = 2</text>
+            <g transform="translate(506,34)">
+              <rect class="z" x="0" y="0" width="72" height="72"/>
+              <g stroke="var(--dg-grid)" stroke-width=".8">
+                <path d="M14 0v72M28 0v72M42 0v72M56 0v72M0 14h72M0 28h72M0 42h72M0 56h72"/>
+              </g>
+              <rect x="0" y="0" width="43" height="43" fill="none" stroke="var(--dg-accent-2)" stroke-width="1.8"/>
+              <rect x="29" y="0" width="43" height="43" fill="none" stroke="var(--dg-accent-2)" stroke-width="1.8" stroke-dasharray="4 3"/>
+              <text x="36" y="104" class="zs" text-anchor="middle">kernel melompat 2 posisi</text>
+              <path d="M84 36 h22" stroke="var(--dg-stroke)" stroke-width="1.6" marker-end="url(#arJ)"/>
+              <g transform="translate(116,16)">
+                <rect class="zo" x="0" y="0" width="29" height="29"/>
+                <g stroke="var(--dg-accent)" stroke-width=".8" opacity=".6"><path d="M14 0v29M0 14h29"/></g>
+                <text x="14" y="56" class="zf" text-anchor="middle">2 × 2</text>
+              </g>
+            </g>
+
+            <text x="370" y="222" class="zs" text-anchor="middle">
+              Padding menjaga ukuran dan mempertahankan informasi tepi; stride mengecilkan feature map sekaligus mempercepat komputasi.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 5.3.</b> Pengaruh padding dan stride terhadap ukuran feature map.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 2 — Introduction to CNN.</span>
+        </figcaption>
+      </figure>
+
+      <h3>Max pooling secara numerik</h3>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Feature map 4×4</span>
+          <div class="matrix" style="grid-template-columns: repeat(4, auto)" role="img" aria-label="Feature map empat kali empat berisi 12 20 30 0, 8 12 2 0, 34 70 37 4, 112 100 25 12">
+            <span>12</span><span class="hl">20</span><span class="hl">30</span><span>0</span>
+            <span>8</span><span>12</span><span>2</span><span>0</span>
+            <span class="hl">34</span><span>70</span><span>37</span><span>4</span>
+            <span>112</span><span>100</span><span>25</span><span>12</span>
+          </div>
+        </div>
+        <span class="op" aria-hidden="true">→</span>
+        <div>
+          <span class="matrix-cap">Max pooling 2×2, stride 2</span>
+          <div class="matrix" style="grid-template-columns: repeat(2, auto)" role="img" aria-label="Hasil max pooling dua kali dua berisi 20 30, 112 37">
+            <span>20</span><span>30</span>
+            <span>112</span><span>37</span>
+          </div>
+          <span class="matrix-cap">16 nilai → 4 nilai</span>
+        </div>
+      </div>
+      <p>
+        Dari setiap blok 2×2 hanya nilai terbesar yang disimpan. Parameter berkurang empat kali lipat, dan
+        informasi "ada fitur kuat di area ini" tetap terjaga. Yang hilang adalah letak persisnya di dalam blok
+        tersebut.
+      </p>
+
+      <h3>Backpropagation secara konseptual</h3>
+      <p>
+        Bagaimana nilai kernel diperbaiki? Yang ingin kita optimasi adalah nilai kernel itu sendiri — kernel
+        adalah bobot jaringan. Pada akhirnya, kita memiliki larik panjang berisi elemen-elemen hasil pooling dan
+        aktivasi dari pixel yang dikonvolusikan dengan bobot awal. Bobot-bobot itu diperbarui sedemikian rupa
+        sehingga jaringan dapat menjawab pertanyaan: kernel mana yang harus saya terapkan untuk membedakan foto
+        kucing dari foto anjing? Melatih CNN berarti menemukan kernel optimal, dan kernel itu ditemukan lewat
+        backpropagation.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration — Arsitektur CNN</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 300" role="img" aria-label="Arsitektur CNN dari citra masukan melalui konvolusi, aktivasi ReLU, pooling, konvolusi dan pooling kedua, flatten, dropout, dense layer, sampai keluaran probabilitas kelas">
+            <defs>
+              <marker id="arK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .L  { stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .Lc { fill: var(--dg-fill-2); stroke: var(--dg-accent); }
+              .Lp { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); }
+              .Ld { fill: var(--dg-fill); stroke: var(--dg-stroke); }
+              .n  { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .m  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .72; }
+              .ar { stroke: var(--dg-stroke); stroke-width: 1.6; fill: none; marker-end: url(#arK); }
+            </style>
+
+            <!-- input -->
+            <g transform="translate(14,66)">
+              <rect class="L Ld" x="0" y="0" width="62" height="62" rx="4"/>
+              <circle cx="24" cy="26" r="11" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.1"/>
+              <path d="M36 48 l11 -16 l11 16z" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1.1"/>
+              <text x="31" y="80" class="n" text-anchor="middle">Input</text>
+              <text x="31" y="94" class="m" text-anchor="middle">28×28×1</text>
+            </g>
+            <path class="ar" d="M80 97h18"/>
+
+            <!-- conv1 -->
+            <g transform="translate(102,54)">
+              <rect class="L Lc" x="0"  y="12" width="40" height="62" rx="3"/>
+              <rect class="L Lc" x="7"  y="7"  width="40" height="62" rx="3"/>
+              <rect class="L Lc" x="14" y="2"  width="40" height="62" rx="3"/>
+              <text x="34" y="92" class="n" text-anchor="middle">Conv 3×3</text>
+              <text x="34" y="106" class="m" text-anchor="middle">32 kernel</text>
+              <text x="34" y="119" class="m" text-anchor="middle">26×26×32</text>
+            </g>
+            <path class="ar" d="M162 97h16"/>
+
+            <!-- relu -->
+            <g transform="translate(182,72)">
+              <rect class="L Ld" x="0" y="0" width="48" height="50" rx="4"/>
+              <path d="M8 40 h16 l16 -28" stroke="var(--dg-accent)" stroke-width="2" fill="none"/>
+              <text x="24" y="74" class="n" text-anchor="middle">ReLU</text>
+              <text x="24" y="88" class="m" text-anchor="middle">non-linearitas</text>
+            </g>
+            <path class="ar" d="M234 97h16"/>
+
+            <!-- pool1 -->
+            <g transform="translate(254,66)">
+              <rect class="L Lp" x="0" y="4" width="34" height="54" rx="3"/>
+              <rect class="L Lp" x="6" y="0" width="34" height="54" rx="3"/>
+              <text x="20" y="80" class="n" text-anchor="middle">MaxPool</text>
+              <text x="20" y="94" class="m" text-anchor="middle">13×13×32</text>
+            </g>
+            <path class="ar" d="M298 97h18"/>
+
+            <!-- conv2 + pool2 -->
+            <g transform="translate(320,68)">
+              <rect class="L Lc" x="0"  y="8" width="30" height="48" rx="3"/>
+              <rect class="L Lc" x="6"  y="4" width="30" height="48" rx="3"/>
+              <rect class="L Lc" x="12" y="0" width="30" height="48" rx="3"/>
+              <text x="24" y="76" class="n" text-anchor="middle">Conv+Pool</text>
+              <text x="24" y="90" class="m" text-anchor="middle">5×5×64</text>
+            </g>
+            <path class="ar" d="M366 97h18"/>
+
+            <!-- flatten -->
+            <g transform="translate(388,58)">
+              <rect class="L Ld" x="0" y="0" width="18" height="78" rx="3"/>
+              <g stroke="var(--dg-accent)" stroke-width=".9" opacity=".7">
+                <path d="M0 10h18M0 20h18M0 30h18M0 40h18M0 50h18M0 60h18M0 70h18"/>
+              </g>
+              <text x="9" y="96" class="n" text-anchor="middle">Flatten</text>
+              <text x="9" y="109" class="m" text-anchor="middle">1600</text>
+            </g>
+            <path class="ar" d="M412 97h18"/>
+
+            <!-- dropout -->
+            <g transform="translate(434,68)">
+              <rect class="L Ld" x="0" y="0" width="56" height="58" rx="4"/>
+              <g fill="var(--dg-accent)">
+                <circle cx="14" cy="14" r="3.4"/><circle cx="42" cy="14" r="3.4"/>
+                <circle cx="28" cy="30" r="3.4"/>
+                <circle cx="14" cy="46" r="3.4"/><circle cx="42" cy="46" r="3.4"/>
+              </g>
+              <g stroke="#d9534f" stroke-width="1.6">
+                <path d="M24 10 l8 8M32 10 l-8 8"/><path d="M10 42 l8 8M18 42 l-8 8"/>
+              </g>
+              <text x="28" y="76" class="n" text-anchor="middle">Dropout</text>
+              <text x="28" y="90" class="m" text-anchor="middle">anti-overfit</text>
+            </g>
+            <path class="ar" d="M494 97h18"/>
+
+            <!-- dense -->
+            <g transform="translate(516,62)">
+              <rect class="L Lc" x="0" y="0" width="52" height="70" rx="4"/>
+              <g fill="var(--dg-accent)">
+                <circle cx="16" cy="16" r="4"/><circle cx="16" cy="35" r="4"/><circle cx="16" cy="54" r="4"/>
+                <circle cx="38" cy="26" r="4"/><circle cx="38" cy="45" r="4"/>
+              </g>
+              <g stroke="var(--dg-accent)" stroke-width=".7" opacity=".55">
+                <path d="M20 16 L34 26M20 16 L34 45M20 35 L34 26M20 35 L34 45M20 54 L34 26M20 54 L34 45"/>
+              </g>
+              <text x="26" y="86" class="n" text-anchor="middle">Dense</text>
+              <text x="26" y="100" class="m" text-anchor="middle">+ softmax</text>
+            </g>
+            <path class="ar" d="M572 97h18"/>
+
+            <!-- output -->
+            <g transform="translate(594,60)">
+              <rect class="L Ld" x="0" y="0" width="150" height="74" rx="5"/>
+              <g>
+                <rect x="14" y="14" width="86" height="10" rx="3" fill="var(--dg-accent)"/>
+                <text x="108" y="23" class="m">kucing 0,91</text>
+                <rect x="14" y="34" width="20" height="10" rx="3" fill="var(--dg-accent)" opacity=".55"/>
+                <text x="108" y="43" class="m">anjing 0,06</text>
+                <rect x="14" y="54" width="9" height="10" rx="3" fill="var(--dg-accent)" opacity=".4"/>
+                <text x="108" y="63" class="m">lainnya 0,03</text>
+              </g>
+              <text x="75" y="88" class="n" text-anchor="middle">Output</text>
+            </g>
+
+            <!-- backprop -->
+            <path d="M669 152 v40 H50 v-14" stroke="var(--dg-accent-2)" stroke-width="1.6" stroke-dasharray="6 5" fill="none" marker-end="url(#arK)"/>
+            <text x="402" y="214" class="m" text-anchor="middle" style="font-weight:700;fill:var(--dg-accent-2);">
+              backpropagation — memperbaiki nilai kernel berdasarkan kesalahan keluaran
+            </text>
+
+            <line x1="14" y1="230" x2="744" y2="230" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="380" y="252" class="m" text-anchor="middle">
+              Semakin dalam lapisan, semakin abstrak fitur yang dipelajari: tepi → tekstur → bagian objek → objek utuh.
+            </text>
+            <text x="380" y="276" class="m" text-anchor="middle" font-style="italic">
+              Tidak ada satu pun kernel di sini yang dirancang manusia. Seluruhnya ditemukan dari data.
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 5.4.</b> Arsitektur CNN: Image → Convolution → Activation → Pooling → Feature Representation → Classifier.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 2 — Introduction to CNN.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Mari telusuri satu CNN kecil untuk klasifikasi digit tulisan tangan berukuran 28×28, dan hitung sendiri
+        setiap perubahan ukuran serta jumlah parameternya sebelum melihat kode apa pun.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Lapisan</th><th>Bentuk keluaran</th><th>Jumlah parameter</th><th>Perhitungan</th></tr></thead>
+          <tbody>
+            <tr><td>Input</td><td>28 × 28 × 1</td><td>0</td><td>citra grayscale</td></tr>
+            <tr><td>Conv2D 32 kernel 3×3</td><td>26 × 26 × 32</td><td>320</td><td>(3×3×1 + 1 bias) × 32</td></tr>
+            <tr><td>MaxPooling 2×2</td><td>13 × 13 × 32</td><td>0</td><td>pooling tidak punya bobot</td></tr>
+            <tr><td>Conv2D 64 kernel 3×3</td><td>11 × 11 × 64</td><td>18.496</td><td>(3×3×32 + 1) × 64</td></tr>
+            <tr><td>MaxPooling 2×2</td><td>5 × 5 × 64</td><td>0</td><td>—</td></tr>
+            <tr><td>Flatten</td><td>1.600</td><td>0</td><td>5 × 5 × 64</td></tr>
+            <tr><td>Dropout</td><td>1.600</td><td>0</td><td>hanya aktif saat pelatihan</td></tr>
+            <tr><td>Dense 10 + softmax</td><td>10</td><td>16.010</td><td>(1.600 + 1) × 10</td></tr>
+            <tr><td><strong>Total</strong></td><td>—</td><td><strong>34.826</strong></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Perhatikan dua hal. Pertama, 26×26 muncul karena tidak ada padding: <code>(28 − 3)/1 + 1 = 26</code>.
+        Kedua, bandingkan total 34.826 parameter ini dengan satu dense layer tunggal pada citra yang sama, yang
+        sudah memerlukan ratusan ribu bobot. Di situlah letak keunggulan parameter sharing dan sparse interaction
+        yang kita bahas di atas.
+      </p>
+
+      <details class="acc">
+        <summary>Setelah memahami perhitungannya — bentuk kodenya</summary>
+        <div class="acc-body">
+          <p>
+            Kode ini ditempatkan paling akhir dengan sengaja. Setiap barisnya seharusnya sudah dapat Anda baca
+            tanpa penjelasan tambahan, karena seluruh konsepnya sudah dibahas.
+          </p>
+          <span class="code-label">Python · Keras</span>
+<pre><code>model = keras.Sequential([
+    keras.Input(shape=(28, 28, 1)),
+
+    layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
+    layers.MaxPooling2D(pool_size=(2, 2)),
+
+    layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+    layers.MaxPooling2D(pool_size=(2, 2)),
+
+    layers.Flatten(),
+    layers.Dropout(0.5),
+    layers.Dense(10, activation="softmax"),
+])
+model.summary()      # total params: 34.826</code></pre>
+          <p style="margin-bottom:0">
+            Satu-satunya hal yang tidak terlihat di kode ini adalah bagian terpentingnya: nilai 32 × 9 = 288 angka
+            di dalam kernel lapisan pertama dimulai secara acak, lalu diperbaiki ribuan kali oleh backpropagation
+            sampai menjadi detektor fitur yang berguna.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Klasifikasi citra medis</dt>
+        <dd>CNN dipakai untuk menandai kemungkinan kelainan pada citra rontgen dan patologi, umumnya sebagai alat bantu penapisan, bukan sebagai pengambil keputusan akhir.</dd>
+        <dt>Pengendalian mutu produksi</dt>
+        <dd>Deteksi cacat permukaan pada kecepatan lini produksi, tempat pendekatan berbasis aturan sulit menangani variasi bentuk cacat yang tak terduga.</dd>
+        <dt>Pengenalan tulisan tangan</dt>
+        <dd>Pembacaan formulir, cek, dan kode pos — penerapan klasik yang justru menjadi pendorong awal perkembangan CNN.</dd>
+        <dt>Kendaraan otonom</dt>
+        <dd>Pengenalan rambu, marka jalan, dan objek di sekitar kendaraan, yang seluruhnya berjalan pada perangkat dengan anggaran daya terbatas.</dd>
+        <dt>Identifikasi spesies</dt>
+        <dd>Pengenalan tanaman, serangga, dan satwa dari foto, dipakai luas dalam riset ekologi dan aplikasi warga.</dd>
+        <dt>Dasar arsitektur modern</dt>
+        <dd>VGG, GoogLeNet, ResNet, MobileNet, ConvNeXt, dan YOLO seluruhnya dibangun di atas operasi yang baru saja Anda hitung manual. Pembahasannya ada di Materi 06.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Konvolusi pada CNN berbeda dari filtering pada pengolahan citra."</p>
+        <p style="margin-bottom:0">
+          Operasinya sama persis. Yang berbeda hanyalah asal nilai kernelnya: dirancang manusia versus dipelajari
+          dari data. Bila Materi 03 sudah Anda kuasai, Anda sebenarnya sudah menguasai mekanisme inti CNN.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Semakin banyak lapisan selalu semakin baik."</p>
+        <p style="margin-bottom:0">
+          Jaringan yang terlalu dalam lebih sulit dilatih dan lebih mudah menghafal data latih ketika datanya
+          terbatas. Persoalan pelatihan jaringan sangat dalam inilah yang justru melahirkan ResNet — dibahas di
+          Materi 06.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Pooling sama dengan mengecilkan citra."</p>
+        <p style="margin-bottom:0">
+          Resize bekerja pada citra dan melakukan interpolasi. Pooling bekerja pada feature map dan memilih nilai
+          terkuat. Tujuannya juga berbeda: resize menyeragamkan ukuran, pooling meringkas informasi sekaligus
+          memberi ketahanan terhadap pergeseran kecil.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "CNN memahami citra seperti manusia."</p>
+        <p style="margin-bottom:0">
+          CNN menemukan pola statistik yang berguna untuk tugas yang dilatihkan. Ia bisa saja mengenali serigala
+          hanya karena latar belakangnya bersalju. Karena itulah pemeriksaan data dan evaluasi yang cermat sama
+          pentingnya dengan arsitektur model.
+        </p>
+      </div>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Lapisan konvolusi tidak punya bias."</p>
+        <p style="margin-bottom:0">
+          Punya — satu bias per kernel. Itulah asal angka "+1" pada perhitungan parameter di tabel contoh:
+          (3×3×1 + 1) × 32 = 320, bukan 288.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Konvolusi = geser, kalikan, jumlahkan.</strong> Tidak lebih rumit dari itu.</li>
+        <li><strong>Feature map adalah hasil konvolusi,</strong> dan ia menunjukkan di mana suatu karakteristik muncul.</li>
+        <li><strong>CNN mempelajari nilai kernelnya sendiri.</strong> Inilah satu-satunya perbedaan mendasar dari filtering klasik.</li>
+        <li><strong>Padding menjaga ukuran dan informasi tepi; stride mengecilkan feature map.</strong> Ukurannya dapat dihitung dengan (n + 2p − f)/s + 1.</li>
+        <li><strong>Aktivasi memberi non-linearitas.</strong> Tanpanya, jaringan sedalam apa pun setara dengan satu lapisan.</li>
+        <li><strong>Pooling meringkas dan memberi ketahanan</strong> terhadap perubahan kecil, dengan harga hilangnya posisi pasti.</li>
+        <li><strong>Parameter sharing:</strong> kernel yang sama dipakai di seluruh posisi, kanal, dan citra.</li>
+        <li><strong>Sparse interaction:</strong> kernel kecil menggantikan koneksi penuh, sehingga jauh lebih hemat memori.</li>
+        <li><strong>Backpropagation mencari kernel optimal</strong> untuk tugas yang sedang dilatih.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum ini memiliki aturan yang tegas: <strong>bagian pertama dikerjakan tanpa framework deep learning
+        sama sekali</strong>. Anda akan menulis sendiri fungsi konvolusi memakai NumPy murni. Baru setelah hasilnya
+        Anda verifikasi, framework diperkenalkan.
+      </p>
+      <ul>
+        <li>Google Colab atau Python lokal dengan NumPy, Matplotlib, dan OpenCV.</li>
+        <li>Satu citra grayscale sederhana dengan tepi yang jelas — foto gedung atau tangga sangat cocok.</li>
+        <li>Kertas dan pensil. Serius: hitung satu posisi konvolusi dengan tangan sebelum menuliskan kodenya.</li>
+      </ul>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Notebook resmi Hugging Face</p>
+        <p style="margin-bottom:0">
+          Mulai Unit 2, kurikulum Hugging Face menyediakan notebook hands-on resmi, antara lain
+          <em>Transfer Learning with VGG19</em> dan <em>Using ResNet with timm</em>. Keduanya menjadi jembatan
+          menuju Materi 06, dan tautannya tersedia di halaman praktikum.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="../practical/practical-05.html" data-practical-link>🧪 Mulai Praktikum 05</a>
+        <a class="btn secondary" href="https://huggingface.co/learn/computer-vision-course/en/unit2/cnns/introduction" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Introduction to CNN ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Hitung dengan tangan satu posisi konvolusi pada matriks 3×3 dan kernel yang diberikan, lalu fotokan hasil hitungan Anda.</li>
+        <li>Tulis fungsi <code>konvolusi_2d(citra, kernel, padding, stride)</code> memakai NumPy murni, tanpa <code>scipy</code> maupun framework.</li>
+        <li>Verifikasi fungsi Anda terhadap contoh 3×3 di materi ini — hasilnya harus persis sama.</li>
+        <li>Terapkan kernel Prewitt horizontal dan vertikal pada foto Anda, lalu bandingkan kedua feature map.</li>
+        <li>Uji pengaruh padding 0 dan 1 serta stride 1 dan 2, lalu bandingkan ukuran keluaran dengan hasil rumus.</li>
+        <li>Tulis fungsi max pooling sendiri dan terapkan pada feature map yang Anda peroleh.</li>
+        <li>Barulah bangun CNN kecil dengan framework, dan cocokkan ringkasan parameternya dengan tabel pada bagian Example.</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Kernel pada materi ini mendeteksi perubahan horizontal. Bagaimana bentuk kernel yang mendeteksi perubahan vertikal, dan mengapa demikian?</li>
+        <li>Mengapa hasil konvolusi pada area citra yang nilainya seragam selalu nol untuk kernel ini? Apa artinya bagi deteksi fitur?</li>
+        <li>Tanpa fungsi aktivasi, sepuluh lapisan konvolusi setara dengan satu lapisan. Jelaskan mengapa dengan kalimat Anda sendiri.</li>
+        <li>Pooling menghilangkan informasi posisi. Pada tugas apa hal ini menguntungkan, dan pada tugas apa justru merugikan?</li>
+        <li>Parameter sharing menghemat jutaan bobot. Asumsi apa tentang citra yang membuat penghematan ini masuk akal? Kapan asumsi tersebut bisa keliru?</li>
+        <li>Bandingkan pengalaman Anda merancang filter di Materi 03 dengan gagasan membiarkan mesin mencarinya. Apa yang diperoleh, dan apa yang hilang?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit2/cnns/introduction" target="_blank" rel="noopener noreferrer">Unit 2: Introduction to Convolutional Neural Networks</a>.</li>
+        <li>Notebook resmi Unit 2: <a href="https://github.com/huggingface/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/transfer_learning_vgg19.ipynb" target="_blank" rel="noopener noreferrer">Transfer Learning with VGG19</a> dan <a href="https://github.com/huggingface/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/timm_Resnet.ipynb" target="_blank" rel="noopener noreferrer">Using ResNet with timm</a>.</li>
+        <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. <em>Deep Learning</em>. MIT Press — bab Convolutional Networks, khususnya bagian sparse interaction dan parameter sharing.</li>
+        <li><a href="https://en.wikipedia.org/wiki/Prewitt_operator" target="_blank" rel="noopener noreferrer">Prewitt operator</a> dan <a href="https://en.wikipedia.org/wiki/Sobel_operator" target="_blank" rel="noopener noreferrer">Sobel operator</a> — kernel yang dibahas pada materi ini.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>
