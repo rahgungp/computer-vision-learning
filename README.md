@@ -29,7 +29,7 @@ Konvolusi, misalnya, dihitung manual dengan matriks kecil terlebih dahulu. Fungs
 | 05 | Introduction to CNN | HF Unit 2 — Introduction to CNN | ✅ Tersedia |
 | 06 | CNN Architectures & Transfer Learning | HF Unit 2 | ✅ Tersedia |
 | 07 | Vision Transformers | HF Unit 3 | ✅ Tersedia |
-| 08 | Ujian Tengah Semester | Asesmen | 🔒 Coming Soon |
+| 08 | Ujian Tengah Semester | Asesmen | ✅ Tersedia |
 | 09 | Multimodal Computer Vision | HF Unit 4 | 🔒 Coming Soon |
 | 10 | Generative Computer Vision | HF Unit 5 | 🔒 Coming Soon |
 | 11 | Basic Computer Vision Tasks | HF Unit 6 | 🔒 Coming Soon |
@@ -39,7 +39,7 @@ Konvolusi, misalnya, dihitung manual dengan matriks kecil terlebih dahulu. Fungs
 | 15 | Synthetic Data, Zero-Shot CV & Ethics | HF Unit 10, 11, 12 | 🔒 Coming Soon |
 | 16 | UAS / Final Project | Asesmen + HF Unit 13 | 🔒 Coming Soon |
 
-Setiap materi disusun dalam 15 blok yang sama: Learning Objectives → Why This Matters → Prerequisite → Core Concept → Detailed Explanation → Mathematical/Technical Foundation → Illustration → Example → Real-world Application → Common Misconceptions → Key Takeaways → Preparation for Practice → Practice → Reflection → References.
+Setiap materi kuliah disusun dalam 15 blok yang sama: Learning Objectives → Why This Matters → Prerequisite → Core Concept → Detailed Explanation → Mathematical/Technical Foundation → Illustration → Example → Real-world Application → Common Misconceptions → Key Takeaways → Preparation for Practice → Practice → Reflection → References. Dua halaman asesmen (08 — UTS, 16 — UAS/Final Project) memakai format berbeda: panduan cakupan, format soal, pembobotan, dan checklist persiapan — bukan 15 blok kuliah.
 
 ---
 
@@ -101,8 +101,8 @@ Seluruh penjadwalan materi diatur dari **satu berkas**: `assets/js/course-config
 
 Status saat ini:
 
-- **Week 01–07** → `material: true`
-- **Week 08–16** → `material: false`
+- **Week 01–08** → `material: true`
+- **Week 09–16** → `material: false`
 
 ### Cara Memperbarui Situs yang Sudah Live (ringkas)
 
@@ -157,7 +157,7 @@ GitHub Pages adalah **static hosting**. Menyembunyikan materi di sisi klien **bu
 
 Tujuan fitur ini adalah **CONTENT SCHEDULING**, bukan **SECURE CONTENT PROTECTION**.
 
-Siapa pun yang membuka source halaman atau repositori dapat melihat berkas HTML yang ada. Karena itu, pendekatan yang dipakai di sini adalah yang paling jujur: **isi materi yang terkunci memang belum ditulis di dalam berkasnya.** Halaman `week-08.html` sampai `week-16.html` hanya memuat kerangka dan panel Coming Soon — tidak ada konten yang disembunyikan dengan CSS atau JavaScript, sehingga tidak ada yang dapat "diintip" lebih awal.
+Siapa pun yang membuka source halaman atau repositori dapat melihat berkas HTML yang ada. Karena itu, pendekatan yang dipakai di sini adalah yang paling jujur: **isi materi yang terkunci memang belum ditulis di dalam berkasnya.** Halaman `week-09.html` sampai `week-16.html` hanya memuat kerangka dan panel Coming Soon — tidak ada konten yang disembunyikan dengan CSS atau JavaScript, sehingga tidak ada yang dapat "diintip" lebih awal.
 
 Bila suatu saat diperlukan proteksi konten yang sesungguhnya (misalnya materi ujian), gunakan hosting dengan autentikasi sisi server, bukan GitHub Pages.
 
@@ -176,7 +176,8 @@ Bila suatu saat diperlukan proteksi konten yang sesungguhnya (misalnya materi uj
 │
 ├── weeks/
 │   ├── week-01.html … week-07.html    Materi lengkap (15 blok + ilustrasi SVG/foto)
-│   └── week-08.html … week-16.html    Coming Soon (kerangka saja)
+│   ├── week-08.html                   Panduan UTS (format berbeda — bukan 15 blok materi)
+│   └── week-09.html … week-16.html    Coming Soon (kerangka saja)
 │
 ├── practical/
 │   └── practical-01.html … practical-07.html

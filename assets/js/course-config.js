@@ -158,9 +158,9 @@ const courseConfig = {
     ],
     unit: "Asesmen",
     duration: "100 menit",
-    updated: "—",
+    updated: "13 Oktober 2026",
     practical: null,
-    material: false
+    material: true
   },
 
   week09: {
