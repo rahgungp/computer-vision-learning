@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Materi 12 · Video &amp; Video Processing — COM Computer Vision</title>
-<meta name="description" content="Materi 12: Video &amp; Video Processing. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<title>Materi 12 · Video & Video Processing — COM Computer Vision</title>
+<meta name="description" content="Materi 12: video sebagai fungsi F(x,y,t), optical flow, dan tiga pendekatan temporal modeling — 3D CNN, CNN+RNN, dan Video Transformer.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="12">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -50,16 +50,522 @@
         <h1 class="page-title" data-week-title>Video &amp; Video Processing</h1>
         <p class="page-sub" data-week-subtitle>Dimensi waktu, optical flow, model CNN/RNN/Transformer untuk video</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
+          <span class="meta-chip">⏱ <span data-week-duration>110 menit</span></span>
           <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 7</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan video sebagai fungsi <code>F(x, y, t)</code>, perluasan langsung dari citra <code>f(x, y)</code> pada Materi 02;</li>
+          <li>menjelaskan optical flow dan menurunkan persamaan dasarnya dari asumsi brightness constancy;</li>
+          <li>membandingkan tiga pendekatan temporal modeling: 3D CNN, CNN+RNN, dan Video Transformer;</li>
+          <li>menghitung pertumbuhan ukuran data dan biaya komputasi akibat penambahan dimensi waktu;</li>
+          <li>mengidentifikasi tugas-tugas video: action recognition, tracking, dan video segmentation;</li>
+          <li>menerapkan ekstraksi frame dan model video pretrained pada klip nyata.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Materi 02 mendefinisikan citra sebagai fungsi dua dimensi <code>f(x, y)</code>. Video menambahkan satu
+        dimensi lagi: waktu. <code>F(x, y, t)</code> adalah sekumpulan frame berurutan — tetapi penambahan
+        dimensi ini bukan sekadar "lebih banyak data". Ia membawa jenis informasi yang sama sekali tidak ada
+        pada citra tunggal: <strong>gerakan</strong>.
+      </p>
+      <p>
+        Seluruh arsitektur dari Materi 05 sampai 11 memproses satu frame pada satu waktu. Diberi satu foto
+        orang dengan lutut ditekuk, model-model itu tidak bisa membedakan apakah orang tersebut baru saja
+        duduk, baru saja berdiri, atau sedang melompat — ketiganya bisa menghasilkan pose yang nyaris identik
+        pada satu frame. Jawabannya hanya ada pada frame-frame di sekitarnya.
+      </p>
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Satu kalimat yang merangkum seluruh materi ini</p>
+        <p style="margin-bottom:0">
+          Menambah dimensi waktu tidak hanya mengalikan jumlah data — ia mengajukan pertanyaan baru yang tidak
+          bisa dijawab oleh citra tunggal secanggih apa pun: <em>ke arah mana, dan seberapa cepat, sesuatu
+          berubah?</em>
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-02.html">Materi 02</a> — citra sebagai fungsi <code>f(x, y)</code>; materi ini memperluasnya langsung menjadi <code>F(x, y, t)</code>.</li>
+        <li><a href="./week-06.html">Materi 06</a> — konvolusi dan arsitektur CNN, sebagai basis 3D CNN.</li>
+        <li><a href="./week-07.html">Materi 07</a> — self-attention dan biaya kuadratiknya, relevan untuk Video Transformer.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <h3>Tugas-tugas video</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tugas</th><th>Pertanyaan yang dijawab</th></tr></thead>
+          <tbody>
+            <tr><td>Action recognition</td><td>Aksi apa yang terjadi pada klip ini? (klasifikasi satu label per klip)</td></tr>
+            <tr><td>Video object tracking</td><td>Di mana objek yang sama berada pada setiap frame berikutnya?</td></tr>
+            <tr><td>Temporal action localization</td><td>Pada detik keberapa suatu aksi dimulai dan berakhir dalam video panjang?</td></tr>
+            <tr><td>Video segmentation</td><td>Mask objek mana yang tetap konsisten identitasnya lintas frame?</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Tiga pendekatan temporal modeling</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pendekatan</th><th>Gagasan</th><th>Trade-off utama</th></tr></thead>
+          <tbody>
+            <tr><td>3D CNN</td><td>Kernel konvolusi diperluas ke dimensi waktu, bergerak di ruang dan waktu sekaligus.</td><td>Menangkap pola spatiotemporal langsung, tapi parameter dan komputasi melonjak tajam.</td></tr>
+            <tr><td>CNN + RNN/LSTM</td><td>CNN 2D biasa (Materi 05–06) mengekstraksi fitur tiap frame; RNN/LSTM memodelkan urutannya.</td><td>Lebih hemat komputasi, tapi dependensi jarak jauh tetap menjadi tantangan meski sudah dibantu gerbang LSTM.</td></tr>
+            <tr><td>Video Transformer</td><td>Perluasan ViT (Materi 07): citra dipecah jadi "tubelet" spatiotemporal, diproses dengan self-attention.</td><td>Jangkauan global di ruang dan waktu, tapi biaya attention kuadratik — perlu attention yang difaktorkan (dipisah ruang/waktu) agar praktis.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Video sebagai tensor empat dimensi</h3>
+      <p>
+        Jika citra adalah tensor <code>(H, W, C)</code> — tinggi, lebar, kanal warna — video adalah tensor
+        <code>(T, H, W, C)</code>, dengan <code>T</code> sebagai jumlah frame. Konsekuensi praktisnya besar:
+        klip pendek 2 detik pada 30 frame per detik sudah berisi 60 "citra" yang harus diproses — baik secara
+        terpisah maupun bersamaan, tergantung pendekatannya.
+      </p>
+
+      <h3>Optical flow — mengukur gerakan antar frame</h3>
+      <p>
+        Optical flow adalah medan vektor yang menunjukkan ke mana setiap titik pada frame <code>t</code>
+        bergerak menuju frame <code>t+1</code>. Perhitungannya bertumpu pada satu asumsi:
+        <strong>brightness constancy</strong> — intensitas suatu titik fisik yang sama dianggap tidak berubah
+        meski posisinya bergeser:
+      </p>
+      <pre><code>I(x, y, t) = I(x + dx, y + dy, t + dt)</code></pre>
+      <p>
+        Dengan ekspansi Taylor orde pertama pada sisi kanan, diperoleh <strong>optical flow constraint
+        equation</strong> (Lucas &amp; Kanade, 1981):
+      </p>
+      <pre><code>I_x · u + I_y · v + I_t = 0
+
+I_x, I_y = gradient intensitas terhadap x dan y (sudah Anda hitung manual di Materi 03 lewat Sobel/Prewitt)
+I_t      = perubahan intensitas terhadap waktu (selisih antar frame)
+u, v     = komponen flow yang dicari (kecepatan pergeseran arah x dan y)</code></pre>
+      <p>
+        Satu persamaan dengan dua hal yang dicari (<code>u</code> dan <code>v</code>) tidak bisa diselesaikan
+        langsung — inilah <em>aperture problem</em>. Lucas-Kanade mengatasinya dengan mengasumsikan flow
+        seragam pada jendela kecil di sekitar titik tersebut, menghasilkan cukup persamaan untuk diselesaikan
+        lewat least squares. Perhitungan angka konkretnya ada di bagian 06.
+      </p>
+
+      <h3>3D CNN — memperluas konvolusi ke dimensi waktu</h3>
+      <p>
+        Pendekatan paling langsung: ganti kernel 2D <code>(k, k)</code> pada Materi 05 dengan kernel 3D
+        <code>(k, k, k)</code> yang juga bergeser sepanjang sumbu waktu. Model seperti C3D dan I3D memakai
+        pendekatan ini — satu kernel langsung "melihat" pola spasial dan temporal sekaligus dalam satu operasi.
+        Harganya: jumlah parameter per kernel naik sebanding dengan ukuran kernel waktu, dan ini dikalikan ke
+        seluruh lapisan jaringan.
+      </p>
+
+      <h3>CNN + RNN — pisahkan ruang dan waktu</h3>
+      <p>
+        Alih-alih memproses ruang dan waktu sekaligus, pendekatan ini memisahkannya menjadi dua tahap: CNN 2D
+        biasa (ResNet dari Materi 06, misalnya) mengekstraksi satu vektor fitur per frame, lalu barisan vektor
+        fitur itu dimasukkan ke RNN atau LSTM yang memodelkan bagaimana fitur tersebut berubah antar waktu.
+        Jauh lebih hemat parameter dibanding 3D CNN, karena CNN-nya tidak perlu diperbesar ke dimensi waktu sama
+        sekali.
+      </p>
+
+      <h3>Video Transformer — attention di ruang dan waktu</h3>
+      <p>
+        Model seperti ViViT memperluas ViT (Materi 07) dengan cara serupa: alih-alih memecah citra menjadi
+        patch 2D, video dipecah menjadi <strong>tubelet</strong> — potongan kecil yang membentang di ruang
+        <em>dan</em> waktu sekaligus (misalnya 16×16 pixel × 2 frame). Setiap tubelet menjadi satu token,
+        diproses dengan self-attention seperti biasa. Masalahnya, jumlah token video jauh lebih banyak daripada
+        citra tunggal, dan biaya self-attention kuadratik terhadap jumlah token (Materi 07) — karena itu banyak
+        Video Transformer memfaktorkan attention menjadi attention spasial (antar-tubelet dalam satu waktu) dan
+        attention temporal (tubelet yang sama antar-waktu) secara terpisah, mengingatkan pada window attention
+        Swin.
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Pertumbuhan ukuran data akibat dimensi waktu</h3>
+      <pre><code>Citra tunggal 224×224×3            =    150.528 angka
+Klip video 16 frame, 224×224×3     =  2.408.448 angka   (16× lebih besar)
+
+Pada 30 fps, klip 2 detik          =  60 frame  →  60× lebih besar dari satu citra</code></pre>
+
+      <h3>Optical flow dihitung manual (gerakan horizontal murni)</h3>
+      <p>
+        Sederhanakan kasus: anggap gerakan hanya ke arah horizontal (<code>v = 0</code>), sehingga persamaan
+        constraint menjadi <code>I_x · u + I_t = 0</code>, atau <code>u = −I_t / I_x</code>.
+      </p>
+      <pre><code>Pada satu titik, hasil pengukuran gradient:
+  I_x = 40   (intensitas naik 40 per pixel ke arah x — dari Sobel horizontal, Materi 03)
+  I_t = −120 (intensitas titik ini turun 120 antara frame t dan t+1)
+
+u = −I_t / I_x = −(−120) / 40 = 3
+
+Artinya: titik ini bergeser 3 pixel ke arah x positif antara dua frame.</code></pre>
+      <p>
+        Bandingkan dengan filter Sobel/Prewitt pada Materi 03 — <code>I_x</code> dihitung persis dengan cara
+        yang sama. Optical flow pada dasarnya memakai alat yang sama (gradient spasial), ditambah satu gradient
+        baru: perubahan terhadap waktu.
+      </p>
+
+      <h3>Parameter 3D CNN vs 2D CNN</h3>
+      <pre><code>Kernel 2D: 3×3, kanal masuk 32, kanal keluar 64
+  parameter = 3 × 3 × 32 × 64 = 18.432
+
+Kernel 3D: 3×3×3 (ruang 3×3, waktu 3), kanal masuk 32, kanal keluar 64
+  parameter = 3 × 3 × 3 × 32 × 64 = 55.296   (3× lebih banyak dari versi 2D)</code></pre>
+      <p>
+        Penambahan dimensi waktu pada kernel mengalikan parameter sebesar ukuran kernel waktunya — pada contoh
+        ini, tiga kali lipat. Dikalikan ke puluhan lapisan, selisihnya menjadi sangat signifikan, dan inilah
+        alasan utama CNN+RNN sering dipilih ketika sumber daya komputasi terbatas.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 260" role="img" aria-label="Video digambarkan sebagai tumpukan frame F(x,y,t): setiap lapisan adalah satu citra f(x,y) pada satu titik waktu, ditumpuk sepanjang sumbu t membentuk volume tiga dimensi">
+            <style>
+              .vf  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.3; }
+              .vf2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .vh  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .vm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+            </style>
+            <text x="20" y="22" class="vh">F(x, y, t) — tumpukan frame sepanjang waktu</text>
+            <g transform="translate(60,46)">
+              <rect class="vf" x="0"   y="130" width="140" height="90"/>
+              <rect class="vf" x="18"  y="112" width="140" height="90"/>
+              <rect class="vf" x="36"  y="94"  width="140" height="90"/>
+              <rect class="vf" x="54"  y="76"  width="140" height="90"/>
+              <rect class="vf2" x="72" y="58"  width="140" height="90"/>
+              <text x="142" y="110" class="vm" text-anchor="middle">f(x,y) di t=4</text>
+              <text x="70" y="240" class="vm" text-anchor="middle">t=0</text>
+              <text x="212" y="156" class="vm" text-anchor="middle">t=4</text>
+            </g>
+            <text x="20" y="246" class="vm" font-style="italic">Setiap lapisan adalah satu citra penuh — persis definisi f(x,y) pada Materi 02.</text>
+            <g transform="translate(420,60)">
+              <rect width="240" height="140" rx="6" fill="var(--dg-fill)" stroke="var(--dg-grid)" stroke-width="1"/>
+              <text x="120" y="26" class="vh" text-anchor="middle">Tensor video</text>
+              <text x="120" y="52" class="vm" text-anchor="middle" style="font-family:monospace;font-size:11px">(T, H, W, C)</text>
+              <text x="120" y="78" class="vm" text-anchor="middle">T = jumlah frame</text>
+              <text x="120" y="96" class="vm" text-anchor="middle">H, W = tinggi, lebar</text>
+              <text x="120" y="114" class="vm" text-anchor="middle">C = kanal warna</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 12.1.</b> Video sebagai fungsi <code>F(x, y, t)</code>: tumpukan citra <code>f(x, y)</code> sepanjang sumbu waktu, membentuk tensor empat dimensi.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 7 — Video and Video Processing.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 260" role="img" aria-label="Diagram optical flow: dua frame berurutan menunjukkan sebuah kotak bergeser ke kanan, dengan medan vektor panah yang menunjukkan arah dan besar pergeseran tiap titik antara frame pertama dan kedua">
+            <defs>
+              <marker id="arF" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-accent-2)"/>
+              </marker>
+            </defs>
+            <style>
+              .ff  { fill: var(--dg-fill); stroke: var(--dg-grid); stroke-width: 1; }
+              .fo  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.6; }
+              .fo2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; stroke-dasharray: 4 3; }
+              .fh  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .fm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+              .fv  { stroke: var(--dg-accent-2); stroke-width: 1.8; marker-end: url(#arF); }
+            </style>
+            <text x="20" y="20" class="fh">Frame t dan t+1 ditumpuk, kotak bergeser 60px ke kanan</text>
+            <rect class="ff" x="20" y="36" width="300" height="180"/>
+            <rect class="fo" x="50" y="90" width="70" height="70"/>
+            <text x="85" y="130" class="fm" text-anchor="middle">t</text>
+            <rect class="fo2" x="110" y="90" width="70" height="70"/>
+            <text x="145" y="175" class="fm" text-anchor="middle">t+1 (garis putus-putus)</text>
+
+            <text x="360" y="20" class="fh">Medan vektor optical flow</text>
+            <rect class="ff" x="360" y="36" width="300" height="180"/>
+            <g stroke-width="1" class="fv">
+              <line x1="390" y1="70"  x2="420" y2="70"/>
+              <line x1="390" y1="100" x2="420" y2="100"/>
+              <line x1="390" y1="130" x2="420" y2="130"/>
+              <line x1="440" y1="70"  x2="470" y2="70"/>
+              <line x1="440" y1="100" x2="470" y2="100"/>
+              <line x1="440" y1="130" x2="470" y2="130"/>
+              <line x1="490" y1="70"  x2="520" y2="70"/>
+              <line x1="490" y1="100" x2="520" y2="100"/>
+              <line x1="490" y1="130" x2="520" y2="130"/>
+            </g>
+            <text x="510" y="190" class="fm" text-anchor="middle">setiap panah: u=+60px, v=0</text>
+            <text x="20" y="236" class="fm">u, v dihitung dari I_x·u + I_y·v + I_t = 0 pada tiap titik — lihat angka konkret pada bagian 06.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 12.2.</b> Optical flow: pergeseran kotak antar dua frame direpresentasikan sebagai medan vektor yang seragam karena gerakannya murni translasi.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Lucas &amp; Kanade (1981), "An Iterative Image Registration Technique with an Application to Stereo Vision".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 280" role="img" aria-label="Perbandingan tiga arsitektur temporal modeling untuk video: 3D CNN memproses seluruh klip sekaligus dengan kernel tiga dimensi, CNN ditambah RNN mengekstraksi fitur tiap frame lalu memodelkan urutannya, Video Transformer memecah klip menjadi tubelet spatiotemporal yang diproses dengan self-attention">
+            <defs>
+              <marker id="arVT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .tb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.3; }
+              .tb2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.3; }
+              .td  { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.3; }
+              .tl  { stroke: var(--dg-stroke); stroke-width: 1.5; fill: none; marker-end: url(#arVT); }
+              .th2 { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .tm2 { font: 9px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .78; }
+            </style>
+
+            <text x="16" y="18" class="th2">3D CNN</text>
+            <g transform="translate(16,28)">
+              <rect class="td" x="0" y="20" width="36" height="36"/><rect class="td" x="10" y="10" width="36" height="36"/><rect class="td" x="20" y="0" width="36" height="36"/>
+              <path d="M66 28 h20" class="tl"/>
+              <rect class="tb2" x="92" y="6" width="80" height="50" rx="4"/>
+              <text x="132" y="28" class="tm2" text-anchor="middle">kernel 3D</text>
+              <text x="132" y="42" class="tm2" text-anchor="middle">(k×k×k)</text>
+              <text x="90" y="86" class="tm2">Seluruh klip diproses sekaligus —</text>
+              <text x="90" y="98" class="tm2">parameter &amp; komputasi besar.</text>
+            </g>
+
+            <line x1="16" y1="140" x2="724" y2="140" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+
+            <text x="16" y="164" class="th2">CNN + RNN/LSTM</text>
+            <g transform="translate(16,174)">
+              <rect class="td" x="0" y="0" width="30" height="30"/><rect class="td" x="40" y="0" width="30" height="30"/><rect class="td" x="80" y="0" width="30" height="30"/>
+              <path d="M15 32 v14 M55 32 v14 M95 32 v14" stroke="var(--dg-stroke)" stroke-width="1.4"/>
+              <rect class="tb" x="0" y="48" width="30" height="24" rx="3"/><rect class="tb" x="40" y="48" width="30" height="24" rx="3"/><rect class="tb" x="80" y="48" width="30" height="24" rx="3"/>
+              <text x="55" y="64" class="tm2" text-anchor="middle" style="font-size:7px">CNN 2D tiap frame</text>
+              <path d="M30 60 h8 M70 60 h8" class="tl"/>
+              <path d="M110 60 h20" class="tl"/>
+              <rect class="tb2" x="134" y="40" width="90" height="44" rx="4"/>
+              <text x="179" y="58" class="tm2" text-anchor="middle">RNN / LSTM</text>
+              <text x="179" y="72" class="tm2" text-anchor="middle">urutan fitur</text>
+            </g>
+
+            <line x1="16" y1="236" x2="724" y2="236" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+
+            <text x="420" y="18" class="th2">Video Transformer</text>
+            <g transform="translate(420,28)">
+              <rect class="td" x="0" y="20" width="24" height="24"/><rect class="td" x="8" y="12" width="24" height="24"/><rect class="td" x="16" y="4" width="24" height="24"/>
+              <text x="20" y="66" class="tm2" text-anchor="middle" style="font-size:8px">tubelet 3D</text>
+              <path d="M66 28 h20" class="tl"/>
+              <rect class="tb2" x="92" y="0" width="150" height="70" rx="5"/>
+              <text x="167" y="24" class="tm2" text-anchor="middle">Self-attention</text>
+              <text x="167" y="40" class="tm2" text-anchor="middle">difaktorkan: spasial</text>
+              <text x="167" y="54" class="tm2" text-anchor="middle">+ temporal terpisah</text>
+            </g>
+            <text x="420" y="118" class="tm2">Jangkauan global ruang &amp; waktu, dengan biaya dijaga tetap praktis</text>
+            <text x="420" y="132" class="tm2">lewat faktorisasi attention — mengingatkan pada window attention Swin.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 12.3.</b> Tiga pendekatan temporal modeling: 3D CNN, CNN+RNN/LSTM, dan Video Transformer dengan attention terfaktorkan.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Tran et al. (2015, C3D), Carreira &amp; Zisserman (2017, I3D), dan Arnab et al. (2021, ViViT).</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Mari jalankan action recognition pada klip video sungguhan memakai model Video Transformer pretrained
+        dari Hugging Face.
+      </p>
+      <details class="acc">
+        <summary>Lihat kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python · Hugging Face Transformers</span>
+<pre><code>from transformers import VideoMAEImageProcessor, VideoMAEForVideoClassification
+import av, numpy as np
+
+def baca_frame(path_video, n_frame=16):
+    container = av.open(path_video)
+    frames = [f.to_ndarray(format="rgb24") for f in container.decode(video=0)]
+    idx = np.linspace(0, len(frames) - 1, n_frame).astype(int)
+    return [frames[i] for i in idx]
+
+processor = VideoMAEImageProcessor.from_pretrained("MCG-NJU/videomae-base-finetuned-kinetics")
+model = VideoMAEForVideoClassification.from_pretrained("MCG-NJU/videomae-base-finetuned-kinetics")
+
+klip = baca_frame("aksi.mp4", n_frame=16)
+inputs = processor(klip, return_tensors="pt")
+outputs = model(**inputs)
+
+kelas = outputs.logits.argmax(-1).item()
+print(model.config.id2label[kelas])</code></pre>
+          <p style="margin-bottom:0">
+            Perhatikan <code>n_frame=16</code> — sama persis dengan contoh ukuran tensor pada bagian 06. Model
+            tidak memproses seluruh video, melainkan sampel frame yang mewakili keseluruhan klip.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Pengawasan dan deteksi anomali</dt>
+        <dd>Sistem CCTV cerdas memakai action recognition untuk menandai perilaku mencurigakan, sesuatu yang mustahil dideteksi dari satu frame diam.</dd>
+        <dt>Analitik olahraga</dt>
+        <dd>Pelacakan pemain dan bola lintas frame menghasilkan statistik gerakan, kecepatan, dan pola taktik secara otomatis.</dd>
+        <dt>Kendaraan otonom</dt>
+        <dd>Optical flow membantu memprediksi lintasan kendaraan dan pejalan kaki di sekitar, melengkapi deteksi objek per-frame dari Materi 06–07.</dd>
+        <dt>Kompresi video</dt>
+        <dd>Codec video modern memakai motion vector (pada dasarnya optical flow) untuk hanya menyimpan perubahan antar frame, bukan setiap frame secara utuh.</dd>
+        <dt>Stabilisasi video</dt>
+        <dd>Mengestimasi gerakan kamera lewat optical flow memungkinkan kompensasi guncangan secara digital.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Video cukup diproses sebagai kumpulan citra independen."</p>
+        <p style="margin-bottom:0">
+          Pendekatan ini kehilangan seluruh informasi temporal — arah gerakan, kecepatan, dan konteks aksi yang
+          berlangsung lintas frame, yang justru menjadi alasan utama video berbeda dari sekadar banyak citra.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "3D CNN selalu lebih baik daripada CNN+RNN untuk video."</p>
+        <p style="margin-bottom:0">
+          Tergantung panjang klip dan anggaran komputasi. 3D CNN unggul menangkap pola spatiotemporal langsung,
+          tetapi CNN+RNN jauh lebih hemat parameter — pilihan yang tepat bergantung pada kendala praktis.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Optical flow sama dengan object tracking."</p>
+        <p style="margin-bottom:0">
+          Optical flow mengukur pergerakan tiap pixel tanpa mengetahui identitas objek apa pun. Object tracking
+          memakai informasi ini (atau sumber lain) sebagai salah satu sinyal, tetapi tetap memerlukan asosiasi
+          identitas lintas frame yang eksplisit.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Video Transformer menghitung attention antar semua pixel di semua frame tanpa batasan."</p>
+        <p style="margin-bottom:0">
+          Biaya kuadratik attention (Materi 07) membuat ini mustahil secara praktis untuk video. Sebagian besar
+          Video Transformer memfaktorkan attention menjadi komponen spasial dan temporal terpisah.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Video adalah F(x, y, t),</strong> perluasan langsung citra f(x, y) dengan dimensi waktu tambahan.</li>
+        <li><strong>Optical flow mengukur gerakan antar frame</strong> lewat persamaan I_x·u + I_y·v + I_t = 0, berasumsi brightness constancy.</li>
+        <li><strong>3D CNN menangkap pola spatiotemporal langsung</strong> dengan harga parameter dan komputasi yang jauh lebih besar daripada CNN 2D.</li>
+        <li><strong>CNN+RNN memisahkan ekstraksi spasial dan pemodelan temporal,</strong> lebih hemat komputasi dengan trade-off pada dependensi jarak jauh.</li>
+        <li><strong>Video Transformer memperluas ViT lewat tubelet spatiotemporal,</strong> umumnya dengan attention yang difaktorkan agar tetap praktis.</li>
+        <li><strong>Menambah dimensi waktu bukan sekadar menambah data</strong> — ia membuka pertanyaan baru (gerakan, urutan aksi) yang tidak bisa dijawab citra tunggal.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini menggabungkan perhitungan optical flow dengan OpenCV dan eksperimen model video
+        pretrained untuk action recognition.
+      </p>
+      <ul>
+        <li>Google Colab dengan OpenCV (<code>cv2.calcOpticalFlowFarneback</code>) dan pustaka <code>transformers</code>.</li>
+        <li>Satu video pendek (5–10 detik) dengan gerakan yang jelas — orang berjalan atau objek bergerak melintas cukup baik.</li>
+        <li>Pustaka <code>av</code> atau <code>decord</code> untuk membaca frame video secara efisien.</li>
+      </ul>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="https://huggingface.co/learn/computer-vision-course/en/unit7/video-processing-basics" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Video Processing Basics ↗</a>
+        <a class="btn secondary" href="https://huggingface.co/docs/transformers/model_doc/videomae" target="_blank" rel="noopener noreferrer">📖 Dokumentasi: VideoMAE ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Hitung optical flow sederhana dengan tangan pada satu titik seperti contoh bagian 06, lalu verifikasi dengan <code>cv2.calcOpticalFlowFarneback</code> pada video Anda.</li>
+        <li>Visualisasikan medan vektor optical flow pada beberapa pasang frame berurutan dari video Anda.</li>
+        <li>Ekstrak 16 frame sampel dari klip Anda dan hitung ukuran tensor totalnya, bandingkan dengan rumus pada bagian 06.</li>
+        <li>Jalankan model action recognition pretrained (VideoMAE atau TimeSformer) pada klip Anda dan catat prediksinya.</li>
+        <li>Tuliskan refleksi: pada bagian video mana model paling "yakin", dan apakah itu bertepatan dengan momen aksi yang paling jelas secara visual?</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa asumsi brightness constancy bisa gagal pada kondisi pencahayaan yang berubah cepat (misalnya lampu kamera berkedip)? Apa konsekuensinya terhadap hasil optical flow?</li>
+        <li>Pada contoh parameter 3D CNN di bagian 06, jelaskan mengapa menambah ukuran kernel waktu dari 3 menjadi 5 akan melipatgandakan parameter sebesar faktor tertentu — hitung faktornya.</li>
+        <li>Bandingkan CNN+RNN dengan Video Transformer dari sisi kemampuan menangkap dependensi jarak jauh antar frame. Mana yang secara teori lebih unggul, dan mengapa?</li>
+        <li>Jelaskan dengan kalimat Anda sendiri mengapa aperture problem membuat optical flow tidak bisa dihitung dari satu persamaan I_x·u + I_y·v + I_t = 0 saja.</li>
+        <li>Sebuah aplikasi olahraga ingin mendeteksi jenis pukulan tenis (forehand/backhand/serve) dari video 2 detik. Pendekatan mana (3D CNN, CNN+RNN, atau Video Transformer) yang akan Anda rekomendasikan sebagai titik awal, dan mengapa?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit7/video-processing-basics" target="_blank" rel="noopener noreferrer">Unit 7: Video and Video Processing</a>.</li>
+        <li>Lucas, B.D., &amp; Kanade, T. (1981). <a href="https://www.ri.cmu.edu/pub_files/pub3/lucas_bruce_d_1981_1/lucas_bruce_d_1981_1.pdf" target="_blank" rel="noopener noreferrer">An Iterative Image Registration Technique with an Application to Stereo Vision</a>.</li>
+        <li>Tran, D. et al. (2015). <a href="https://arxiv.org/abs/1412.0767" target="_blank" rel="noopener noreferrer">Learning Spatiotemporal Features with 3D Convolutional Networks</a> (C3D).</li>
+        <li>Carreira, J., &amp; Zisserman, A. (2017). <a href="https://arxiv.org/abs/1705.07750" target="_blank" rel="noopener noreferrer">Quo Vadis, Action Recognition? A New Model and the Kinetics Dataset</a> (I3D).</li>
+        <li>Arnab, A. et al. (2021). <a href="https://arxiv.org/abs/2103.15691" target="_blank" rel="noopener noreferrer">ViViT: A Video Vision Transformer</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 

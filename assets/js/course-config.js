@@ -226,9 +226,9 @@ const courseConfig = {
     ],
     unit: "Hugging Face Unit 7 — Video and Video Processing",
     duration: "110 menit",
-    updated: "—",
-    practical: null,
-    material: false
+    updated: "13 Oktober 2026",
+    practical: "practical-12.html",
+    material: true
   },
 
   week13: {
