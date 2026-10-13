@@ -243,9 +243,9 @@ const courseConfig = {
     ],
     unit: "Hugging Face Unit 8 (+ Point Clouds dari Unit 10)",
     duration: "120 menit",
-    updated: "—",
-    practical: null,
-    material: false
+    updated: "13 Oktober 2026",
+    practical: "practical-13.html",
+    material: true
   },
 
   week14: {

@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Materi 13 · 3D Vision &amp; Scene Reconstruction — COM Computer Vision</title>
-<meta name="description" content="Materi 13: 3D Vision &amp; Scene Reconstruction. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<title>Materi 13 · 3D Vision & Scene Reconstruction — COM Computer Vision</title>
+<meta name="description" content="Materi 13: model kamera pinhole, stereo vision, depth estimation monokuler, point cloud, mesh, voxel, dan NeRF.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="13">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -50,16 +50,567 @@
         <h1 class="page-title" data-week-title>3D Vision &amp; Scene Reconstruction</h1>
         <p class="page-sub" data-week-subtitle>Camera model, stereo vision, depth estimation, point cloud, NeRF</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
-          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 8 (+ Point Clouds dari Unit 10)</span></span>
+          <span class="meta-chip">⏱ <span data-week-duration>120 menit</span></span>
+          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 8</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan model kamera pinhole dan proyeksi perspektif dari koordinat 3D ke 2D;</li>
+          <li>membedakan parameter intrinsik (focal length, principal point) dan ekstrinsik (rotasi, translasi) kamera;</li>
+          <li>menjelaskan prinsip stereo vision dan menghitung kedalaman dari disparitas secara manual;</li>
+          <li>membandingkan representasi data 3D: point cloud, mesh, voxel, dan representasi implisit (NeRF);</li>
+          <li>menjelaskan volume rendering pada NeRF dan menghitung contoh sederhananya;</li>
+          <li>menerapkan estimasi depth monokuler memakai model pretrained.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Setiap citra yang diproses dari Materi 01 sampai 12 adalah proyeksi dua dimensi dari dunia tiga dimensi
+        — informasi kedalaman sudah hilang jauh sebelum pixel pertama sampai ke model Anda. Materi ini mundur
+        satu langkah untuk bertanya: bagaimana proses "pemipihan" itu terjadi secara matematis, dan bagaimana
+        kita membalikkannya untuk merekonstruksi apa yang hilang?
+      </p>
+      <p>
+        Pertanyaan ini bukan sekadar akademis. Kendaraan otonom perlu tahu <em>seberapa jauh</em> pejalan kaki
+        di depan, bukan hanya <em>bahwa</em> ada pejalan kaki (Materi 06). Aplikasi AR perlu tahu di mana
+        meletakkan objek virtual agar tampak berdiri di atas lantai sungguhan. Robot perlu peta 3D ruangannya,
+        bukan hanya foto datar. Semua ini membutuhkan geometri, bukan hanya pengenalan pola.
+      </p>
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Satu kalimat yang merangkum seluruh materi ini</p>
+        <p style="margin-bottom:0">
+          Kamera memipihkan dunia 3D menjadi citra 2D lewat aturan matematis yang persis dan bisa dibalik —
+          dan seluruh materi ini adalah katalog cara-cara membalik proyeksi itu, dari geometri stereo yang
+          eksak sampai representasi implisit seperti NeRF yang dipelajari dari data.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-02.html">Materi 02</a> — citra sebagai fungsi f(x, y); materi ini menambahkan asal-usul geometrisnya.</li>
+        <li>Perkalian matriks dan transformasi koordinat dasar (rotasi, translasi).</li>
+        <li>Trigonometri dasar (opsional, membantu intuisi proyeksi perspektif).</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Topik</th><th>Pertanyaan yang dijawab</th></tr></thead>
+          <tbody>
+            <tr><td>Model kamera pinhole</td><td>Bagaimana satu titik 3D diproyeksikan menjadi satu pixel pada citra?</td></tr>
+            <tr><td>Stereo vision</td><td>Dengan dua kamera, bisakah kedalaman dihitung secara eksak lewat triangulasi?</td></tr>
+            <tr><td>Monocular depth estimation</td><td>Bisakah kedalaman diperkirakan hanya dari satu citra, memakai petunjuk visual dan deep learning?</td></tr>
+            <tr><td>Point cloud &amp; mesh</td><td>Bagaimana menyimpan bentuk 3D sebagai kumpulan titik eksplisit?</td></tr>
+            <tr><td>Voxel</td><td>Bagaimana merepresentasikan ruang 3D sebagai grid diskrit, seperti pixel tapi tiga dimensi?</td></tr>
+            <tr><td>NeRF</td><td>Bisakah sebuah scene disimpan sebagai fungsi implisit, bukan sebagai data eksplisit sama sekali?</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Model kamera pinhole</h3>
+      <p>
+        Model paling sederhana: cahaya dari titik 3D <code>(X, Y, Z)</code> melewati satu lubang kecil
+        (<em>pinhole</em>) dan jatuh pada bidang citra di belakangnya. Proyeksinya:
+      </p>
+      <pre><code>x = f · (X / Z)
+y = f · (Y / Z)</code></pre>
+      <p>
+        dengan <code>f</code> adalah focal length. Perhatikan pembagian oleh <code>Z</code> (kedalaman) —
+        inilah akar matematis mengapa objek yang lebih jauh tampak lebih kecil pada citra. Dalam praktik,
+        proyeksi ini ditulis sebagai perkalian matriks lewat <strong>parameter intrinsik</strong>
+        (<code>K</code>: focal length <code>f_x, f_y</code> dan principal point <code>c_x, c_y</code> — pusat
+        optik pada bidang citra) dan <strong>parameter ekstrinsik</strong> (<code>[R | t]</code>: rotasi dan
+        translasi yang mengubah koordinat dunia menjadi koordinat kamera):
+      </p>
+      <pre><code>s · [u, v, 1]ᵀ = K · [R | t] · [X, Y, Z, 1]ᵀ</code></pre>
+      <p>
+        Parameter intrinsik unik untuk tiap kombinasi lensa-sensor (karena itu kamera perlu dikalibrasi);
+        parameter ekstrinsik berubah setiap kali kamera bergerak.
+      </p>
+
+      <h3>Stereo vision — triangulasi dari dua sudut pandang</h3>
+      <p>
+        Dengan dua kamera yang dipisahkan jarak <code>B</code> (<em>baseline</em>), satu titik 3D yang sama
+        akan muncul pada posisi horizontal yang sedikit berbeda di kedua citra. Selisih posisi ini disebut
+        <strong>disparitas</strong> (<code>d</code>). Semakin jauh titik tersebut, semakin kecil
+        disparitasnya — intuisi yang sama seperti mengacungkan jari di depan mata dan bergantian menutup satu
+        mata: jari yang dekat "melompat" jauh, benda yang jauh di latar nyaris tidak bergeser. Hubungan
+        kuantitatifnya ada di bagian 06.
+      </p>
+
+      <h3>Monocular depth estimation — kedalaman dari satu citra</h3>
+      <p>
+        Stereo vision butuh dua kamera yang terkalibrasi presisi — tidak selalu praktis. Pendekatan deep
+        learning modern (DPT, MiDaS) memprediksi peta kedalaman hanya dari <strong>satu</strong> citra, dengan
+        memanfaatkan petunjuk monokular yang juga dipakai manusia: ukuran relatif objek yang dikenal, oklusi
+        (objek yang menutupi objek lain pasti lebih dekat), tekstur yang mengabur seiring jarak, dan garis
+        perspektif. Hasilnya tidak seakurat stereo secara metrik absolut tanpa kalibrasi tambahan, tetapi sangat
+        praktis karena hanya memerlukan satu kamera biasa.
+      </p>
+
+      <h3>Point cloud, mesh, dan voxel — tiga cara menyimpan bentuk 3D</h3>
+      <ul>
+        <li><strong>Point cloud</strong> — kumpulan titik <code>(x, y, z)</code> tanpa informasi konektivitas, umumnya keluaran langsung sensor LiDAR atau stereo matching.</li>
+        <li><strong>Mesh</strong> — vertices (titik) dihubungkan oleh faces (umumnya segitiga) membentuk permukaan eksplisit, standar pada grafis komputer dan game.</li>
+        <li><strong>Voxel</strong> — grid 3D diskrit, setiap sel menyimpan apakah ruang itu terisi atau tidak — analog pixel tapi tiga dimensi, dengan konsekuensi kebutuhan memori yang membengkak cepat seiring resolusi.</li>
+      </ul>
+
+      <h3>NeRF — scene sebagai fungsi, bukan sebagai data</h3>
+      <p>
+        <em>Neural Radiance Field</em> mengambil pendekatan radikal: alih-alih menyimpan titik, segitiga, atau
+        voxel eksplisit, NeRF melatih satu MLP (jaringan kecil beberapa lapisan) yang memetakan posisi 3D dan
+        arah pandang menjadi warna dan densitas:
+      </p>
+      <pre><code>MLP: (x, y, z, arah pandang)  →  (warna RGB, densitas σ)</code></pre>
+      <p>
+        Untuk menghasilkan citra dari sudut pandang baru, tembakkan sinar (<em>ray</em>) dari kamera virtual
+        melalui setiap pixel, sampel beberapa titik di sepanjang sinar itu, tanyakan MLP warna dan densitas di
+        setiap titik, lalu gabungkan lewat <strong>volume rendering</strong> — titik yang lebih dekat dan lebih
+        padat berkontribusi lebih besar pada warna akhir pixel tersebut. Seluruh "scene" tersimpan sebagai
+        bobot jaringan, bukan sebagai geometri eksplisit sama sekali. Perhitungan angka konkretnya ada di
+        bagian 06.
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Proyeksi pinhole dihitung manual</h3>
+      <pre><code>Titik 3D: (X, Y, Z) = (2 m, 1 m, 10 m)
+Focal length: f = 500 (dalam satuan pixel)
+
+x = f · (X / Z) = 500 × (2 / 10) = 100 pixel
+y = f · (Y / Z) = 500 × (1 / 10) =  50 pixel</code></pre>
+      <p>
+        Pindahkan titik itu dua kali lebih jauh (Z = 20 m) tanpa mengubah X, Y: <code>x = 500 × 2/20 = 50</code>
+        — proyeksinya mengecil separuh. Inilah sumber matematis dari perspektif: objek yang sama pada jarak dua
+        kali lebih jauh, tampak setengah ukurannya.
+      </p>
+
+      <h3>Kedalaman dari disparitas stereo</h3>
+      <pre><code>Z = (f × B) / d
+
+f = focal length (pixel)
+B = baseline, jarak antar kamera
+d = disparitas (pixel)
+
+Contoh A — objek jauh: f=500, B=0,1 m, d=5 pixel
+  Z = (500 × 0,1) / 5 = 10 meter
+
+Contoh B — objek dekat: f=500, B=0,1 m, d=50 pixel
+  Z = (500 × 0,1) / 50 = 1 meter</code></pre>
+      <p>
+        Perhatikan hubungan terbaliknya: disparitas sepuluh kali lebih besar (Contoh B) menghasilkan jarak
+        sepuluh kali lebih dekat. Inilah mengapa stereo vision kehilangan presisi pada objek yang sangat jauh —
+        disparitasnya mendekati nol dan sulit diukur akurat, sementara objek dekat punya disparitas besar yang
+        mudah diukur presisi.
+      </p>
+
+      <h3>Volume rendering NeRF — contoh diskrit</h3>
+      <p>Tiga titik sampel sepanjang satu sinar, masing-masing dengan densitas <code>σ</code> dan warna <code>c</code> (jarak antar-sampel δ=1):</p>
+      <pre><code>Titik 1: σ=0,1  c=merah    Titik 2: σ=0,5  c=hijau    Titik 3: σ=0,2  c=biru
+
+Transmitansi T_i = exp(−Σ σ_j·δ)  untuk j < i   (peluang sinar "sampai" ke titik i tanpa terhalang)
+  T1 = exp(0)              = 1,000
+  T2 = exp(−0,1)            = 0,905
+  T3 = exp(−(0,1+0,5))      = exp(−0,6) = 0,549
+
+Bobot w_i = T_i × (1 − exp(−σ_i·δ))   (seberapa besar titik i menyumbang warna akhir)
+  w1 = 1,000 × (1 − exp(−0,1)) = 1,000 × 0,095 = 0,095
+  w2 = 0,905 × (1 − exp(−0,5)) = 0,905 × 0,393 = 0,356
+  w3 = 0,549 × (1 − exp(−0,2)) = 0,549 × 0,181 = 0,099
+
+Warna akhir = Σ w_i · c_i = (0,095 merah) + (0,356 hijau) + (0,099 biru)
+            ≈ (0,095, 0,356, 0,099) dalam RGB</code></pre>
+      <p>
+        Titik 2 (densitas tertinggi, 0,5) menyumbang paling besar pada warna akhir (bobot 0,356) — hijau
+        mendominasi hasilnya. Titik 3 berada "di belakang" titik 1 dan 2 yang cukup padat, sehingga
+        transmitansinya sudah berkurang (0,549) sebelum sempat berkontribusi banyak. Inilah cara NeRF
+        "mengintegrasikan" seluruh sinar menjadi satu warna pixel.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 280" role="img" aria-label="Model kamera pinhole: titik 3D pada jarak Z dari kamera diproyeksikan melalui lubang kecil ke bidang citra, menghasilkan koordinat x dan y yang berbanding terbalik dengan kedalaman Z">
+            <defs>
+              <marker id="arP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .pf  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .pf2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .pl  { stroke: var(--dg-stroke); stroke-width: 1.4; fill: none; }
+              .ph  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .pm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+            </style>
+            <circle cx="60" cy="140" r="8" class="pf2"/>
+            <text x="60" y="118" class="pm" text-anchor="middle">titik 3D (X,Y,Z)</text>
+
+            <line x1="60" y1="140" x2="340" y2="140" class="pl" stroke-dasharray="3 3"/>
+            <circle cx="340" cy="140" r="3" fill="var(--dg-stroke)"/>
+            <text x="340" y="162" class="pm" text-anchor="middle">pinhole</text>
+
+            <line x1="68" y1="140" x2="470" y2="60" class="pl" marker-end="url(#arP)"/>
+            <line x1="68" y1="140" x2="470" y2="220" class="pl" marker-end="url(#arP)"/>
+
+            <line x1="470" y1="20" x2="470" y2="260" class="pf" stroke-width="2.4"/>
+            <text x="470" y="14" class="ph" text-anchor="middle">bidang citra</text>
+            <circle cx="470" cy="60" r="5" class="pf2"/>
+            <text x="510" y="56" class="pm">(x, y)</text>
+            <circle cx="470" cy="220" r="5" class="pf2"/>
+
+            <line x1="340" y1="250" x2="470" y2="250" class="pl" marker-end="url(#arP)"/>
+            <text x="405" y="268" class="pm" text-anchor="middle">f (focal length)</text>
+            <line x1="60" y1="250" x2="340" y2="250" class="pl" marker-end="url(#arP)"/>
+            <text x="200" y="268" class="pm" text-anchor="middle">Z (kedalaman)</text>
+
+            <g transform="translate(540,40)">
+              <rect width="150" height="100" rx="6" fill="var(--dg-fill)" stroke="var(--dg-grid)" stroke-width="1"/>
+              <text x="75" y="24" class="ph" text-anchor="middle">x = f·X/Z</text>
+              <text x="75" y="46" class="ph" text-anchor="middle">y = f·Y/Z</text>
+              <text x="75" y="76" class="pm" text-anchor="middle">Z besar → proyeksi</text>
+              <text x="75" y="90" class="pm" text-anchor="middle">mengecil (perspektif)</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 13.1.</b> Model kamera pinhole: proyeksi titik 3D ke bidang citra lewat focal length f, berbanding terbalik dengan kedalaman Z.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Hartley &amp; Zisserman, "Multiple View Geometry in Computer Vision".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 260" role="img" aria-label="Diagram stereo vision: dua kamera dipisahkan jarak baseline B mengamati titik 3D yang sama, menghasilkan disparitas antara posisi titik tersebut pada citra kiri dan citra kanan, dari mana kedalaman dapat dihitung">
+            <style>
+              .sf  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .sf2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .sl  { stroke: var(--dg-stroke); stroke-width: 1.3; fill: none; }
+              .sh  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .sm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+            </style>
+            <circle cx="350" cy="30" r="7" class="sf2"/>
+            <text x="350" y="16" class="sm" text-anchor="middle">titik 3D, jarak Z</text>
+            <line x1="350" y1="30" x2="120" y2="160" class="sl" stroke-dasharray="3 3"/>
+            <line x1="350" y1="30" x2="580" y2="160" class="sl" stroke-dasharray="3 3"/>
+
+            <rect class="sf" x="90" y="160" width="60" height="40" rx="4"/>
+            <text x="120" y="184" class="sm" text-anchor="middle">kamera kiri</text>
+            <rect class="sf" x="550" y="160" width="60" height="40" rx="4"/>
+            <text x="580" y="184" class="sm" text-anchor="middle">kamera kanan</text>
+
+            <line x1="150" y1="180" x2="550" y2="180" class="sl" stroke-dasharray="2 4"/>
+            <text x="350" y="214" class="sm" text-anchor="middle">baseline B</text>
+
+            <g transform="translate(90,220)">
+              <rect width="60" height="30" class="sf"/>
+              <circle cx="38" cy="15" r="3" class="sf2"/>
+              <text x="30" y="46" class="sm" text-anchor="middle" style="font-size:8px">citra kiri: x_kiri</text>
+            </g>
+            <g transform="translate(550,220)">
+              <rect width="60" height="30" class="sf"/>
+              <circle cx="20" cy="15" r="3" class="sf2"/>
+              <text x="30" y="46" class="sm" text-anchor="middle" style="font-size:8px">citra kanan: x_kanan</text>
+            </g>
+
+            <g transform="translate(220,20)">
+              <rect width="260" height="90" rx="6" fill="var(--dg-fill)" stroke="var(--dg-grid)" stroke-width="1"/>
+              <text x="130" y="24" class="sh" text-anchor="middle">d = x_kiri − x_kanan</text>
+              <text x="130" y="46" class="sh" text-anchor="middle">Z = (f × B) / d</text>
+              <text x="130" y="70" class="sm" text-anchor="middle">d besar → dekat</text>
+              <text x="130" y="84" class="sm" text-anchor="middle">d kecil → jauh</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 13.2.</b> Stereo vision: disparitas antara citra kiri dan kanan berbanding terbalik dengan kedalaman titik 3D.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Hugging Face Community Computer Vision Course, Unit 8.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 220" role="img" aria-label="Empat representasi data 3D berdampingan: point cloud sebagai kumpulan titik terpisah, mesh sebagai titik yang dihubungkan membentuk segitiga permukaan, voxel sebagai grid kubus diskrit, dan NeRF sebagai jaringan kecil yang memetakan posisi dan arah pandang menjadi warna dan densitas">
+            <style>
+              .rh { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .rm { font: 9px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .78; }
+            </style>
+            <text x="16" y="18" class="rh">Point cloud</text>
+            <g transform="translate(16,30)" fill="var(--dg-accent)">
+              <circle cx="20" cy="20" r="3"/><circle cx="45" cy="35" r="3"/><circle cx="70" cy="15" r="3"/>
+              <circle cx="35" cy="55" r="3"/><circle cx="90" cy="50" r="3"/><circle cx="60" cy="70" r="3"/>
+              <circle cx="15" cy="75" r="3"/><circle cx="80" cy="25" r="3"/>
+            </g>
+            <text x="56" y="130" class="rm" text-anchor="middle">titik (x,y,z), tanpa</text>
+            <text x="56" y="142" class="rm" text-anchor="middle">konektivitas</text>
+
+            <text x="196" y="18" class="rh">Mesh</text>
+            <g transform="translate(196,30)" stroke="var(--dg-accent)" stroke-width="1" fill="var(--dg-fill-2)">
+              <polygon points="20,20 70,15 45,55"/>
+              <polygon points="45,55 70,15 90,50"/>
+              <polygon points="20,20 45,55 15,75"/>
+              <polygon points="45,55 90,50 60,70"/>
+            </g>
+            <text x="236" y="130" class="rm" text-anchor="middle">vertices + faces,</text>
+            <text x="236" y="142" class="rm" text-anchor="middle">permukaan eksplisit</text>
+
+            <text x="396" y="18" class="rh">Voxel</text>
+            <g transform="translate(396,30)" stroke="var(--dg-grid)" stroke-width=".8" fill="var(--dg-fill-2)">
+              <rect x="0"  y="40" width="22" height="22"/><rect x="24" y="40" width="22" height="22"/><rect x="48" y="40" width="22" height="22"/>
+              <rect x="0"  y="18" width="22" height="22"/><rect x="24" y="18" width="22" height="22" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)"/>
+              <rect x="24" y="0"  width="22" height="22" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)"/>
+            </g>
+            <text x="436" y="130" class="rm" text-anchor="middle">grid 3D diskrit,</text>
+            <text x="436" y="142" class="rm" text-anchor="middle">boros memori</text>
+
+            <text x="596" y="18" class="rh">NeRF</text>
+            <g transform="translate(576,30)">
+              <rect width="130" height="70" rx="5" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1.4"/>
+              <text x="65" y="28" class="rm" text-anchor="middle" style="font-family:monospace">(x,y,z,dir)</text>
+              <text x="65" y="44" class="rm" text-anchor="middle">↓ MLP kecil</text>
+              <text x="65" y="60" class="rm" text-anchor="middle" style="font-family:monospace">(RGB, σ)</text>
+            </g>
+            <text x="636" y="130" class="rm" text-anchor="middle">fungsi implisit,</text>
+            <text x="636" y="142" class="rm" text-anchor="middle">bukan data eksplisit</text>
+
+            <line x1="16" y1="168" x2="724" y2="168" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="370" y="190" class="rm" text-anchor="middle">Keempatnya menjawab pertanyaan sama ("bagaimana bentuk 3D ini disimpan?") dengan trade-off memori, detail, dan fleksibilitas yang berbeda.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 13.3.</b> Empat representasi data 3D: point cloud, mesh, voxel, dan NeRF (representasi implisit).
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Mildenhall et al. (2020), "NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 700" role="img" aria-label="Foto potret kucing dengan overlay gradien warna yang mengilustrasikan konsep peta kedalaman: area wajah kucing di depan diberi warna hangat menandakan dekat, area latar belakang diberi warna dingin menandakan jauh">
+            <defs>
+              <radialGradient id="depthG" cx="42%" cy="42%" r="75%">
+                <stop offset="0%" stop-color="#ff7b3f" stop-opacity="0.55"/>
+                <stop offset="45%" stop-color="#ffd23f" stop-opacity="0.4"/>
+                <stop offset="75%" stop-color="#5de0ff" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#2b3ea8" stop-opacity="0.55"/>
+              </radialGradient>
+            </defs>
+            <image href="../assets/img/cat-patch-demo.jpg" x="0" y="0" width="700" height="700" preserveAspectRatio="xMidYMid slice"/>
+            <rect x="0" y="0" width="700" height="700" fill="url(#depthG)"/>
+            <g transform="translate(20,580)">
+              <rect width="320" height="100" rx="8" fill="var(--dg-fill)" stroke="var(--dg-grid)" stroke-width="1" opacity="0.95"/>
+              <text x="160" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="var(--dg-text)">Ilustrasi peta kedalaman monokuler</text>
+              <text x="160" y="46" text-anchor="middle" font-size="10" fill="#ff9f45">■ hangat = dekat (wajah kucing)</text>
+              <text x="160" y="64" text-anchor="middle" font-size="10" fill="#5de0ff">■ dingin = jauh (latar belakang)</text>
+              <text x="160" y="86" text-anchor="middle" font-size="9.5" fill="var(--dg-text)" opacity="0.75" font-style="italic">gradien ilustratif, bukan hasil model sungguhan</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 13.4.</b> Ilustrasi konsep peta kedalaman monokuler: model seperti MiDaS/DPT memprediksi nilai kedalaman per pixel dari satu citra, divisualisasikan sebagai colormap hangat (dekat) ke dingin (jauh).
+          <span class="src">Foto: "Cat in Notre Dame college Dhaka" oleh Wasiul Bahar, Wikimedia Commons, lisensi CC BY-SA 4.0. Overlay gradien ilustratif orisinal COM Computer Vision — bukan keluaran model depth estimation sungguhan.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>Mari jalankan estimasi depth monokuler sungguhan memakai model pretrained dari Hugging Face.</p>
+      <details class="acc">
+        <summary>Lihat kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python · Hugging Face Transformers</span>
+<pre><code>from transformers import DPTImageProcessor, DPTForDepthEstimation
+from PIL import Image
+import torch
+
+processor = DPTImageProcessor.from_pretrained("Intel/dpt-hybrid-midas")
+model = DPTForDepthEstimation.from_pretrained("Intel/dpt-hybrid-midas")
+
+img = Image.open("foto_sendiri.jpg")
+inputs = processor(images=img, return_tensors="pt")
+
+with torch.no_grad():
+    outputs = model(**inputs)
+    depth = outputs.predicted_depth
+
+depth = torch.nn.functional.interpolate(
+    depth.unsqueeze(1), size=img.size[::-1], mode="bicubic"
+).squeeze().numpy()
+
+# depth[y, x] sekarang berisi nilai kedalaman relatif pada tiap pixel
+print("Kedalaman relatif min/max:", depth.min(), depth.max())</code></pre>
+          <p style="margin-bottom:0">
+            Perhatikan: keluarannya adalah kedalaman <em>relatif</em>, bukan dalam satuan meter — tanpa
+            kalibrasi tambahan, model monokuler tidak tahu skala absolut dunia nyata, berbeda dari hasil
+            stereo vision yang bisa langsung dalam satuan metrik bila baseline diketahui (bagian 06).
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Augmented Reality</dt>
+        <dd>Memahami kedalaman adegan memungkinkan objek virtual diletakkan dan di-occlude dengan benar relatif terhadap objek nyata.</dd>
+        <dt>Kendaraan otonom dan robotika</dt>
+        <dd>Stereo vision dan LiDAR menghasilkan point cloud untuk mengukur jarak aman ke objek di sekitar, melengkapi deteksi 2D dari Materi 06–07.</dd>
+        <dt>Fotografi komputasional</dt>
+        <dd>Mode potret pada ponsel memakai estimasi depth untuk mem-blur latar belakang secara selektif.</dd>
+        <dt>Digital twin dan pemetaan 3D</dt>
+        <dd>NeRF dan teknik serupa merekonstruksi model 3D fotorealistis dari sekumpulan foto biasa, dipakai untuk pelestarian warisan budaya dan visualisasi properti.</dd>
+        <dt>Industri game dan VFX</dt>
+        <dd>Mesh dari pemindaian 3D (3D scanning) menjadi aset dasar karakter dan lingkungan virtual.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Stereo vision selalu lebih akurat daripada monocular depth estimation."</p>
+        <p style="margin-bottom:0">
+          Secara geometris stereo memang eksak, tetapi membutuhkan dua kamera terkalibrasi presisi. Monocular
+          depth estimation berbasis deep learning jauh lebih praktis (satu kamera saja) meski akurasi metrik
+          absolutnya lebih rendah tanpa kalibrasi tambahan.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Point cloud dan mesh adalah hal yang sama."</p>
+        <p style="margin-bottom:0">
+          Point cloud hanyalah kumpulan titik tanpa informasi permukaan. Mesh menambahkan konektivitas eksplisit
+          (faces) yang mendefinisikan permukaan — dibutuhkan proses tambahan (meshing) untuk mengubah point
+          cloud menjadi mesh.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "NeRF menyimpan foto-foto hasil pelatihannya."</p>
+        <p style="margin-bottom:0">
+          NeRF menyimpan fungsi implisit (bobot MLP kecil, sering hanya beberapa megabyte) yang mengkodekan
+          seluruh scene, bukan citra itu sendiri. Citra dari sudut pandang mana pun dihasilkan ulang lewat
+          volume rendering saat dibutuhkan.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Parameter intrinsik kamera sama untuk semua kamera."</p>
+        <p style="margin-bottom:0">
+          Berbeda-beda tergantung lensa dan sensor, dan bisa berubah bila lensa di-zoom. Kalibrasi kamera
+          adalah langkah wajib sebelum pengukuran 3D presisi, bukan sekadar formalitas.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Kamera pinhole memproyeksikan titik 3D ke 2D</strong> lewat pembagian oleh kedalaman Z — akar matematis dari efek perspektif.</li>
+        <li><strong>Parameter intrinsik dan ekstrinsik</strong> masing-masing mendeskripsikan karakteristik kamera itu sendiri dan posisi/orientasinya di dunia.</li>
+        <li><strong>Stereo vision menghitung kedalaman dari disparitas</strong> lewat Z = f·B/d — disparitas besar berarti dekat, disparitas kecil berarti jauh.</li>
+        <li><strong>Monocular depth estimation memperkirakan kedalaman dari satu citra</strong> memakai petunjuk visual, praktis tapi tidak metrik absolut tanpa kalibrasi.</li>
+        <li><strong>Point cloud, mesh, dan voxel adalah representasi eksplisit</strong> dengan trade-off memori dan detail berbeda; NeRF adalah representasi implisit lewat fungsi MLP.</li>
+        <li><strong>Volume rendering NeRF mengintegrasikan warna dan densitas</strong> di sepanjang sinar kamera, dengan transmitansi yang menurun seiring melewati materi padat.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini menggabungkan perhitungan geometri kamera dengan eksperimen model depth estimation
+        pretrained.
+      </p>
+      <ul>
+        <li>Google Colab dengan NumPy dan pustaka <code>transformers</code>.</li>
+        <li>Beberapa foto dengan objek pada jarak berbeda-beda untuk menguji estimasi depth secara kualitatif.</li>
+        <li>Kalkulator — bagian proyeksi pinhole dan disparitas stereo sebaiknya dihitung ulang dengan angka Anda sendiri.</li>
+      </ul>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="https://huggingface.co/learn/computer-vision-course/en/unit8/3d_measurements_stereo_vision" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Stereo Vision ↗</a>
+        <a class="btn secondary" href="https://huggingface.co/docs/transformers/model_doc/dpt" target="_blank" rel="noopener noreferrer">📖 Dokumentasi: DPT (Depth Estimation) ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Hitung proyeksi pinhole untuk tiga titik 3D berbeda dengan tangan, lalu verifikasi dengan kode.</li>
+        <li>Hitung kedalaman dari tiga pasang nilai (f, B, d) berbeda dan bandingkan dengan Contoh A/B pada bagian 06.</li>
+        <li>Jalankan model DPT/MiDaS pada lima foto dengan objek pada jarak bervariasi, bandingkan urutan kedalaman relatif hasil model dengan urutan jarak sesungguhnya.</li>
+        <li>Implementasikan volume rendering sederhana (3–5 titik sampel) dari nol memakai NumPy, verifikasi terhadap contoh manual bagian 06.</li>
+        <li>Tuliskan refleksi: pada kondisi apa estimasi depth monokuler Anda terlihat paling tidak akurat, dan mengapa (kaitkan dengan petunjuk visual yang dibahas pada bagian 05)?</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa pembagian oleh Z pada rumus proyeksi pinhole adalah akar matematis dari efek perspektif? Jelaskan dengan kalimat Anda sendiri.</li>
+        <li>Pada contoh disparitas stereo di bagian 06, berapa disparitas yang dihasilkan objek pada jarak 5 meter dengan f dan B yang sama? Hitung dan bandingkan dengan Contoh A dan B.</li>
+        <li>Mengapa monocular depth estimation tidak bisa langsung memberikan jarak dalam satuan meter tanpa informasi tambahan, sementara stereo vision bisa?</li>
+        <li>Jelaskan mengapa titik dengan densitas rendah (misalnya ruang kosong, σ≈0) menyumbang sangat sedikit pada warna akhir volume rendering NeRF, meski warnanya sangat terang.</li>
+        <li>Sebuah startup real estat ingin membuat tur virtual 3D dari properti hanya dengan video singkat berjalan keliling ruangan (tanpa LiDAR). Pendekatan mana dari materi ini yang paling relevan sebagai titik awal, dan mengapa?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit8/3d_measurements_stereo_vision" target="_blank" rel="noopener noreferrer">Unit 8: 3D Vision</a>.</li>
+        <li>Hartley, R., &amp; Zisserman, A. <em>Multiple View Geometry in Computer Vision</em>. Cambridge University Press.</li>
+        <li>Mildenhall, B. et al. (2020). <a href="https://arxiv.org/abs/2003.08934" target="_blank" rel="noopener noreferrer">NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis</a>.</li>
+        <li>Ranftl, R. et al. (2020). <a href="https://arxiv.org/abs/1907.01341" target="_blank" rel="noopener noreferrer">Towards Robust Monocular Depth Estimation</a> (MiDaS).</li>
+        <li>Dokumentasi Hugging Face: <a href="https://huggingface.co/docs/transformers/model_doc/dpt" target="_blank" rel="noopener noreferrer">DPT</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 

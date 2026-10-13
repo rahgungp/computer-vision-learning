@@ -67,9 +67,13 @@ Seluruh **diagram konsep** pada situs ini adalah SVG orisinal yang ditulis langs
 | 12.1 | week-12 | Video sebagai tumpukan frame F(x,y,t) |
 | 12.2 | week-12 | Medan vektor optical flow (skematik) |
 | 12.3 | week-12 | Perbandingan 3D CNN, CNN+RNN, dan Video Transformer |
+| 13.1 | week-13 | Model kamera pinhole |
+| 13.2 | week-13 | Stereo vision dan disparitas |
+| 13.3 | week-13 | Perbandingan point cloud, mesh, voxel, dan NeRF |
+| 13.4 | week-13 | Foto nyata (dipakai ulang dari 7.3) + gradien kedalaman ilustratif orisinal |
 | — | index | Ilustrasi hero: pixel → operasi → representasi |
 
-Figure 1.1–7.2, 7.4, 8.1, 9.1, 10.1–10.3, 11.1, 11.3, 11.4, dan 12.1–12.3 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–7) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, 7.5, 9.2, 9.3, 10.4, dan 11.2 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap; foto kucing dan foto jalan raya dipakai ulang lintas-materi (06, 07, 09, 10, 11) untuk membangun perbandingan visual yang konsisten antar-arsitektur. Figure 10.4 memakai filter SVG <code>feTurbulence</code> bawaan browser untuk mensimulasikan noise, bukan hasil proses diffusion sungguhan. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
+Figure 1.1–7.2, 7.4, 8.1, 9.1, 10.1–10.3, 11.1, 11.3, 11.4, 12.1–12.3, dan 13.1–13.3 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–8) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, 7.5, 9.2, 9.3, 10.4, 11.2, dan 13.4 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap; foto kucing dan foto jalan raya dipakai ulang lintas-materi (06, 07, 09, 10, 11, 13) untuk membangun perbandingan visual yang konsisten antar-arsitektur. Figure 10.4 memakai filter SVG <code>feTurbulence</code> bawaan browser untuk mensimulasikan noise; Figure 13.4 memakai gradien radial ilustratif untuk mensimulasikan peta kedalaman — keduanya bukan hasil model sungguhan. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
 
 ## Bila kelak menambahkan gambar eksternal
 
