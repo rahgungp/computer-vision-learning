@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Materi 10 · Generative Computer Vision — COM Computer Vision</title>
-<meta name="description" content="Materi 10: Generative Computer Vision. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<meta name="description" content="Materi 10: VAE, GAN, StyleGAN, CycleGAN, dan diffusion models — bagaimana model menghasilkan citra baru, beserta implikasi etisnya.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="10">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -48,18 +48,661 @@
       <div class="toolbar-main">
         <span class="eyebrow">Materi 10</span>
         <h1 class="page-title" data-week-title>Generative Computer Vision</h1>
-        <p class="page-sub" data-week-subtitle>VAE, GAN, StyleGAN, CycleGAN, diffusion models</p>
+        <p class="page-sub" data-week-subtitle>VAE, GAN, StyleGAN, CycleGAN, dan diffusion models</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
+          <span class="meta-chip">⏱ <span data-week-duration>120 menit</span></span>
           <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 5</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan prinsip autoencoder dan variational autoencoder (VAE), termasuk reparameterization trick;</li>
+          <li>menjelaskan GAN sebagai permainan adversarial antara generator dan discriminator;</li>
+          <li>menjelaskan gagasan style-based generation pada StyleGAN dan cycle-consistency pada CycleGAN;</li>
+          <li>menjelaskan proses forward diffusion (menambah noise) dan reverse diffusion (menghilangkan noise);</li>
+          <li>menghitung KL divergence sederhana dan memahami perannya pada loss VAE;</li>
+          <li>mengidentifikasi risiko bias, privasi, dan penyalahgunaan (deepfake) pada model generatif.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Materi 01 sampai 09 seluruhnya bersifat <strong>diskriminatif</strong>: model menerima citra dan
+        menjawab pertanyaan tentangnya — kelas apa, objek di mana, cocok dengan teks apa. Materi ini membalik
+        arah panahnya. Pertanyaannya bukan lagi "apa isi citra ini?", melainkan <strong>"bisakah model
+        menggambar citra baru dari nol?"</strong>
+      </p>
+      <p>
+        Jawabannya mengandalkan komponen yang sudah Anda kenal: encoder dari Materi 05 mengubah citra menjadi
+        representasi padat (<em>latent</em>); materi ini menambahkan arah sebaliknya, <strong>decoder</strong>,
+        yang mengubah representasi padat kembali menjadi citra. Begitu arah ini dikuasai, empat pertanyaan
+        besar muncul: representasi seperti apa yang membuat hasilnya tetap masuk akal (VAE), bagaimana membuat
+        hasilnya setajam foto asli (GAN), bagaimana mengendalikan gaya hasilnya (StyleGAN), dan bagaimana
+        menghasilkan kualitas tertinggi saat ini tanpa pelatihan yang tidak stabil (diffusion model).
+      </p>
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Kemampuan ini punya tanggung jawab</p>
+        <p style="margin-bottom:0">
+          Model yang bisa menghasilkan wajah manusia yang meyakinkan juga bisa disalahgunakan untuk deepfake dan
+          disinformasi. Bagian 09 dan 10 materi ini membahas implikasi etisnya secara eksplisit — bukan sebagai
+          tempelan di akhir, melainkan bagian yang sama pentingnya dengan matematikanya.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-05.html">Materi 05</a> — konvolusi dan pooling; decoder pada materi ini memakai operasi kebalikannya (transposed convolution / upsampling).</li>
+        <li><a href="./week-06.html">Materi 06</a> — residual connection, dipakai luas pada arsitektur generator dan U-Net untuk diffusion.</li>
+        <li>Distribusi normal (Gaussian) dan gagasan dasar probabilitas — tidak perlu mendalam, cukup paham rata-rata dan varians.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model</th><th>Tahun</th><th>Gagasan utama</th></tr></thead>
+          <tbody>
+            <tr><td>Autoencoder</td><td>—</td><td>Encoder memampatkan citra ke latent, decoder merekonstruksinya; latent space tidak terstruktur untuk generasi baru.</td></tr>
+            <tr><td>VAE</td><td>2013</td><td>Encoder menghasilkan distribusi, bukan titik; latent space kontinu sehingga bisa di-sample untuk menghasilkan citra baru.</td></tr>
+            <tr><td>GAN</td><td>2014</td><td>Generator dan discriminator saling berlomba; hasil lebih tajam daripada VAE, pelatihan lebih sulit distabilkan.</td></tr>
+            <tr><td>CycleGAN</td><td>2017</td><td>Image-to-image translation tanpa data berpasangan, dijaga dengan cycle-consistency loss.</td></tr>
+            <tr><td>StyleGAN</td><td>2018–2019</td><td>Generator berbasis gaya; kontrol terpisah atas fitur kasar, menengah, dan halus pada citra yang dihasilkan.</td></tr>
+            <tr><td>Diffusion model (DDPM)</td><td>2020</td><td>Menambah noise bertahap lalu belajar membalikkannya; pelatihan stabil, kualitas tertinggi saat ini — dasar Stable Diffusion.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Perhatikan arah evolusinya: setiap generasi baru mengorbankan sesuatu dari generasi sebelumnya untuk
+        memperbaiki kelemahannya — VAE mengorbankan ketajaman demi kestabilan, GAN mengorbankan kestabilan demi
+        ketajaman, diffusion model mencoba mendapatkan keduanya dengan mengorbankan kecepatan (perlu banyak
+        langkah iteratif untuk satu citra).
+      </p>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Autoencoder — titik awal, bukan model generatif sungguhan</h3>
+      <p>
+        Autoencoder biasa terdiri atas encoder (memampatkan citra menjadi vektor latent kecil) dan decoder
+        (merekonstruksi citra dari vektor itu), dilatih agar keluaran semirip mungkin dengan masukan
+        (reconstruction loss). Masalahnya: tidak ada yang memaksa latent space-nya terstruktur rapi. Ambil titik
+        acak di ruang latent, dan decoder sering kali menghasilkan citra yang tidak masuk akal. Autoencoder
+        pandai memampatkan dan merekonstruksi, tetapi buruk dalam <em>menciptakan yang baru</em>.
+      </p>
+
+      <h3>VAE — memaksa latent space menjadi kontinu</h3>
+      <p>
+        Variational Autoencoder menambahkan satu batasan penting: encoder tidak lagi menghasilkan satu titik
+        latent, melainkan <strong>parameter sebuah distribusi</strong> — rata-rata <code>μ</code> dan varians
+        <code>σ²</code>. Loss totalnya memiliki dua suku: reconstruction loss seperti biasa, ditambah
+        <strong>KL divergence</strong> yang mendorong distribusi latent tersebut mendekati distribusi normal
+        standar <code>N(0, I)</code>.
+      </p>
+      <p>
+        Masalahnya, proses sampling (mengambil satu titik acak dari distribusi <code>N(μ, σ²)</code>) tidak bisa
+        dilewati gradient secara langsung. Solusinya adalah <strong>reparameterization trick</strong>:
+      </p>
+      <pre><code>z = μ + σ ⊙ ε,    dengan ε ~ N(0, 1)</code></pre>
+      <p>
+        Dengan trik ini, keacakan dipindahkan ke <code>ε</code> yang tidak perlu diturunkan, sementara
+        <code>μ</code> dan <code>σ</code> tetap bisa dilatih lewat backpropagation biasa. Hasilnya: latent space
+        yang kontinu dan terstruktur, sehingga men-sample <code>z</code> acak dari <code>N(0, I)</code>
+        menghasilkan citra baru yang masuk akal — meski VAE punya kecenderungan menghasilkan citra yang agak
+        kabur dibanding GAN.
+      </p>
+
+      <h3>GAN — dua jaringan saling berlomba</h3>
+      <p>
+        Generative Adversarial Network melatih dua jaringan sekaligus dengan tujuan yang bertentangan:
+        <strong>Generator (G)</strong> mengubah noise acak menjadi citra palsu, berusaha menipu;
+        <strong>Discriminator (D)</strong> menerima citra asli maupun palsu, berusaha membedakan keduanya.
+        Keduanya dilatih bergantian: D diperbaiki agar lebih jeli, G diperbaiki agar lebih meyakinkan menipu D
+        yang makin jeli itu. Pada titik ideal, G menghasilkan citra yang begitu meyakinkan sehingga D tidak
+        bisa membedakannya dari citra asli — persis 50% peluang benar, sama seperti menebak koin.
+      </p>
+      <p>
+        Hasilnya jauh lebih tajam daripada VAE, tetapi pelatihannya terkenal sulit distabilkan:
+        <em>mode collapse</em> (G hanya menghasilkan beberapa variasi terbatas yang berhasil menipu D) adalah
+        kegagalan paling umum.
+      </p>
+
+      <h3>CycleGAN — menerjemahkan citra tanpa data berpasangan</h3>
+      <p>
+        Mengubah foto kuda menjadi zebra membutuhkan data berpasangan — foto kuda dan foto zebra persis di
+        pose yang sama — bila memakai pendekatan biasa. Data semacam itu nyaris tidak pernah ada. CycleGAN
+        menghilangkan kebutuhan itu lewat <strong>cycle-consistency loss</strong>: dua generator (
+        <code>G: X→Y</code> dan <code>F: Y→X</code>) dilatih sedemikian rupa sehingga
+        <code>F(G(x)) ≈ x</code> dan <code>G(F(y)) ≈ y</code> — menerjemahkan lalu menerjemahkan balik harus
+        menghasilkan citra asli kembali. Batasan ini cukup kuat untuk memandu pelatihan meski datanya tidak
+        berpasangan sama sekali.
+      </p>
+
+      <h3>StyleGAN — mengendalikan gaya pada tiap skala</h3>
+      <p>
+        StyleGAN mengubah cara noise masuk ke generator. Alih-alih langsung menjadi input pertama jaringan,
+        noise terlebih dahulu diproses oleh <em>mapping network</em> menjadi <strong>style vector</strong>, yang
+        kemudian disuntikkan ke <strong>setiap resolusi</strong> pada generator lewat normalisasi khusus
+        (AdaIN). Konsekuensinya: resolusi kasar mengendalikan pose dan bentuk wajah, resolusi menengah
+        mengendalikan fitur wajah, resolusi halus mengendalikan warna kulit dan rambut — masing-masing bisa
+        dikendalikan terpisah. Inilah dasar teknis di balik situs seperti "this person does not exist", dan
+        mengapa wajah sintetis StyleGAN terlihat sangat meyakinkan.
+      </p>
+
+      <h3>Diffusion model — menambah lalu menghilangkan noise</h3>
+      <p>
+        Diffusion model bekerja dengan gagasan yang hampir berlawanan arah dari ketiga pendekatan sebelumnya.
+        <strong>Forward process</strong> menambahkan sedikit noise Gaussian ke citra asli secara bertahap,
+        diulang <code>T</code> kali (umumnya 1000 langkah) sampai citranya menjadi noise murni yang tidak
+        menyisakan informasi apa pun. <strong>Reverse process</strong> adalah jaringan (umumnya U-Net) yang
+        dilatih untuk menebak dan menghilangkan sedikit noise pada setiap langkah — bila diulang mundur dari
+        noise murni, hasil akhirnya adalah citra baru yang koheren.
+      </p>
+      <p>
+        Karena tidak ada permainan adversarial (hanya satu jaringan yang dilatih dengan loss regresi biasa:
+        menebak noise yang ditambahkan), pelatihan diffusion model jauh lebih stabil daripada GAN, dengan
+        kualitas yang saat ini menjadi standar tertinggi — inilah fondasi Stable Diffusion, DALL·E 2, dan
+        Midjourney. Harganya: menghasilkan satu citra memerlukan banyak langkah iteratif, jauh lebih lambat
+        daripada satu kali forward pass GAN atau VAE.
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>KL divergence pada VAE, dihitung manual</h3>
+      <p>
+        Untuk latent satu dimensi dengan distribusi <code>N(μ, σ²)</code> dibandingkan terhadap
+        <code>N(0, 1)</code>, rumus tertutupnya:
+      </p>
+      <pre><code>KL( N(μ, σ²) ‖ N(0, 1) ) = −0,5 × (1 + log(σ²) − μ² − σ²)
+
+Contoh A — encoder belum terlatih baik, μ = 2, σ² = 3:
+  = −0,5 × (1 + log(3) − 2² − 3)
+  = −0,5 × (1 + 1,099 − 4 − 3)
+  = −0,5 × (−4,901)
+  = 2,451     ← jauh dari nol, dihukum oleh loss
+
+Contoh B — encoder mendekati N(0,1), μ = 0,1, σ² = 0,95:
+  = −0,5 × (1 + log(0,95) − 0,1² − 0,95)
+  = −0,5 × (1 − 0,0513 − 0,01 − 0,95)
+  = −0,5 × (−0,0113)
+  = 0,0057    ← mendekati nol, hampir tidak dihukum</code></pre>
+      <p>
+        Bacalah maknanya: semakin distribusi latent menyimpang dari <code>N(0, 1)</code> — baik rata-ratanya
+        bergeser jauh dari nol maupun variansnya terlalu besar/kecil — semakin besar nilai KL divergence yang
+        ditambahkan ke loss. Inilah suku yang memaksa latent space VAE tetap rapi dan dapat di-sample.
+      </p>
+
+      <h3>Fungsi objektif GAN</h3>
+      <pre><code>min_G max_D  V(D, G) = E[log D(x)] + E[log(1 − D(G(z)))]
+
+D(x)     = peluang D menilai x sebagai citra asli (ingin mendekati 1 untuk x asli)
+D(G(z))  = peluang D tertipu oleh citra buatan G (G ingin ini mendekati 1 juga)</code></pre>
+      <p>
+        D memaksimalkan V (menjadi makin jeli membedakan), G meminimalkan V (menjadi makin meyakinkan menipu).
+        Dua tujuan yang berlawanan dilatih secara bergantian pada loss yang sama — inilah yang dimaksud
+        "adversarial".
+      </p>
+
+      <h3>Forward diffusion secara kuantitatif</h3>
+      <p>Pada langkah <code>t</code>, citra bernoise dapat dihitung langsung dari citra asli <code>x₀</code> tanpa mengulang seluruh langkah sebelumnya:</p>
+      <pre><code>x_t = √(ᾱ_t) · x₀ + √(1 − ᾱ_t) · ε,    ε ~ N(0, 1)
+
+ᾱ_t mendekati 1 saat t kecil (citra nyaris asli)
+ᾱ_t mendekati 0 saat t besar (citra nyaris noise murni)
+
+Contoh dengan tiga titik waktu (dari 1000 langkah total):
+  t = 50   → ᾱ_t ≈ 0,95   → x_t ≈ 0,975·x₀ + 0,224·ε   (hampir asli)
+  t = 500  → ᾱ_t ≈ 0,40   → x_t ≈ 0,632·x₀ + 0,775·ε   (campuran berat)
+  t = 950  → ᾱ_t ≈ 0,02   → x_t ≈ 0,141·x₀ + 0,990·ε   (nyaris noise murni)</code></pre>
+      <p>
+        Jaringan reverse process dilatih untuk menebak <code>ε</code> pada sembarang <code>t</code>, lalu
+        menguranginya sedikit demi sedikit. Bagian 07 menunjukkan bagaimana ini terlihat pada citra nyata.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 260" role="img" aria-label="Perbandingan autoencoder biasa dan variational autoencoder: autoencoder memetakan citra ke satu titik latent lalu merekonstruksinya, VAE memetakan citra ke distribusi dengan rata-rata dan varians, mengambil sampel lewat reparameterization trick, baru merekonstruksinya">
+            <defs>
+              <marker id="arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .gb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .gb2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.4; }
+              .gd  { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .gl  { stroke: var(--dg-stroke); stroke-width: 1.6; fill: none; marker-end: url(#arG); }
+              .gh  { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .gm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <text x="16" y="20" class="gh">Autoencoder biasa</text>
+            <g transform="translate(16,30)">
+              <rect class="gd" x="0" y="0" width="54" height="50" rx="4"/><text x="27" y="30" class="gm" text-anchor="middle">citra</text>
+              <path d="M58 25 h18" class="gl"/>
+              <rect class="gb" x="80" y="4" width="60" height="42" rx="4"/><text x="110" y="29" class="gm" text-anchor="middle">Encoder</text>
+              <path d="M144 25 h18" class="gl"/>
+              <circle cx="178" cy="25" r="12" class="gb2"/><text x="178" y="29" class="gm" text-anchor="middle" style="font-size:8px">z</text>
+              <path d="M194 25 h18" class="gl"/>
+              <rect class="gb" x="216" y="4" width="60" height="42" rx="4"/><text x="246" y="29" class="gm" text-anchor="middle">Decoder</text>
+              <path d="M280 25 h18" class="gl"/>
+              <rect class="gd" x="302" y="0" width="54" height="50" rx="4"/><text x="329" y="30" class="gm" text-anchor="middle">rekonstruksi</text>
+              <text x="178" y="72" class="gm" text-anchor="middle" font-style="italic">z = satu titik tetap</text>
+              <text x="178" y="86" class="gm" text-anchor="middle" font-style="italic">— ruang laten tidak rapi</text>
+            </g>
+
+            <line x1="16" y1="120" x2="724" y2="120" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+
+            <text x="16" y="146" class="gh">Variational Autoencoder (VAE)</text>
+            <g transform="translate(16,156)">
+              <rect class="gd" x="0" y="0" width="54" height="50" rx="4"/><text x="27" y="30" class="gm" text-anchor="middle">citra</text>
+              <path d="M58 25 h18" class="gl"/>
+              <rect class="gb" x="80" y="4" width="60" height="42" rx="4"/><text x="110" y="22" class="gm" text-anchor="middle">Encoder</text>
+              <text x="110" y="36" class="gm" text-anchor="middle" style="font-size:8px">→ μ, σ²</text>
+              <path d="M144 25 h18" class="gl"/>
+              <g transform="translate(166,0)">
+                <circle cx="12" cy="10" r="9" class="gb2"/><text x="12" y="13" class="gm" text-anchor="middle" style="font-size:7px">μ</text>
+                <circle cx="12" cy="40" r="9" class="gb2"/><text x="12" y="43" class="gm" text-anchor="middle" style="font-size:7px">σ</text>
+              </g>
+              <text x="12" y="68" class="gm" text-anchor="middle" style="font-size:8px">+ ε~N(0,1)</text>
+              <path d="M200 25 h18" class="gl"/>
+              <circle cx="232" cy="25" r="12" class="gb2" style="stroke-width:2.4"/><text x="232" y="29" class="gm" text-anchor="middle" style="font-size:8px">z</text>
+              <text x="232" y="52" class="gm" text-anchor="middle" style="font-size:8px">z=μ+σ⊙ε</text>
+              <path d="M248 25 h18" class="gl"/>
+              <rect class="gb" x="270" y="4" width="60" height="42" rx="4"/><text x="300" y="29" class="gm" text-anchor="middle">Decoder</text>
+              <path d="M334 25 h18" class="gl"/>
+              <rect class="gd" x="356" y="0" width="54" height="50" rx="4"/><text x="383" y="30" class="gm" text-anchor="middle">rekonstruksi</text>
+            </g>
+            <text x="600" y="186" class="gm" text-anchor="middle" style="font-weight:700;fill:var(--dg-accent-2)">+ KL(N(μ,σ²) ‖ N(0,1))</text>
+            <text x="600" y="202" class="gm" text-anchor="middle">ditambahkan ke loss</text>
+            <text x="370" y="236" class="gm" text-anchor="middle" font-style="italic">Reparameterization trick memindahkan keacakan ke ε, sehingga μ dan σ tetap bisa dilatih lewat backpropagation.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 10.1.</b> Autoencoder biasa menghasilkan satu titik latent tetap; VAE menghasilkan distribusi dan men-sample lewat reparameterization trick, menjaga ruang laten tetap kontinu.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Kingma &amp; Welling (2013), "Auto-Encoding Variational Bayes".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 260" role="img" aria-label="Diagram permainan adversarial GAN: generator mengubah noise menjadi citra palsu, discriminator menerima citra asli dan citra palsu lalu memutuskan asli atau palsu, sinyal kesalahan mengalir balik untuk memperbaiki keduanya secara bergantian">
+            <defs>
+              <marker id="arH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .hb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .hb2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.4; }
+              .hd  { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .hl  { stroke: var(--dg-stroke); stroke-width: 1.6; fill: none; marker-end: url(#arH); }
+              .hh  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .hm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+            </style>
+
+            <g transform="translate(20,90)">
+              <rect class="hd" x="0" y="0" width="60" height="44" rx="4"/><text x="30" y="26" class="hm" text-anchor="middle">noise z</text>
+            </g>
+            <path d="M100 112 h22" class="hl"/>
+            <g transform="translate(142,80)">
+              <rect class="hb" x="0" y="0" width="90" height="64" rx="5"/>
+              <text x="45" y="30" class="hh" text-anchor="middle">Generator</text>
+              <text x="45" y="48" class="hm" text-anchor="middle">z → citra palsu</text>
+            </g>
+            <path d="M252 112 h22" class="hl"/>
+            <g transform="translate(294,90)">
+              <rect class="hd" x="0" y="0" width="60" height="44" rx="4"/><text x="30" y="26" class="hm" text-anchor="middle">citra palsu</text>
+            </g>
+
+            <g transform="translate(294,20)">
+              <rect class="hd" x="0" y="0" width="60" height="44" rx="4"/><text x="30" y="26" class="hm" text-anchor="middle">citra asli</text>
+            </g>
+
+            <path d="M374 42 L 430 108" class="hl" stroke-dasharray="0"/>
+            <path d="M374 112 L 430 118" class="hl"/>
+
+            <g transform="translate(434,90)">
+              <rect class="hb2" x="0" y="0" width="100" height="64" rx="5"/>
+              <text x="50" y="26" class="hh" text-anchor="middle">Discriminator</text>
+              <text x="50" y="44" class="hm" text-anchor="middle">asli atau palsu?</text>
+            </g>
+            <path d="M564 122 h22" class="hl"/>
+            <g transform="translate(606,96)">
+              <circle r="26" cx="26" cy="26" class="hd"/>
+              <text x="26" y="22" class="hm" text-anchor="middle">D(x)</text>
+              <text x="26" y="36" class="hm" text-anchor="middle" style="font-size:8px">0–1</text>
+            </g>
+
+            <path d="M434 170 C 300 230, 200 230, 142 170" class="hl" stroke="var(--dg-accent-2)" stroke-dasharray="5 4" marker-end="url(#arH)"/>
+            <text x="290" y="246" class="hm" text-anchor="middle" style="fill:var(--dg-accent-2);font-weight:700">sinyal kesalahan dikirim balik ke Generator — "belum cukup meyakinkan"</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 10.2.</b> Permainan adversarial GAN: Generator dan Discriminator dilatih bergantian dengan tujuan yang saling bertentangan.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Goodfellow et al. (2014), "Generative Adversarial Networks".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 230" role="img" aria-label="Diagram cycle consistency pada CycleGAN: domain X diterjemahkan ke domain Y oleh generator G, lalu hasilnya diterjemahkan kembali ke domain X oleh generator F, hasil akhirnya harus mendekati citra asli di domain X">
+            <defs>
+              <marker id="arCy" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .yb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .yd  { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .yl  { stroke: var(--dg-stroke); stroke-width: 1.6; fill: none; marker-end: url(#arCy); }
+              .yh  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .ym  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+            </style>
+            <g transform="translate(20,80)">
+              <rect class="yd" x="0" y="0" width="70" height="56" rx="5"/>
+              <text x="35" y="32" class="ym" text-anchor="middle">x 🐴</text>
+              <text x="35" y="76" class="ym" text-anchor="middle">domain X</text>
+            </g>
+            <path d="M94 90 C 160 50, 220 50, 284 90" class="yl"/>
+            <text x="190" y="52" class="ym" text-anchor="middle" style="font-weight:700">G: X→Y</text>
+
+            <g transform="translate(288,80)">
+              <rect class="yb" x="0" y="0" width="70" height="56" rx="5"/>
+              <text x="35" y="32" class="ym" text-anchor="middle">G(x) 🦓</text>
+              <text x="35" y="76" class="ym" text-anchor="middle">domain Y</text>
+            </g>
+            <path d="M362 136 C 300 180, 160 180, 94 136" class="yl"/>
+            <text x="228" y="196" class="ym" text-anchor="middle" style="font-weight:700">F: Y→X</text>
+
+            <g transform="translate(450,80)">
+              <rect class="yd" x="0" y="0" width="90" height="56" rx="5" stroke="var(--dg-accent-2)" stroke-width="2.4"/>
+              <text x="45" y="32" class="ym" text-anchor="middle">F(G(x)) 🐴</text>
+              <text x="45" y="76" class="ym" text-anchor="middle">harus ≈ x</text>
+            </g>
+            <path d="M358 108 h84" class="yl" stroke-dasharray="3 4" marker-end="none"/>
+
+            <line x1="20" y1="200" x2="680" y2="200" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="350" y="222" class="ym" text-anchor="middle" font-style="italic">Tidak ada pasangan foto kuda-zebra yang persis sama pose — cycle-consistency loss menggantikan kebutuhan itu.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 10.3.</b> Cycle-consistency pada CycleGAN: menerjemahkan lalu menerjemahkan balik harus menghasilkan citra asli, memungkinkan pelatihan tanpa data berpasangan.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Zhu et al. (2017), "Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 240" role="img" aria-label="Empat panel foto kucing yang sama menunjukkan forward process diffusion: t=0 citra asli jernih, t=300 sedikit bernoise, t=700 sangat bernoise, t=1000 noise murni tanpa sisa informasi citra">
+            <defs>
+              <filter id="noiseF" x="-5%" y="-5%" width="110%" height="110%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="n"/>
+                <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"/>
+              </filter>
+              <clipPath id="pClip0"><rect x="0" y="0" width="160" height="160" rx="6"/></clipPath>
+            </defs>
+            <style>
+              .ph  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .pm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <g transform="translate(16,20)">
+              <g clip-path="url(#pClip0)"><image href="../assets/img/cat-patch-demo.jpg" x="0" y="0" width="160" height="160" preserveAspectRatio="xMidYMid slice"/></g>
+              <text x="80" y="180" class="ph" text-anchor="middle">t = 0</text>
+              <text x="80" y="196" class="pm" text-anchor="middle">citra asli</text>
+            </g>
+
+            <g transform="translate(206,20)">
+              <g clip-path="url(#pClip0)">
+                <image href="../assets/img/cat-patch-demo.jpg" x="0" y="0" width="160" height="160" preserveAspectRatio="xMidYMid slice"/>
+                <rect x="0" y="0" width="160" height="160" filter="url(#noiseF)" opacity="0.35"/>
+              </g>
+              <text x="80" y="180" class="ph" text-anchor="middle">t ≈ 300</text>
+              <text x="80" y="196" class="pm" text-anchor="middle">mulai bernoise</text>
+            </g>
+
+            <g transform="translate(396,20)">
+              <g clip-path="url(#pClip0)">
+                <image href="../assets/img/cat-patch-demo.jpg" x="0" y="0" width="160" height="160" preserveAspectRatio="xMidYMid slice"/>
+                <rect x="0" y="0" width="160" height="160" filter="url(#noiseF)" opacity="0.75"/>
+              </g>
+              <text x="80" y="180" class="ph" text-anchor="middle">t ≈ 700</text>
+              <text x="80" y="196" class="pm" text-anchor="middle">sangat bernoise</text>
+            </g>
+
+            <g transform="translate(586,20)">
+              <g clip-path="url(#pClip0)">
+                <image href="../assets/img/cat-patch-demo.jpg" x="0" y="0" width="160" height="160" preserveAspectRatio="xMidYMid slice"/>
+                <rect x="0" y="0" width="160" height="160" filter="url(#noiseF)" opacity="1"/>
+              </g>
+              <text x="80" y="180" class="ph" text-anchor="middle">t = 1000</text>
+              <text x="80" y="196" class="pm" text-anchor="middle">noise murni</text>
+            </g>
+
+            <path d="M16 215 h720" stroke="var(--dg-grid)" stroke-width="1" marker-end="url(#arG)"/>
+            <text x="376" y="232" class="pm" text-anchor="middle">forward process (menambah noise) →  —  reverse process (U-Net belajar membalikkannya) ←</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 10.4.</b> Forward process diffusion diilustrasikan pada citra nyata: noise ditambahkan bertahap sampai informasi citra sepenuhnya hilang. Reverse process adalah U-Net yang dilatih membalikkan proses ini langkah demi langkah untuk menghasilkan citra baru dari noise acak.
+          <span class="src">Foto dasar: "Cat in Notre Dame college Dhaka" oleh Wasiul Bahar, Wikimedia Commons, lisensi CC BY-SA 4.0. Efek noise dihasilkan dengan filter SVG <code>feTurbulence</code>, bukan proses diffusion sungguhan — murni untuk ilustrasi konsep.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Mari hasilkan citra sungguhan memakai pipeline diffusion pretrained lewat pustaka
+        <code>diffusers</code> dari Hugging Face — hanya beberapa baris untuk mengubah noise acak menjadi citra.
+      </p>
+      <details class="acc">
+        <summary>Lihat kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python · Hugging Face Diffusers</span>
+<pre><code>from diffusers import DDPMPipeline
+
+pipeline = DDPMPipeline.from_pretrained("google/ddpm-celebahq-256")
+hasil = pipeline(num_inference_steps=1000)   # reverse process: 1000 langkah denoising
+citra = hasil.images[0]
+citra.save("wajah_baru.png")
+
+# Versi lebih cepat dengan scheduler yang mempercepat sampling:
+from diffusers import DDIMScheduler
+pipeline.scheduler = DDIMScheduler.from_config(pipeline.scheduler.config)
+hasil_cepat = pipeline(num_inference_steps=50)   # 50 langkah, hasil serupa, jauh lebih cepat</code></pre>
+          <p style="margin-bottom:0">
+            Perhatikan parameter <code>num_inference_steps</code> — inilah representasi langsung dari reverse
+            process yang dibahas pada bagian 05 dan 06: makin banyak langkah, makin dekat prosesnya mengikuti
+            forward process asli saat pelatihan, dengan konsekuensi waktu komputasi yang lebih lama.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Augmentasi data sintetis</dt>
+        <dd>Menghasilkan variasi data latih tambahan untuk kelas yang datanya langka, misalnya citra medis untuk penyakit jarang.</dd>
+        <dt>Restorasi dan super-resolusi citra</dt>
+        <dd>Model generatif dipakai untuk memperbaiki foto lama, menghilangkan artefak kompresi, dan menaikkan resolusi.</dd>
+        <dt>Inpainting</dt>
+        <dd>Mengisi bagian citra yang hilang atau sengaja dihapus secara koheren dengan konteks sekitarnya.</dd>
+        <dt>Desain dan alat kreatif</dt>
+        <dd>Text-to-image generation (berbasis diffusion model) kini menjadi alat bantu desain grafis, konsep seni, dan prototyping visual.</dd>
+        <dt>Anonimisasi data</dt>
+        <dd>Wajah sintetis StyleGAN dapat menggantikan wajah asli pada dataset publik untuk menjaga privasi sambil mempertahankan karakteristik statistik datanya.</dd>
+      </dl>
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Sisi gelap yang sama persis</p>
+        <p style="margin-bottom:0">
+          Teknologi yang sama untuk restorasi foto dan anonimisasi data juga dipakai untuk membuat deepfake dan
+          disinformasi visual. Model generatif juga dapat mewarisi dan memperkuat bias yang ada pada data
+          pelatihannya (representasi ras, gender, usia yang tidak seimbang). Topik ini dibahas lebih dalam pada
+          Materi 15.
+        </p>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "VAE dan GAN pada dasarnya sama, cuma beda nama."</p>
+        <p style="margin-bottom:0">
+          Berbeda secara fundamental. VAE dilatih dengan reconstruction loss + KL divergence pada satu jaringan;
+          GAN dilatih dengan permainan adversarial antara dua jaringan terpisah. Karakteristik hasilnya pun
+          berbeda: VAE cenderung lebih kabur, GAN cenderung lebih tajam tapi kurang stabil dilatih.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Diffusion model menghasilkan citra dalam satu langkah, seperti GAN."</p>
+        <p style="margin-bottom:0">
+          Tidak — diffusion model pada dasarnya memerlukan banyak langkah iteratif (ratusan hingga ribuan,
+          meski teknik seperti DDIM dapat mengurangi menjadi puluhan). Inilah trade-off utamanya dibanding GAN.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "CycleGAN butuh data berpasangan seperti model image-to-image pada umumnya."</p>
+        <p style="margin-bottom:0">
+          Justru sebaliknya — cycle-consistency loss dirancang khusus agar CycleGAN bisa dilatih tanpa data
+          berpasangan sama sekali.</p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Model generatif selalu menyalin persis gambar dari data latihnya."</p>
+        <p style="margin-bottom:0">
+          Umumnya tidak — model belajar distribusi statistik data, bukan menghafal piksel demi piksel. Namun
+          ada risiko nyata <em>memorization</em> pada kasus tertentu (data duplikat yang sering muncul), yang
+          menjadi perhatian serius terkait privasi dan hak cipta.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "StyleGAN hanya bisa menghasilkan wajah."</p>
+        <p style="margin-bottom:0">
+          Wajah (dataset FFHQ) adalah demonstrasi paling populer, tetapi arsitekturnya bersifat umum dan telah
+          diterapkan pada domain lain seperti lanskap, mobil, dan karya seni.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Autoencoder memampatkan dan merekonstruksi,</strong> tetapi ruang latennya tidak terstruktur untuk generasi citra baru.</li>
+        <li><strong>VAE menambahkan batasan probabilistik</strong> (KL divergence) lewat reparameterization trick, menghasilkan ruang laten yang kontinu.</li>
+        <li><strong>GAN melatih generator dan discriminator secara adversarial,</strong> menghasilkan citra lebih tajam dengan risiko pelatihan tidak stabil (mode collapse).</li>
+        <li><strong>CycleGAN menerjemahkan citra tanpa data berpasangan</strong> lewat cycle-consistency loss.</li>
+        <li><strong>StyleGAN menyuntikkan style vector di tiap resolusi,</strong> memberi kontrol terpisah atas fitur kasar hingga halus.</li>
+        <li><strong>Diffusion model menambah lalu menghilangkan noise secara bertahap,</strong> stabil dilatih dan berkualitas tinggi, dengan harga kecepatan inferensi.</li>
+        <li><strong>Kemampuan generatif membawa tanggung jawab etis:</strong> deepfake, bias representasi, dan risiko memorization data pelatihan.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini menggabungkan implementasi VAE sederhana dari nol dengan eksperimen pipeline
+        diffusion pretrained.
+      </p>
+      <ul>
+        <li>Google Colab dengan akses GPU.</li>
+        <li>PyTorch atau TensorFlow, serta pustaka <code>diffusers</code> dari Hugging Face.</li>
+        <li>Dataset citra kecil dan sederhana (MNIST atau subset wajah) untuk melatih VAE mini dengan cepat.</li>
+      </ul>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Notebook resmi Hugging Face</p>
+        <p style="margin-bottom:0">
+          Unit 5 kurikulum Hugging Face menyediakan notebook hands-on untuk diffusion model. Tautannya tersedia
+          di bagian 13 di bawah.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="https://huggingface.co/learn/computer-vision-course/en/unit5/generative-models/introduction" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Generative Models ↗</a>
+        <a class="btn secondary" href="https://huggingface.co/docs/diffusers/index" target="_blank" rel="noopener noreferrer">📖 Dokumentasi: Diffusers ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Implementasikan VAE kecil (encoder-decoder MLP atau CNN sederhana) pada MNIST, lengkap dengan reparameterization trick.</li>
+        <li>Hitung KL divergence manual untuk beberapa pasangan (μ, σ²) dan verifikasi dengan hitungan pada bagian 06.</li>
+        <li>Sample 10 titik acak dari <code>N(0, I)</code> dan hasilkan citra baru lewat decoder VAE Anda — amati kualitasnya.</li>
+        <li>Jalankan pipeline <code>DDPMPipeline</code> pretrained dengan jumlah <code>num_inference_steps</code> berbeda (10, 50, 200, 1000) dan bandingkan kualitas serta waktu komputasinya.</li>
+        <li>Tuliskan refleksi etis singkat: risiko apa yang paling relevan bila teknologi ini dipakai pada domain yang Anda minati?</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa autoencoder biasa tidak cocok dipakai langsung sebagai model generatif, padahal strukturnya mirip VAE?</li>
+        <li>Pada contoh KL divergence manual di bagian 06, jelaskan mengapa nilai pada Contoh A jauh lebih besar daripada Contoh B.</li>
+        <li>GAN dan diffusion model sama-sama bisa menghasilkan citra berkualitas tinggi. Dalam situasi apa Anda akan memilih salah satunya, mempertimbangkan kestabilan pelatihan dan kecepatan inferensi?</li>
+        <li>Jelaskan dengan kalimat sendiri mengapa cycle-consistency loss bisa menggantikan kebutuhan data berpasangan pada CycleGAN.</li>
+        <li>StyleGAN memisahkan kontrol gaya kasar, menengah, dan halus. Mengapa pemisahan ini berguna secara praktis, misalnya untuk alat desain karakter?</li>
+        <li>Sebuah institusi ingin memakai wajah sintetis StyleGAN untuk dataset publik demi privasi. Risiko dan pertimbangan etis apa yang tetap perlu dievaluasi meski wajah tersebut "tidak nyata"?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit5/generative-models/introduction" target="_blank" rel="noopener noreferrer">Unit 5: Generative Models</a>.</li>
+        <li>Kingma, D.P., &amp; Welling, M. (2013). <a href="https://arxiv.org/abs/1312.6114" target="_blank" rel="noopener noreferrer">Auto-Encoding Variational Bayes</a> (VAE).</li>
+        <li>Goodfellow, I. et al. (2014). <a href="https://arxiv.org/abs/1406.2661" target="_blank" rel="noopener noreferrer">Generative Adversarial Networks</a>.</li>
+        <li>Zhu, J.-Y. et al. (2017). <a href="https://arxiv.org/abs/1703.10593" target="_blank" rel="noopener noreferrer">Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks</a> (CycleGAN).</li>
+        <li>Karras, T. et al. (2019). <a href="https://arxiv.org/abs/1812.04948" target="_blank" rel="noopener noreferrer">A Style-Based Generator Architecture for Generative Adversarial Networks</a> (StyleGAN).</li>
+        <li>Ho, J. et al. (2020). <a href="https://arxiv.org/abs/2006.11239" target="_blank" rel="noopener noreferrer">Denoising Diffusion Probabilistic Models</a> (DDPM).</li>
+        <li>Dokumentasi Hugging Face: <a href="https://huggingface.co/docs/diffusers/index" target="_blank" rel="noopener noreferrer">Diffusers</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 

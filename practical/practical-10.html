@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praktikum 10 · VAE dari Nol &amp; Diffusion Pretrained — COM Computer Vision</title>
+<meta name="description" content="Praktikum 10 untuk Materi 10: implementasi VAE dari nol pada MNIST dan eksperimen pipeline diffusion pretrained.">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="practical" data-week="10">
+
+<a class="skip-link" href="#content">Lewati ke konten praktikum</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <a href="../weeks/week-10.html">Materi 10</a><span aria-hidden="true">/</span>
+      <span>Praktikum</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">🧪 Praktikum 10</span>
+        <h1 class="page-title">VAE dari Nol &amp; Diffusion Pretrained</h1>
+        <p class="page-sub">Reparameterization trick, sampling citra baru, dan eksperimen jumlah langkah denoising</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ 120 menit</span>
+          <span class="meta-chip">🧰 Google Colab (GPU) · PyTorch · Diffusers</span>
+          <span class="meta-chip">📖 <a href="../weeks/week-10.html">Materi 10</a></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn" href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer">▶ Buka Google Colab Baru</a>
+      <a class="btn secondary" href="../weeks/week-10.html">📖 Kembali ke Materi 10</a>
+    </div>
+
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Tujuan Praktikum</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah praktikum ini, mahasiswa mampu:</p>
+        <ul>
+          <li>mengimplementasikan VAE sederhana dari nol, lengkap dengan reparameterization trick;</li>
+          <li>menghitung KL divergence dan reconstruction loss secara terpisah lalu menggabungkannya;</li>
+          <li>men-sample citra baru dari ruang laten dan menilai kualitasnya secara visual;</li>
+          <li>menjalankan pipeline diffusion pretrained dan membandingkan trade-off jumlah langkah inferensi.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="langkah1">
+      <h2><span class="step-no">02</span>Langkah 1 — VAE kecil pada MNIST</h2>
+<pre><code>import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class VAE(nn.Module):
+    def __init__(self, dim_laten=2):
+        super().__init__()
+        self.enc = nn.Sequential(nn.Linear(784, 256), nn.ReLU())
+        self.fc_mu     = nn.Linear(256, dim_laten)
+        self.fc_logvar = nn.Linear(256, dim_laten)
+        self.dec = nn.Sequential(
+            nn.Linear(dim_laten, 256), nn.ReLU(),
+            nn.Linear(256, 784), nn.Sigmoid()
+        )
+
+    def encode(self, x):
+        h = self.enc(x)
+        return self.fc_mu(h), self.fc_logvar(h)
+
+    def reparameterize(self, mu, logvar):
+        sigma = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(sigma)
+        return mu + sigma * eps          # z = mu + sigma ⊙ eps
+
+    def forward(self, x):
+        mu, logvar = self.encode(x)
+        z = self.reparameterize(mu, logvar)
+        return self.dec(z), mu, logvar</code></pre>
+    </section>
+
+    <section class="section" id="langkah2">
+      <h2><span class="step-no">03</span>Langkah 2 — Loss gabungan dan verifikasi KL manual</h2>
+<pre><code>def loss_vae(rekonstruksi, x, mu, logvar):
+    recon = F.binary_cross_entropy(rekonstruksi, x, reduction="sum")
+    kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return recon + kl, recon, kl
+
+# Verifikasi terhadap hitungan manual Materi 10
+mu, logvar = torch.tensor([2.0]), torch.log(torch.tensor([3.0]))
+kl_manual = -0.5 * (1 + logvar - mu**2 - logvar.exp())
+print("KL (mu=2, sigma^2=3):", kl_manual.item())   # harus ≈ 2.451</code></pre>
+    </section>
+
+    <section class="section" id="langkah3">
+      <h2><span class="step-no">04</span>Langkah 3 — Latih dan sample citra baru</h2>
+<pre><code>model = VAE(dim_laten=2)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+for epoch in range(20):
+    for x, _ in train_loader:
+        x = x.view(-1, 784)
+        rekon, mu, logvar = model(x)
+        loss, recon, kl = loss_vae(rekon, x, mu, logvar)
+        optimizer.zero_grad(); loss.backward(); optimizer.step()
+    print(f"epoch {epoch}: loss={loss.item():.1f}  recon={recon.item():.1f}  kl={kl.item():.1f}")
+
+# Sample 10 citra baru langsung dari N(0, I) -- tanpa citra input sama sekali
+z_acak = torch.randn(10, 2)
+citra_baru = model.dec(z_acak).view(-1, 28, 28)</code></pre>
+      <p>Visualisasikan <code>citra_baru</code> dengan <code>matplotlib</code>. Karena <code>dim_laten=2</code>, Anda juga bisa membuat grid 2D dan men-decode tiap titiknya untuk melihat bagaimana ruang laten terorganisasi.</p>
+    </section>
+
+    <section class="section" id="langkah4">
+      <h2><span class="step-no">05</span>Langkah 4 — Diffusion pretrained: trade-off langkah inferensi</h2>
+<pre><code>from diffusers import DDPMPipeline, DDIMScheduler
+import time
+
+pipeline = DDPMPipeline.from_pretrained("google/ddpm-celebahq-256")
+pipeline.scheduler = DDIMScheduler.from_config(pipeline.scheduler.config)
+
+for n_step in [10, 50, 200, 1000]:
+    mulai = time.time()
+    img = pipeline(num_inference_steps=n_step).images[0]
+    durasi = time.time() - mulai
+    img.save(f"hasil_{n_step}langkah.png")
+    print(f"{n_step:>5} langkah  →  {durasi:6.1f} detik")</code></pre>
+      <p>Bandingkan kualitas visual keempat hasil secara berdampingan. Pada jumlah langkah berapa kualitasnya mulai terlihat "cukup baik" secara subjektif?</p>
+    </section>
+
+    <section class="section" id="checklist">
+      <h2><span class="step-no">06</span>Checklist Verifikasi</h2>
+      <ul>
+        <li>Kelas <code>VAE</code> berhasil dilatih pada MNIST tanpa error.</li>
+        <li>Nilai KL divergence manual cocok dengan hitungan Materi 10 (≈2,451 untuk μ=2, σ²=3).</li>
+        <li>10 citra baru berhasil di-sample langsung dari <code>N(0, I)</code> tanpa citra input.</li>
+        <li>Pipeline diffusion dijalankan untuk minimal empat nilai <code>num_inference_steps</code> berbeda, dengan waktu dan kualitas dicatat.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="pengumpulan">
+      <h2><span class="step-no">07</span>Pengumpulan &amp; Refleksi</h2>
+      <ol>
+        <li>Bagaimana kualitas citra hasil sampling VAE Anda dibandingkan citra asli MNIST? Apakah sesuai dugaan dari bagian Detailed Explanation Materi 10 tentang kecenderungan VAE menghasilkan citra kabur?</li>
+        <li>Pada grid 2D ruang laten (bila Anda membuatnya), apakah transisi antar-angka terlihat mulus? Apa artinya ini tentang struktur ruang laten yang dipelajari?</li>
+        <li>Berapa selisih waktu antara 10 langkah dan 1000 langkah diffusion? Apakah peningkatan kualitasnya sebanding dengan tambahan waktunya?</li>
+        <li>Tuliskan satu risiko etis konkret yang relevan bila model generatif seperti ini dipakai pada domain yang Anda minati, dan satu langkah mitigasi yang masuk akal.</li>
+      </ol>
+    </section>
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

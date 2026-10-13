@@ -191,10 +191,10 @@ const courseConfig = {
       "Mengidentifikasi risiko bias dan privasi pada model generatif"
     ],
     unit: "Hugging Face Unit 5 — Generative Models",
-    duration: "110 menit",
-    updated: "—",
-    practical: null,
-    material: false
+    duration: "120 menit",
+    updated: "13 Oktober 2026",
+    practical: "practical-10.html",
+    material: true
   },
 
   week11: {
