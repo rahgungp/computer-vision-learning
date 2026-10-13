@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Materi 16 · Ujian Akhir Semester / Final Project — COM Computer Vision</title>
-<meta name="description" content="Materi 16: Ujian Akhir Semester / Final Project. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<title>Materi 16 · UAS / Final Project — COM Computer Vision</title>
+<meta name="description" content="Materi 16: panduan proyek akhir end-to-end, rubrik penilaian, checklist persiapan, dan outlook arah perkembangan Computer Vision.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="16">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -46,20 +46,217 @@
 
     <div class="toolbar">
       <div class="toolbar-main">
-        <span class="eyebrow">Materi 16</span>
-        <h1 class="page-title" data-week-title>Ujian Akhir Semester / Final Project</h1>
+        <span class="eyebrow">Materi 16 · Asesmen Akhir</span>
+        <h1 class="page-title" data-week-title>UAS / Final Project</h1>
         <p class="page-sub" data-week-subtitle>Presentasi proyek akhir dan outlook Computer Vision</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
+          <span class="meta-chip">⏱ <span data-week-duration>150 menit</span></span>
           <span class="meta-chip">📚 <span data-week-unit>Asesmen + Hugging Face Unit 13</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <div class="callout warn">
+      <p class="callout-title"><span aria-hidden="true">⚠</span> Halaman panduan, bukan soal ujian sesungguhnya</p>
+      <p style="margin-bottom:0">
+        Halaman ini adalah <strong>panduan proyek akhir</strong>: struktur, rubrik, dan pembobotan berikut
+        bersifat indikatif, dan tetap mengikuti ketentuan resmi yang diumumkan dosen pengampu (tenggat,
+        format pengumpulan pasti, dan bobot akhir). Bila ada perbedaan, pengumuman dosen yang berlaku.
+      </p>
+    </div>
+
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Tujuan Proyek Akhir</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Proyek akhir ini mengukur apakah mahasiswa mampu:</p>
+        <ul>
+          <li>merancang dan membangun solusi Computer Vision end-to-end, dari data sampai deployment;</li>
+          <li>menggabungkan minimal dua teknik dari materi berbeda sepanjang semester (misalnya transfer learning + optimasi model, atau zero-shot + deteksi objek);</li>
+          <li>mempertanggungjawabkan pilihan teknis (arsitektur, metrik evaluasi) dengan alasan yang jelas, bukan sekadar "karena akurasinya tertinggi";</li>
+          <li>mempertanggungjawabkan pilihan etis (lihat Materi 15) lewat model card sederhana;</li>
+          <li>mempresentasikan hasil kerja secara lisan dan menjawab pertanyaan teknis secara langsung.</li>
+        </ul>
+      </div>
+      <p>
+        Berbeda dari UTS (Materi 08) yang menguji pemahaman konsep secara terpisah per materi, proyek akhir ini
+        menguji kemampuan <strong>menyatukan</strong> konsep-konsep itu menjadi satu sistem yang bekerja.
+      </p>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="cakupan">
+      <h2><span class="step-no">02</span>Cakupan &amp; Komponen Proyek</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Komponen</th><th>Isi</th></tr></thead>
+          <tbody>
+            <tr><td>Proposal singkat</td><td>Masalah yang diselesaikan, dataset yang dipakai, arsitektur dan teknik yang direncanakan (rujuk materi terkait).</td></tr>
+            <tr><td>Implementasi</td><td>Kode yang berjalan, dari pemrosesan data sampai model terlatih — boleh membangun dari nol atau memakai model pretrained sesuai materi yang relevan.</td></tr>
+            <tr><td>Evaluasi</td><td>Metrik yang sesuai tugas (Materi 11), termasuk audit fairness sederhana bila relevan (Materi 15).</td></tr>
+            <tr><td>Model card</td><td>Dokumentasi singkat: cakupan data, performa, keterbatasan yang diketahui (format sama seperti Praktikum 15).</td></tr>
+            <tr><td>Laporan tertulis</td><td>Menjelaskan WHAT → WHY → HOW → WHEN seperti struktur yang dipakai di seluruh materi kuliah ini.</td></tr>
+            <tr><td>Presentasi</td><td>10–15 menit demo dan penjelasan, dilanjutkan tanya jawab.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="pembobotan">
+      <h2><span class="step-no">03</span>Ilustrasi Pembobotan Penilaian</h2>
+      <p>Contoh ilustratif sebaran bobot antar komponen — gunakan sebagai panduan alokasi usaha, bukan angka resmi.</p>
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 230" role="img" aria-label="Diagram batang ilustratif pembobotan proyek akhir: implementasi sekitar 35 persen, evaluasi dan model card sekitar 20 persen, laporan tertulis sekitar 20 persen, presentasi dan tanya jawab sekitar 20 persen, proposal sekitar 5 persen">
+            <style>
+              .pb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.2; }
+              .pb2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.2; }
+              .ph  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .pm  { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+            </style>
+            <g transform="translate(20,10)">
+              <text x="0" y="12" class="ph">Implementasi (kode berjalan, teknik yang dipakai)</text>
+              <rect class="pb2" x="0" y="20" width="280" height="22" rx="3"/><text x="288" y="36" class="pm">≈ 35%</text>
+
+              <text x="0" y="62" class="ph">Evaluasi &amp; model card (metrik + fairness)</text>
+              <rect class="pb" x="0" y="70" width="160" height="22" rx="3"/><text x="168" y="86" class="pm">≈ 20%</text>
+
+              <text x="0" y="112" class="ph">Laporan tertulis (WHAT → WHY → HOW → WHEN)</text>
+              <rect class="pb" x="0" y="120" width="160" height="22" rx="3"/><text x="168" y="136" class="pm">≈ 20%</text>
+
+              <text x="0" y="162" class="ph">Presentasi &amp; tanya jawab</text>
+              <rect class="pb" x="0" y="170" width="160" height="22" rx="3"/><text x="168" y="186" class="pm">≈ 20%</text>
+            </g>
+            <text x="660" y="40" class="pm" text-anchor="end">Proposal ≈ 5%</text>
+            <line x1="20" y1="206" x2="680" y2="206" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="350" y="222" class="pm" text-anchor="middle" font-style="italic">Implementasi berbobot terbesar, tetapi laporan dan presentasi bersama-sama setara pentingnya.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 16.1.</b> Ilustrasi sebaran bobot proyek akhir antar komponen.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision — contoh alokasi, dosen pengampu dapat menetapkan pembobotan berbeda.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="topik">
+      <h2><span class="step-no">04</span>Contoh Topik Proyek</h2>
+      <p>Lima contoh berikut menggabungkan teknik dari materi berbeda — gunakan sebagai inspirasi, bukan daftar wajib pilih:</p>
+      <dl class="defs">
+        <dt>Deteksi penyakit tanaman dengan transfer learning hemat sumber daya</dt>
+        <dd>ResNet pretrained (Materi 06) di-fine-tune pada dataset kecil, lalu dikuantisasi (Materi 14) agar bisa berjalan pada ponsel petani di lapangan.</dd>
+        <dt>Pencarian produk visual zero-shot</dt>
+        <dd>CLIP (Materi 09) untuk mencari produk dari deskripsi teks bebas tanpa dataset berlabel katalog, dievaluasi dengan precision/recall (Materi 11).</dd>
+        <dt>Sistem absensi dengan audit fairness wajib</dt>
+        <dd>Deteksi wajah sederhana (Materi 06–07) dilengkapi audit disparitas performa antar kondisi pencahayaan atau sudut kamera (Materi 15) sebelum direkomendasikan dipakai.</dd>
+        <dt>Asisten AR sederhana dengan estimasi depth</dt>
+        <dd>Depth estimation monokuler (Materi 13) dipakai untuk meletakkan objek virtual sederhana secara konsisten pada video langsung.</dd>
+        <dt>Klasifikasi aksi pada video olahraga kampus</dt>
+        <dd>Model action recognition (Materi 12) di-fine-tune pada klip olahraga kampus sendiri, dengan model card yang jujur soal keterbatasan datanya.</dd>
+      </dl>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="rubrik">
+      <h2><span class="step-no">05</span>Rubrik Penilaian</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kriteria</th><th>Pertanyaan kunci</th></tr></thead>
+          <tbody>
+            <tr><td>Kesesuaian teknik</td><td>Apakah arsitektur/teknik yang dipilih sesuai dengan masalah dan ukuran data, bukan sekadar yang paling populer?</td></tr>
+            <tr><td>Kebenaran evaluasi</td><td>Apakah metrik yang dipakai tepat untuk tugasnya (Materi 11), dan dihitung dengan benar?</td></tr>
+            <tr><td>Kejujuran keterbatasan</td><td>Apakah model card mengakui keterbatasan nyata, bukan hanya menonjolkan kelebihan?</td></tr>
+            <tr><td>Kejelasan argumentasi</td><td>Apakah laporan menjelaskan WHY di balik setiap keputusan, bukan hanya WHAT yang dilakukan?</td></tr>
+            <tr><td>Reproduksibilitas</td><td>Bisakah orang lain menjalankan ulang kode dan mendapatkan hasil yang konsisten?</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="checklist">
+      <h2><span class="step-no">06</span>Checklist Persiapan</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Waktu</th><th>Fokus</th></tr></thead>
+          <tbody>
+            <tr><td>H-14</td><td>Finalisasi topik dan dataset; pastikan teknik yang direncanakan benar-benar relevan dengan materi yang sudah dipelajari.</td></tr>
+            <tr><td>H-10</td><td>Implementasi inti selesai berjalan (meski belum optimal) — hindari menunda sampai detik terakhir.</td></tr>
+            <tr><td>H-5</td><td>Evaluasi lengkap dan model card ditulis; identifikasi keterbatasan yang jujur.</td></tr>
+            <tr><td>H-2</td><td>Laporan final dan slide presentasi selesai; latihan presentasi dengan batas waktu.</td></tr>
+            <tr><td>H-1</td><td>Uji ulang demo end-to-end sekali lagi dari awal — pastikan tidak ada dependensi yang rusak.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="outlook">
+      <h2><span class="step-no">07</span>Outlook: Ke Mana Computer Vision Menuju</h2>
+      <p>
+        Sebagai penutup, mari menengok sejenak arah perkembangan bidang ini — materi yang sesuai dengan
+        Hugging Face Unit 13.
+      </p>
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 180" role="img" aria-label="Peta perjalanan materi semester ini: Materi 01 sampai 04 fundamental, Materi 05 sampai 07 deep learning, Materi 08 asesmen tengah semester, Materi 09 sampai 13 aplikasi lanjutan, Materi 14 sampai 15 produksi dan etika, Materi 16 proyek akhir">
+            <style>
+              .mh { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .mm { font: 9px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .78; }
+              .mb { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.3; }
+              .mb2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.3; }
+            </style>
+            <line x1="20" y1="70" x2="720" y2="70" stroke="var(--dg-grid)" stroke-width="2"/>
+            <g transform="translate(20,40)"><rect class="mb" width="110" height="60" rx="5"/><text x="55" y="22" class="mh" text-anchor="middle">Materi 01–04</text><text x="55" y="38" class="mm" text-anchor="middle">Fundamental &amp;</text><text x="55" y="50" class="mm" text-anchor="middle">Preprocessing</text></g>
+            <g transform="translate(150,40)"><rect class="mb" width="110" height="60" rx="5"/><text x="55" y="22" class="mh" text-anchor="middle">Materi 05–07</text><text x="55" y="38" class="mm" text-anchor="middle">CNN &amp; Vision</text><text x="55" y="50" class="mm" text-anchor="middle">Transformer</text></g>
+            <g transform="translate(280,40)"><rect class="mb2" width="80" height="60" rx="5"/><text x="40" y="26" class="mh" text-anchor="middle">Materi 08</text><text x="40" y="44" class="mm" text-anchor="middle">UTS</text></g>
+            <g transform="translate(380,40)"><rect class="mb" width="180" height="60" rx="5"/><text x="90" y="22" class="mh" text-anchor="middle">Materi 09–13</text><text x="90" y="38" class="mm" text-anchor="middle">Multimodal, generatif, deteksi,</text><text x="90" y="50" class="mm" text-anchor="middle">video, 3D vision</text></g>
+            <g transform="translate(580,40)"><rect class="mb" width="110" height="60" rx="5"/><text x="55" y="22" class="mh" text-anchor="middle">Materi 14–15</text><text x="55" y="38" class="mm" text-anchor="middle">Produksi &amp;</text><text x="55" y="50" class="mm" text-anchor="middle">etika</text></g>
+            <text x="370" y="150" class="mh" text-anchor="middle">Materi 16 — Anda di sini: menyatukan semuanya menjadi satu proyek</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 16.2.</b> Peta perjalanan materi satu semester — proyek akhir menyatukan seluruh blok ini menjadi satu sistem kerja.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision.</span>
+        </figcaption>
+      </figure>
+      <p>Beberapa arah yang sedang berkembang pesat saat materi ini ditulis, relevan untuk dipantau setelah perkuliahan ini selesai:</p>
+      <dl class="defs">
+        <dt>Foundation model multimodal yang makin besar dan umum</dt>
+        <dd>Model seperti keluarga CLIP/BLIP (Materi 09) terus berkembang menuju model tunggal yang menangani makin banyak tugas visual-bahasa sekaligus.</dd>
+        <dt>Efisiensi sebagai prioritas setara dengan akurasi</dt>
+        <dd>Materi 14 bukan topik "tambahan" — efisiensi (ukuran, latensi, energi) semakin menjadi kriteria utama, sejajar dengan akurasi, seiring model-model besar makin mahal dijalankan.</dd>
+        <dt>Embodied AI dan robotika</dt>
+        <dd>Model vision yang terhubung langsung dengan aksi fisik (robot, kendaraan) menggabungkan deteksi, depth estimation (Materi 13), dan perencanaan aksi dalam satu sistem.</dd>
+        <dt>Regulasi dan tata kelola yang makin matang</dt>
+        <dd>Topik Materi 15 (bias, privasi, fairness) semakin terlembagakan lewat regulasi resmi di berbagai negara, bukan lagi sekadar praktik baik sukarela.</dd>
+      </dl>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">08</span>Materi untuk Diulang</h2>
+      <ul>
+        <li><a href="./week-08.html">Materi 08</a> — Panduan UTS (Materi 01–07)</li>
+        <li><a href="./week-11.html">Materi 11</a> — Metrik evaluasi (IoU, mAP, mIoU)</li>
+        <li><a href="./week-14.html">Materi 14</a> — Optimasi dan deployment model</li>
+        <li><a href="./week-15.html">Materi 15</a> — Data sintetis, zero-shot, dan etika</li>
+        <li>Seluruh <a href="../index.html#daftar-materi">16 materi</a> COM Computer Vision</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah membaca seluruh panduan proyek akhir ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 

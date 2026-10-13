@@ -277,9 +277,9 @@ const courseConfig = {
     ],
     unit: "Hugging Face Unit 10, 11, 12",
     duration: "120 menit",
-    updated: "—",
-    practical: null,
-    material: false
+    updated: "13 Oktober 2026",
+    practical: "practical-15.html",
+    material: true
   },
 
   week16: {
@@ -294,9 +294,9 @@ const courseConfig = {
     ],
     unit: "Asesmen + Hugging Face Unit 13 — Outlook",
     duration: "150 menit",
-    updated: "—",
+    updated: "13 Oktober 2026",
     practical: null,
-    material: false
+    material: true
   }
 
 };

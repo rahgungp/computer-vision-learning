@@ -74,9 +74,14 @@ Seluruh **diagram konsep** pada situs ini adalah SVG orisinal yang ditulis langs
 | 14.1 | week-14 | Ukuran model pada presisi FP32/FP16/INT8 |
 | 14.2 | week-14 | Unstructured vs structured pruning |
 | 14.3 | week-14 | Alur deployment: ONNX → TensorRT/OpenVINO/TFLite |
+| 15.1 | week-15 | Alur data sintetis dan domain randomization |
+| 15.2 | week-15 | Spektrum zero-shot sampai fully-supervised learning |
+| 15.3 | week-15 | Audit fairness: disparate impact ratio antar subgroup |
+| 16.1 | week-16 | Diagram batang ilustratif pembobotan proyek akhir |
+| 16.2 | week-16 | Peta perjalanan materi satu semester (01–16) |
 | — | index | Ilustrasi hero: pixel → operasi → representasi |
 
-Figure 1.1–7.2, 7.4, 8.1, 9.1, 10.1–10.3, 11.1, 11.3, 11.4, 12.1–12.3, 13.1–13.3, dan 14.1–14.3 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–9) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, 7.5, 9.2, 9.3, 10.4, 11.2, dan 13.4 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap; foto kucing dan foto jalan raya dipakai ulang lintas-materi (06, 07, 09, 10, 11, 13) untuk membangun perbandingan visual yang konsisten antar-arsitektur. Figure 10.4 memakai filter SVG <code>feTurbulence</code> bawaan browser untuk mensimulasikan noise; Figure 13.4 memakai gradien radial ilustratif untuk mensimulasikan peta kedalaman — keduanya bukan hasil model sungguhan. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
+Figure 1.1–7.2, 7.4, 8.1, 9.1, 10.1–10.3, 11.1, 11.3, 11.4, 12.1–12.3, 13.1–13.3, 14.1–14.3, 15.1–15.3, dan 16.1–16.2 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–13) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, 7.5, 9.2, 9.3, 10.4, 11.2, dan 13.4 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap; foto kucing dan foto jalan raya dipakai ulang lintas-materi (06, 07, 09, 10, 11, 13) untuk membangun perbandingan visual yang konsisten antar-arsitektur. Figure 10.4 memakai filter SVG <code>feTurbulence</code> bawaan browser untuk mensimulasikan noise; Figure 13.4 memakai gradien radial ilustratif untuk mensimulasikan peta kedalaman — keduanya bukan hasil model sungguhan. Angka pada Figure 15.2 dan 15.3 bersifat ilustratif untuk menunjukkan metode perhitungan, bukan hasil benchmark atau audit sistem nyata. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
 
 ## Bila kelak menambahkan gambar eksternal
 

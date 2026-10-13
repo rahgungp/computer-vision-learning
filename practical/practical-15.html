@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praktikum 15 · Audit Fairness &amp; Model Card — COM Computer Vision</title>
+<meta name="description" content="Praktikum 15 untuk Materi 15: menghitung disparate impact ratio, menguji disparitas performa antar subgroup, dan menulis model card.">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="practical" data-week="15">
+
+<a class="skip-link" href="#content">Lewati ke konten praktikum</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <a href="../weeks/week-15.html">Materi 15</a><span aria-hidden="true">/</span>
+      <span>Praktikum</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">🧪 Praktikum 15</span>
+        <h1 class="page-title">Audit Fairness &amp; Model Card</h1>
+        <p class="page-sub">Menghitung disparate impact ratio dan mendokumentasikan keterbatasan model</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ 110 menit</span>
+          <span class="meta-chip">🧰 Google Colab · NumPy · pandas</span>
+          <span class="meta-chip">📖 <a href="../weeks/week-15.html">Materi 15</a></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn" href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer">▶ Buka Google Colab Baru</a>
+      <a class="btn secondary" href="../weeks/week-15.html">📖 Kembali ke Materi 15</a>
+    </div>
+
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Tujuan Praktikum</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah praktikum ini, mahasiswa mampu:</p>
+        <ul>
+          <li>mengimplementasikan audit fairness (disparate impact ratio) dari nol;</li>
+          <li>mendeteksi disparitas performa antar subgroup pada model sungguhan atau eksperimen tiruan;</li>
+          <li>menulis model card yang mendokumentasikan cakupan dan keterbatasan model;</li>
+          <li>merumuskan rekomendasi mitigasi berdasarkan temuan audit.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="langkah1">
+      <h2><span class="step-no">02</span>Langkah 1 — Fungsi audit fairness</h2>
+<pre><code>def tpr(tp, fn):
+    return tp / (tp + fn)
+
+def audit_fairness(hasil_per_subgroup, ambang=0.8):
+    tpr_tiap_grup = {g: tpr(tp, fn) for g, (tp, fn) in hasil_per_subgroup.items()}
+    tpr_tertinggi = max(tpr_tiap_grup.values())
+    laporan = {}
+    for g, nilai in tpr_tiap_grup.items():
+        rasio = nilai / tpr_tertinggi
+        laporan[g] = {"tpr": nilai, "rasio": rasio, "lolos_80_rule": rasio >= ambang}
+    return laporan
+
+hasil = {"Subgroup A": (190, 10), "Subgroup B": (140, 60)}
+laporan = audit_fairness(hasil)
+for g, info in laporan.items():
+    print(g, info)
+
+assert abs(laporan["Subgroup B"]["rasio"] - 0.737) < 1e-2
+print("Cocok dengan hitungan manual Materi 15.")</code></pre>
+    </section>
+
+    <section class="section" id="langkah2">
+      <h2><span class="step-no">03</span>Langkah 2 — Terapkan pada data sungguhan atau eksperimen tiruan</h2>
+<pre><code># Opsi A: bila dataset Anda punya metadata subgroup yang relevan dan etis dianalisis
+# hitung TP/FN per subgroup dari prediksi model Praktikum 06/11 Anda.
+
+# Opsi B: eksperimen tiruan -- sengaja buat ketimpangan data latih
+import numpy as np
+np.random.seed(0)
+
+# Latih model sederhana (mis. logistic regression pada fitur sintetis)
+# dengan rasio data latih 90:10 antara dua "subgroup" buatan,
+# lalu evaluasi pada test set yang SEIMBANG (50:50) untuk mengukur disparitas.
+# (gunakan dataset/model yang sudah Anda miliki dari praktikum sebelumnya)</code></pre>
+      <p>Catat TPR tiap subgroup pada test set seimbang, lalu jalankan <code>audit_fairness</code> pada hasilnya.</p>
+    </section>
+
+    <section class="section" id="langkah3">
+      <h2><span class="step-no">04</span>Langkah 3 — Tulis model card singkat</h2>
+      <p>Satu halaman, mencakup minimal:</p>
+      <ul>
+        <li><strong>Tujuan model</strong> — tugas apa yang dijawab, dan tugas apa yang eksplisit <em>tidak</em> didukung.</li>
+        <li><strong>Data latih</strong> — sumber, ukuran, dan cakupan demografis/kondisi yang diketahui.</li>
+        <li><strong>Performa</strong> — metrik keseluruhan (Materi 11) <em>dan</em> hasil audit fairness per subgroup (bagian ini).</li>
+        <li><strong>Keterbatasan yang diketahui</strong> — subgroup atau kondisi yang belum teruji atau menunjukkan disparitas.</li>
+        <li><strong>Rekomendasi penggunaan</strong> — konteks yang sesuai dan konteks yang sebaiknya dihindari.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="checklist">
+      <h2><span class="step-no">05</span>Checklist Verifikasi</h2>
+      <ul>
+        <li>Fungsi <code>audit_fairness</code> lolos <code>assert</code> terhadap hitungan manual Materi 15.</li>
+        <li>Audit diterapkan pada data sungguhan atau eksperimen tiruan, dengan hasil TPR per subgroup dicatat.</li>
+        <li>Model card satu halaman sudah ditulis, mencakup kelima komponen pada Langkah 3.</li>
+        <li>Minimal satu rekomendasi mitigasi konkret dirumuskan berdasarkan temuan audit.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="pengumpulan">
+      <h2><span class="step-no">06</span>Pengumpulan &amp; Refleksi</h2>
+      <ol>
+        <li>Apakah model Anda lolos 80% rule pada subgroup yang diuji? Bila tidak, subgroup mana yang paling dirugikan?</li>
+        <li>Bila Anda memakai eksperimen tiruan (Opsi B), seberapa besar ketimpangan data latih (90:10) berkorelasi dengan besarnya disparitas performa yang terukur?</li>
+        <li>Bagian mana dari model card yang paling sulit diisi dengan jujur, dan mengapa?</li>
+        <li>Rekomendasi mitigasi apa yang paling realistis diterapkan dengan sumber daya terbatas (misalnya sebagai mahasiswa atau tim kecil), dibandingkan solusi ideal yang membutuhkan dataset besar baru?</li>
+      </ol>
+    </section>
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

@@ -36,8 +36,10 @@ Konvolusi, misalnya, dihitung manual dengan matriks kecil terlebih dahulu. Fungs
 | 12 | Video & Video Processing | HF Unit 7 | ✅ Tersedia |
 | 13 | 3D Vision & Scene Reconstruction | HF Unit 8 + Point Clouds (Unit 10) | ✅ Tersedia |
 | 14 | Model Optimization & Deployment | HF Unit 9 | ✅ Tersedia |
-| 15 | Synthetic Data, Zero-Shot CV & Ethics | HF Unit 10, 11, 12 | 🔒 Coming Soon |
-| 16 | UAS / Final Project | Asesmen + HF Unit 13 | 🔒 Coming Soon |
+| 15 | Synthetic Data, Zero-Shot CV & Ethics | HF Unit 10, 11, 12 | ✅ Tersedia |
+| 16 | UAS / Final Project | Asesmen + HF Unit 13 | ✅ Tersedia |
+
+**Seluruh 16 materi sudah tersedia lengkap.**
 
 Setiap materi kuliah disusun dalam 15 blok yang sama: Learning Objectives → Why This Matters → Prerequisite → Core Concept → Detailed Explanation → Mathematical/Technical Foundation → Illustration → Example → Real-world Application → Common Misconceptions → Key Takeaways → Preparation for Practice → Practice → Reflection → References. Dua halaman asesmen (08 — UTS, 16 — UAS/Final Project) memakai format berbeda: panduan cakupan, format soal, pembobotan, dan checklist persiapan — bukan 15 blok kuliah.
 
@@ -61,8 +63,8 @@ Seluruh identitas visual, tata letak, kode, dan ilustrasi pada situs ini dibuat 
 
 - **16 learning modules** — seluruhnya terdaftar sepanjang semester
 - **Theory** — 15 blok terstruktur per materi
-- **Illustration** — 20+ diagram SVG buatan sendiri, ber-theme dan bebas lisensi
-- **Practice** — 13 halaman praktikum + tautan notebook resmi Hugging Face
+- **Illustration** — 50+ diagram SVG buatan sendiri (ber-theme, bebas lisensi) dan foto berlisensi CC dari Wikimedia Commons
+- **Practice** — 14 halaman praktikum + tautan notebook resmi Hugging Face
 - **Fullscreen Presentation Mode** — halaman materi dapat dipakai langsung sebagai media mengajar
 - **Dark Mode** — preferensi tersimpan di `localStorage`
 - **Progress** — dihitung hanya terhadap materi yang sudah dibuka
@@ -99,10 +101,7 @@ Bukan 5 / 16.
 
 Seluruh penjadwalan materi diatur dari **satu berkas**: `assets/js/course-config.js`. Homepage, sidebar, navigasi Previous/Next, dan progress bar semuanya membaca berkas ini.
 
-Status saat ini:
-
-- **Week 01–14** → `material: true`
-- **Week 15–16** → `material: false`
+Status saat ini: **Week 01–16 seluruhnya → `material: true`.** Seluruh materi dan panduan asesmen sudah ditulis lengkap dan tersedia di situs live.
 
 ### Cara Memperbarui Situs yang Sudah Live (ringkas)
 
@@ -118,13 +117,15 @@ Lalu tunggu 30–60 detik dan refresh <https://rahgungp.github.io/computer-visio
 
 Tiga jenis perubahan yang paling sering dilakukan:
 
+Seluruh 16 materi sudah diterbitkan, tetapi alur berikut tetap berlaku bila suatu saat materi baru ditambahkan (misalnya materi tambahan di luar 16 minggu) atau sebuah materi perlu direvisi besar dan disembunyikan sementara.
+
 **1. Menerbitkan materi baru** (isi sudah ditulis lengkap di `weeks/week-XX.html`)
 
-Buka `assets/js/course-config.js`, cari blok `weekXX`, lalu ubah `material: false` menjadi `material: true` dan isi `updated` dengan tanggal hari ini:
+Buka `assets/js/course-config.js`, cari blok minggu yang bersangkutan, lalu ubah `material: false` menjadi `material: true` dan isi `updated` dengan tanggal hari ini:
 
 ```js
-week15: {
-    title: "Synthetic Data, Zero-Shot CV & Ethics",
+weekXX: {
+    title: "...",
     ...
     updated: "20 Oktober 2026",
     material: true          // sebelumnya false
@@ -135,13 +136,13 @@ Commit dan push seperti di atas. Begitu materi berstatus `material: true`, kartu
 
 **2. Menulis isi materi yang belum ada halamannya**
 
-Salin struktur materi yang sudah lengkap sebagai kerangka awal:
+Salin struktur materi yang sudah lengkap sebagai kerangka awal, misalnya:
 
 ```bash
-cp weeks/week-14.html weeks/week-15.html
+cp weeks/week-15.html weeks/week-XX.html
 ```
 
-Sesuaikan `data-week="XX"`, judul halaman (`<title>`, `<h1>`), dan kelima belas blok isinya (Learning Objectives → References). Semua elemen navigasi (breadcrumb, sidebar, pager Previous/Next, progress) terisi otomatis dari `course-config.js` — tidak perlu disunting manual.
+Sesuaikan `data-week="XX"`, judul halaman (`<title>`, `<h1>`), dan kelima belas blok isinya (Learning Objectives → References) — atau, untuk halaman asesmen seperti Materi 08/16, salin `weeks/week-08.html` sebagai acuan format panduan (bukan 15 blok materi). Semua elemen navigasi (breadcrumb, sidebar, pager Previous/Next, progress) terisi otomatis dari `course-config.js` — tidak perlu disunting manual.
 
 **3. Menyembunyikan materi kembali** (misalnya untuk revisi besar)
 
@@ -157,7 +158,7 @@ GitHub Pages adalah **static hosting**. Menyembunyikan materi di sisi klien **bu
 
 Tujuan fitur ini adalah **CONTENT SCHEDULING**, bukan **SECURE CONTENT PROTECTION**.
 
-Siapa pun yang membuka source halaman atau repositori dapat melihat berkas HTML yang ada. Karena itu, pendekatan yang dipakai di sini adalah yang paling jujur: **isi materi yang terkunci memang belum ditulis di dalam berkasnya.** Halaman `week-15.html` sampai `week-16.html` hanya memuat kerangka dan panel Coming Soon — tidak ada konten yang disembunyikan dengan CSS atau JavaScript, sehingga tidak ada yang dapat "diintip" lebih awal.
+Siapa pun yang membuka source halaman atau repositori dapat melihat berkas HTML yang ada. Karena itu, pendekatan yang dipakai di sini adalah yang paling jujur: **isi materi yang terkunci memang belum ditulis di dalam berkasnya**, bukan disembunyikan dengan CSS atau JavaScript. Seluruh 16 materi saat ini sudah lengkap, tetapi pendekatan ini tetap berlaku untuk materi baru atau revisi besar di masa depan — halaman yang di-set `material: false` hanya memuat kerangka dan panel Coming Soon, sehingga tidak ada yang dapat "diintip" lebih awal.
 
 Bila suatu saat diperlukan proteksi konten yang sesungguhnya (misalnya materi ujian), gunakan hosting dengan autentikasi sisi server, bukan GitHub Pages.
 
@@ -175,12 +176,11 @@ Bila suatu saat diperlukan proteksi konten yang sesungguhnya (misalnya materi uj
 ├── README.md
 │
 ├── weeks/
-│   ├── week-01.html … week-07.html, week-09.html … week-14.html    Materi lengkap (15 blok + ilustrasi SVG/foto)
-│   ├── week-08.html                                                Panduan UTS (format berbeda — bukan 15 blok materi)
-│   └── week-15.html, week-16.html                                  Coming Soon (kerangka saja)
+│   ├── week-01.html … week-07.html, week-09.html … week-15.html    Materi lengkap (15 blok + ilustrasi SVG/foto)
+│   └── week-08.html, week-16.html                                  Panduan asesmen (UTS/UAS — format berbeda, bukan 15 blok materi)
 │
 ├── practical/
-│   └── practical-01.html … practical-07.html, practical-09.html … practical-14.html
+│   └── practical-01.html … practical-07.html, practical-09.html … practical-15.html   (14 halaman; Materi 08 & 16 tidak punya praktikum khusus)
 │
 └── assets/
     ├── css/

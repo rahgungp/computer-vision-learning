@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Materi 15 · Synthetic Data, Zero-Shot CV &amp; Ethics — COM Computer Vision</title>
-<meta name="description" content="Materi 15: Synthetic Data, Zero-Shot CV &amp; Ethics. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<title>Materi 15 · Synthetic Data, Zero-Shot CV & Ethics — COM Computer Vision</title>
+<meta name="description" content="Materi 15: data sintetis dan domain randomization, zero-shot/few-shot learning, serta bias, privasi, dan dampak sosial sistem Computer Vision.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="15">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -50,16 +50,494 @@
         <h1 class="page-title" data-week-title>Synthetic Data, Zero-Shot CV &amp; Ethics</h1>
         <p class="page-sub" data-week-subtitle>Data sintetis, zero-shot learning, bias dan etika Computer Vision</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
-          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 10, 11, 12</span></span>
+          <span class="meta-chip">⏱ <span data-week-duration>120 menit</span></span>
+          <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 10–12</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan metode pembuatan data sintetis dan konsep domain gap beserta domain randomization;</li>
+          <li>menjelaskan spektrum zero-shot, few-shot, dan fully-supervised learning pada Computer Vision;</li>
+          <li>mengidentifikasi sumber bias pada dataset dan model CV di setiap tahap, bukan hanya pada data;</li>
+          <li>menghitung disparitas performa antar subgroup (fairness gap) secara manual;</li>
+          <li>menjelaskan isu privasi pada sistem pengenalan wajah dan strategi mitigasinya;</li>
+          <li>menyusun checklist evaluasi etis sebelum sebuah sistem CV di-deploy.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Materi 01 sampai 14 berfokus pada satu pertanyaan: bagaimana membangun sistem Computer Vision yang
+        <em>bekerja</em>. Materi penutup ini mengajukan tiga pertanyaan yang sama pentingnya tetapi sering
+        terlewat: bagaimana bila data berlabel tidak cukup (data sintetis), bagaimana bila label untuk kelas
+        baru tidak tersedia sama sekali (zero/few-shot — sudah disinggung di Materi 09), dan yang paling
+        mendasar — <strong>apakah sistem ini seharusnya dibangun seperti ini, dan untuk siapa ia bekerja
+        dengan baik?</strong>
+      </p>
+      <p>
+        Bias dan etika bukan topik tambahan di akhir kurikulum karena kehabisan materi teknis. Keputusan
+        teknis — dataset mana yang dipakai, metrik mana yang dioptimalkan, ambang berapa yang dipasang —
+        <em>adalah</em> keputusan etis, baik disadari atau tidak.
+      </p>
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Satu kalimat yang merangkum seluruh materi ini</p>
+        <p style="margin-bottom:0">
+          Akurasi rata-rata yang tinggi dapat menyembunyikan kegagalan besar pada kelompok tertentu — dan
+          seorang praktisi Computer Vision yang bertanggung jawab mengukur yang kedua, bukan hanya yang
+          pertama.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-09.html">Materi 09</a> — CLIP dan zero-shot classification, diperdalam di materi ini.</li>
+        <li><a href="./week-10.html">Materi 10</a> — model generatif sebagai salah satu sumber data sintetis.</li>
+        <li><a href="./week-11.html">Materi 11</a> — precision/recall, dipakai ulang untuk mengukur disparitas antar subgroup.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Topik</th><th>Masalah yang dijawab</th></tr></thead>
+          <tbody>
+            <tr><td>Data sintetis</td><td>Data nyata berlabel terlalu mahal, langka, atau berbahaya untuk dikumpulkan (misalnya kecelakaan lalu lintas).</td></tr>
+            <tr><td>Domain randomization</td><td>Model yang dilatih pada data sintetis gagal pada data nyata (domain gap) — bagaimana menjembataninya?</td></tr>
+            <tr><td>Zero/few-shot learning</td><td>Tidak ada (atau sangat sedikit) data berlabel untuk kelas baru — bagaimana model tetap berguna?</td></tr>
+            <tr><td>Bias &amp; fairness</td><td>Apakah sistem bekerja sama baiknya untuk semua kelompok pengguna, atau hanya kelompok yang dominan di data latih?</td></tr>
+            <tr><td>Privasi</td><td>Apa konsekuensi mengumpulkan dan memproses data biometrik seperti wajah dalam skala besar?</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Data sintetis dan domain gap</h3>
+      <p>
+        Tiga sumber data sintetis yang umum dipakai: <strong>rendering 3D</strong> lewat game engine (Unity,
+        Unreal Engine) yang menghasilkan citra dengan label ground truth otomatis dan sempurna (bounding box,
+        mask, depth — semuanya diketahui engine secara eksak, tanpa anotasi manual); <strong>citra hasil model
+        generatif</strong> (GAN/diffusion dari Materi 10) untuk menambah variasi kelas yang datanya langka; dan
+        simulasi fisik untuk skenario berbahaya seperti kecelakaan kendaraan otonom.
+      </p>
+      <p>
+        Masalahnya, model yang dilatih murni pada data sintetis sering gagal pada data nyata — fenomena yang
+        disebut <strong>domain gap</strong>: tekstur, pencahayaan, dan noise sensor citra sintetis "terlihat"
+        cukup berbeda bagi model, meski tampak serupa bagi manusia.
+      </p>
+      <p>
+        <strong>Domain randomization</strong> mengatasinya dengan pendekatan yang berlawanan intuisi: alih-alih
+        membuat citra sintetis semirip mungkin dengan dunia nyata, <em>acak secara ekstrem</em> tekstur, warna,
+        pencahayaan, dan posisi kamera saat rendering. Model yang dilatih pada variasi seluas itu belajar fitur
+        yang invarian terhadap detail permukaan — dan dunia nyata, dari sudut pandang model, menjadi "hanya
+        satu variasi lagi" di antara ribuan variasi acak yang sudah pernah dilihatnya saat pelatihan.
+      </p>
+
+      <h3>Spektrum zero-shot sampai fully-supervised</h3>
+      <p>
+        Materi 09 sudah memperkenalkan zero-shot classification lewat CLIP. Materi ini menempatkannya dalam
+        spektrum yang lebih luas:
+      </p>
+      <ul>
+        <li><strong>Zero-shot</strong> — tidak ada contoh berlabel untuk kelas baru sama sekali; bergantung sepenuhnya pada pretraining skala besar (CLIP, Materi 09).</li>
+        <li><strong>Few-shot</strong> — beberapa contoh berlabel (umumnya 1–10) per kelas baru diberikan, model menyesuaikan prediksinya tanpa pelatihan ulang penuh.</li>
+        <li><strong>Fully-supervised</strong> — dataset besar berlabel lengkap tersedia, seperti seluruh model pada Materi 05–08.</li>
+      </ul>
+      <p>
+        Penting dipahami: zero-shot <em>tidak berarti tanpa data sama sekali</em>. CLIP tetap membutuhkan 400
+        juta pasangan citra-teks untuk pretraining (Materi 09) — yang tidak dibutuhkan adalah data
+        <strong>berlabel khusus untuk tugas baru</strong>.
+      </p>
+
+      <h3>Bias: masuk di setiap tahap, bukan hanya data</h3>
+      <p>
+        Bias sering dibayangkan sebagai masalah "data yang tidak representatif" semata. Kenyataannya, bias bisa
+        masuk di setiap tahap pipeline:
+      </p>
+      <ul>
+        <li><strong>Pengumpulan data</strong> — dataset besar sering bias geografis (foto dominan dari kawasan tertentu) dan demografis.</li>
+        <li><strong>Anotasi</strong> — label yang diberikan manusia membawa perspektif budaya dan asumsi pemberi label.</li>
+        <li><strong>Pemilihan arsitektur dan metrik</strong> — mengoptimalkan akurasi rata-rata (Materi 11) dapat menyembunyikan performa buruk pada subgroup minoritas dalam data.</li>
+        <li><strong>Kebijakan deployment</strong> — ambang keputusan yang sama untuk semua kelompok bisa berdampak sangat tidak setara bila base rate tiap kelompok berbeda.</li>
+      </ul>
+      <p>Cara mengukur disparitas ini secara kuantitatif ada di bagian 06.</p>
+
+      <h3>Privasi dan pengenalan wajah</h3>
+      <p>
+        Sistem pengenalan wajah skala besar menimbulkan pertanyaan privasi yang tidak dimiliki tugas CV lain:
+        wajah adalah data biometrik yang melekat permanen pada seseorang, dan pengumpulannya dalam skala besar
+        memungkinkan pengawasan (<em>surveillance</em>) tanpa sepengetahuan subjek. Strategi mitigasi meliputi
+        <strong>de-identification</strong> (mengaburkan wajah secara otomatis pada data yang dipublikasikan) dan
+        memakai <strong>wajah sintetis</strong> (StyleGAN, Materi 10) sebagai pengganti wajah asli pada dataset
+        publik.
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Mengukur disparitas antar subgroup (contoh ilustratif)</h3>
+      <p>
+        Misalkan sebuah detektor diuji pada dua subgroup populasi, A dan B, dan diukur recall (True Positive
+        Rate) masing-masing:
+      </p>
+      <pre><code>TPR(A) = 0,95   (95% objek pada subgroup A terdeteksi benar)
+TPR(B) = 0,70   (70% objek pada subgroup B terdeteksi benar)
+
+Disparate impact ratio = TPR(B) / TPR(A) = 0,70 / 0,95 ≈ 0,737
+
+Aturan praktis "80% rule" (umum dipakai sebagai heuristik awal fairness):
+  rasio ≥ 0,80  →  disparitas dianggap perlu investigasi lebih lanjut, belum tentu bermasalah
+  rasio < 0,80  →  tanda peringatan kuat bahwa sistem berdampak tidak setara
+
+0,737 < 0,80  →  sistem ini gagal aturan 80%, perlu investigasi mendalam sebelum deployment</code></pre>
+      <p>
+        Perhatikan: akurasi keseluruhan sistem ini mungkin masih terlihat baik bila subgroup A jauh lebih besar
+        jumlahnya dalam data uji (mirip masalah mAP rata-rata yang menutupi AP per kelas buruk pada Materi 11).
+        Mengukur per subgroup, bukan hanya rata-rata, adalah langkah wajib audit fairness.
+      </p>
+
+      <h3>Akurasi vs jumlah contoh pada few-shot learning (ilustratif)</h3>
+      <pre><code>Zero-shot (CLIP, Materi 09)     : 55% akurasi
+1-shot  (1 contoh per kelas)    : 45% akurasi
+5-shot  (5 contoh per kelas)    : 68% akurasi
+50-shot (50 contoh per kelas)   : 85% akurasi
+Fully-supervised (ribuan contoh): 93% akurasi</code></pre>
+      <p>
+        Angka-angka ini ilustratif untuk menunjukkan pola umum, bukan hasil benchmark spesifik: 1-shot bisa
+        lebih buruk daripada zero-shot bila satu contoh yang diberikan kebetulan tidak representatif — baru
+        pada beberapa contoh lebih banyak (5-shot ke atas), performa mulai konsisten mengalahkan zero-shot.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 220" role="img" aria-label="Alur data sintetis: 3D engine menghasilkan citra dengan label otomatis sempurna, domain randomization mengacak tekstur dan pencahayaan secara ekstrem saat pelatihan, menghasilkan model yang tetap bekerja baik ketika dihadapkan pada citra dunia nyata meski tidak pernah melihatnya saat pelatihan">
+            <defs>
+              <marker id="arS2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .yb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .yb2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.4; }
+              .yd  { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .yl  { stroke: var(--dg-stroke); stroke-width: 1.5; fill: none; marker-end: url(#arS2); }
+              .yh  { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .ym  { font: 9px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .78; }
+            </style>
+            <g transform="translate(16,78)">
+              <rect class="yd" x="0" y="0" width="90" height="56" rx="4"/>
+              <text x="45" y="24" class="ym" text-anchor="middle">3D engine</text>
+              <text x="45" y="40" class="ym" text-anchor="middle">(Unity/Unreal)</text>
+            </g>
+            <path d="M110 106 h20" class="yl"/>
+            <g transform="translate(134,70)">
+              <rect class="yb" x="0" y="0" width="110" height="70" rx="4"/>
+              <text x="55" y="24" class="yh" text-anchor="middle">Citra sintetis</text>
+              <text x="55" y="40" class="ym" text-anchor="middle">+ label otomatis</text>
+              <text x="55" y="54" class="ym" text-anchor="middle">(box, mask, depth)</text>
+            </g>
+            <path d="M248 106 h20" class="yl"/>
+            <g transform="translate(272,64)">
+              <rect class="yb2" x="0" y="0" width="150" height="82" rx="4"/>
+              <text x="75" y="22" class="yh" text-anchor="middle">Domain randomization</text>
+              <text x="75" y="40" class="ym" text-anchor="middle">tekstur, warna, cahaya</text>
+              <text x="75" y="54" class="ym" text-anchor="middle">diacak ekstrem saat</text>
+              <text x="75" y="68" class="ym" text-anchor="middle">pelatihan</text>
+            </g>
+            <path d="M426 106 h20" class="yl"/>
+            <g transform="translate(450,78)">
+              <rect class="yb" x="0" y="0" width="100" height="56" rx="4"/>
+              <text x="50" y="24" class="yh" text-anchor="middle">Model</text>
+              <text x="50" y="40" class="ym" text-anchor="middle">terlatih</text>
+            </g>
+            <path d="M554 106 h20" class="yl"/>
+            <g transform="translate(578,70)">
+              <rect class="yd" x="0" y="0" width="146" height="72" rx="4"/>
+              <text x="73" y="24" class="yh" text-anchor="middle">Dunia nyata</text>
+              <text x="73" y="42" class="ym" text-anchor="middle">"hanya satu variasi</text>
+              <text x="73" y="56" class="ym" text-anchor="middle">lagi" bagi model</text>
+            </g>
+            <text x="370" y="200" class="ym" text-anchor="middle" font-style="italic">Tanpa domain randomization, model sering gagal pada dunia nyata — inilah domain gap.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 15.1.</b> Alur data sintetis dan domain randomization: mengacak variasi saat pelatihan agar dunia nyata menjadi "variasi yang sudah dikenal", bukan pengecualian.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Tobin et al. (2017), "Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 220" role="img" aria-label="Spektrum pembelajaran dari zero-shot hingga fully-supervised: akurasi meningkat seiring jumlah contoh berlabel per kelas bertambah, dari nol contoh pada zero-shot sampai ribuan contoh pada fully-supervised">
+            <style>
+              .zax { stroke: var(--dg-grid); stroke-width: 1; }
+              .zln { stroke: var(--dg-accent); stroke-width: 2.4; fill: none; }
+              .zpt { fill: var(--dg-accent-2); }
+              .zlb { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .85; }
+              .zh  { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+            </style>
+            <g transform="translate(60,20)">
+              <line x1="0" y1="0" x2="0" y2="160" class="zax"/>
+              <line x1="0" y1="160" x2="560" y2="160" class="zax"/>
+              <text x="-10" y="-8" class="zlb">Akurasi</text>
+              <text x="500" y="178" class="zlb">Jumlah contoh/kelas</text>
+
+              <polyline class="zln" points="0,72 112,88 224,51 336,24 560,10"/>
+              <circle class="zpt" cx="0" cy="72" r="4"/><text x="0" y="60" class="zh" text-anchor="middle">0</text>
+              <circle class="zpt" cx="112" cy="88" r="4"/><text x="112" y="104" class="zh" text-anchor="middle">1</text>
+              <circle class="zpt" cx="224" cy="51" r="4"/><text x="224" y="38" class="zh" text-anchor="middle">5</text>
+              <circle class="zpt" cx="336" cy="24" r="4"/><text x="336" y="12" class="zh" text-anchor="middle">50</text>
+              <circle class="zpt" cx="560" cy="10" r="4"/><text x="500" y="-2" class="zh" text-anchor="middle">ribuan</text>
+
+              <text x="0" y="90" class="zlb" text-anchor="middle" style="font-size:8px">zero-shot</text>
+              <text x="112" y="122" class="zlb" text-anchor="middle" style="font-size:8px">1-shot</text>
+              <text x="224" y="68" class="zlb" text-anchor="middle" style="font-size:8px">5-shot</text>
+              <text x="560" y="26" class="zlb" text-anchor="middle" style="font-size:8px">fully-supervised</text>
+            </g>
+            <text x="350" y="206" class="zlb" text-anchor="middle" font-style="italic">1-shot bisa lebih buruk dari zero-shot bila satu contoh yang diberikan tidak representatif.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 15.2.</b> Spektrum zero-shot sampai fully-supervised learning — pola umum akurasi terhadap jumlah contoh per kelas (angka ilustratif, lihat bagian 06).
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 10–12 kurikulum Hugging Face.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 220" role="img" aria-label="Diagram batang audit fairness: True Positive Rate subgroup A sebesar 95 persen dibandingkan subgroup B sebesar 70 persen, dengan disparate impact ratio 73,7 persen yang berada di bawah ambang 80 persen rule">
+            <style>
+              .bb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.3; }
+              .bb2 { fill: var(--dg-fill-3); stroke: #d9534f; stroke-width: 1.6; }
+              .bh  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .bm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+            </style>
+            <text x="20" y="20" class="bh">True Positive Rate per subgroup</text>
+            <g transform="translate(40,40)">
+              <text x="0" y="0" class="bm">Subgroup A</text>
+              <rect class="bb" x="0" y="8" width="475" height="28" rx="3"/>
+              <text x="485" y="28" class="bh">95%</text>
+            </g>
+            <g transform="translate(40,96)">
+              <text x="0" y="0" class="bm">Subgroup B</text>
+              <rect class="bb2" x="0" y="8" width="350" height="28" rx="3"/>
+              <text x="360" y="28" class="bh">70%</text>
+            </g>
+            <line x1="40" y1="150" x2="40" y2="170" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="3 3"/>
+            <g transform="translate(40,176)">
+              <rect width="300" height="36" rx="5" fill="var(--dg-fill)" stroke="#d9534f" stroke-width="1.6"/>
+              <text x="150" y="16" class="bm" text-anchor="middle" style="font-weight:700">Disparate impact ratio = 70/95 ≈ 73,7%</text>
+              <text x="150" y="30" class="bm" text-anchor="middle" style="fill:#d9534f">di bawah ambang 80% rule</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 15.3.</b> Audit fairness: disparitas True Positive Rate antar subgroup, dihitung manual pada bagian 06 — angka ilustratif untuk menunjukkan metode pengukuran, bukan hasil audit sistem sungguhan.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari prinsip umum fairness dalam machine learning (lihat Barocas, Hardt &amp; Narayanan, "Fairness and Machine Learning").</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>Mari hitung disparate impact ratio dari keluaran model sungguhan, dipecah per subgroup.</p>
+      <details class="acc">
+        <summary>Lihat kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python</span>
+<pre><code>import numpy as np
+
+def tpr(tp, fn):
+    return tp / (tp + fn)
+
+def audit_fairness(hasil_per_subgroup, ambang=0.8):
+    """hasil_per_subgroup: dict {nama_grup: (tp, fn)}"""
+    tpr_tiap_grup = {g: tpr(tp, fn) for g, (tp, fn) in hasil_per_subgroup.items()}
+    tpr_tertinggi = max(tpr_tiap_grup.values())
+
+    print(f"{'Subgroup':<12}{'TPR':>8}{'Rasio thd tertinggi':>22}")
+    lolos = True
+    for g, nilai in tpr_tiap_grup.items():
+        rasio = nilai / tpr_tertinggi
+        status = "OK" if rasio >= ambang else "GAGAL 80% rule"
+        if rasio < ambang: lolos = False
+        print(f"{g:<12}{nilai:>8.1%}{rasio:>20.1%}   {status}")
+    return lolos
+
+hasil = {"Subgroup A": (190, 10), "Subgroup B": (140, 60)}
+audit_fairness(hasil)</code></pre>
+          <p style="margin-bottom:0">
+            Jalankan fungsi ini pada keluaran model Praktikum 06/11 Anda, dipecah berdasarkan atribut subgroup
+            yang relevan dengan data Anda (bila tersedia dan etis untuk dianalisis).
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Simulasi untuk kendaraan otonom</dt>
+        <dd>Platform seperti CARLA menghasilkan jutaan kilometer simulasi mengemudi, termasuk skenario berbahaya yang tidak etis direkam di dunia nyata.</dd>
+        <dt>Moderasi konten skala besar</dt>
+        <dd>Zero-shot classification memungkinkan platform menandai kategori konten baru tanpa menunggu proses pelabelan manual yang lambat.</dd>
+        <dt>Kesetaraan pada pencitraan medis</dt>
+        <dd>Audit fairness memastikan model diagnostik bekerja sama baiknya pada warna kulit dan demografi berbeda, bukan hanya pada populasi dominan di data latih.</dd>
+        <dt>Kebijakan pengenalan wajah</dt>
+        <dd>Beberapa kota dan negara memberlakukan moratorium atau regulasi ketat pada penggunaan pengenalan wajah oleh penegak hukum, didorong kekhawatiran privasi dan bias.</dd>
+        <dt>Dokumentasi model dan dataset</dt>
+        <dd>Praktik seperti "model cards" dan "datasheets for datasets" mendorong transparansi tentang keterbatasan dan cakupan demografis sebuah model sebelum dipakai pihak lain.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Data sintetis bisa sepenuhnya menggantikan data nyata."</p>
+        <p style="margin-bottom:0">
+          Domain gap tetap menjadi tantangan nyata. Data sintetis paling efektif dikombinasikan dengan sebagian
+          data nyata atau teknik domain randomization/adaptation, bukan sebagai pengganti total.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Model dengan akurasi keseluruhan tinggi otomatis adil."</p>
+        <p style="margin-bottom:0">
+          Akurasi agregat bisa menyembunyikan disparitas besar antar subgroup, persis seperti mAP rata-rata
+          bisa menyembunyikan AP per kelas yang buruk (Materi 11). Audit per subgroup adalah langkah terpisah
+          yang wajib, bukan opsional.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Zero-shot berarti model tidak butuh data sama sekali."</p>
+        <p style="margin-bottom:0">
+          Zero-shot tetap membutuhkan data pretraining dalam jumlah sangat besar (400 juta pasangan untuk CLIP).
+          Yang tidak dibutuhkan hanyalah data berlabel khusus untuk tugas atau kelas baru.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Bias hanya masalah data, bukan masalah desain sistem."</p>
+        <p style="margin-bottom:0">
+          Bias bisa masuk di setiap tahap: pengumpulan data, anotasi, pemilihan arsitektur dan metrik evaluasi,
+          sampai kebijakan ambang keputusan saat deployment.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Etika adalah tanggung jawab tim legal atau kebijakan, bukan engineer."</p>
+        <p style="margin-bottom:0">
+          Keputusan teknis sehari-hari (dataset mana yang dipakai, metrik mana yang dioptimalkan, ambang berapa
+          yang dipasang) adalah keputusan yang berdampak etis secara langsung — tidak bisa didelegasikan
+          sepenuhnya ke tim lain.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Data sintetis menghasilkan label otomatis sempurna</strong> tetapi membawa domain gap; domain randomization mengatasinya dengan mengacak variasi secara ekstrem saat pelatihan.</li>
+        <li><strong>Zero-shot, few-shot, dan fully-supervised adalah spektrum,</strong> bukan kategori terpisah — makin banyak contoh, makin tinggi akurasi, dengan 1-shot kadang lebih buruk dari zero-shot.</li>
+        <li><strong>Bias dapat masuk di setiap tahap pipeline,</strong> dari pengumpulan data sampai kebijakan deployment, tidak hanya pada data mentah.</li>
+        <li><strong>Disparate impact ratio dan 80% rule</strong> adalah alat ukur praktis untuk mendeteksi disparitas performa antar subgroup.</li>
+        <li><strong>Privasi pada sistem pengenalan wajah</strong> memerlukan pertimbangan khusus karena sifat biometrik dan permanen dari data wajah.</li>
+        <li><strong>Keputusan teknis adalah keputusan etis</strong> — tanggung jawab ini melekat pada setiap praktisi CV, bukan hanya tim kebijakan.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini berfokus pada audit fairness dan eksperimen data sintetis sederhana, bukan
+        pelatihan model baru.
+      </p>
+      <ul>
+        <li>Google Colab dengan NumPy dan pandas.</li>
+        <li>Keluaran model dari Praktikum 06/11 Anda, idealnya dengan metadata subgroup bila tersedia secara etis.</li>
+        <li>(Opsional) Akses ke Unity Perception atau dataset sintetis publik untuk eksperimen domain gap.</li>
+      </ul>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="https://huggingface.co/learn/computer-vision-course/en/unit12/conclusion" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Ethics &amp; Bias in AI ↗</a>
+        <a class="btn secondary" href="https://huggingface.co/learn/computer-vision-course/en/unit10/synthetic-datasets" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Synthetic Data ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Implementasikan fungsi <code>audit_fairness</code> dari nol dan verifikasi terhadap contoh bagian 06.</li>
+        <li>Terapkan pada keluaran model Praktikum 06/11 Anda, dipecah per subgroup yang relevan dan tersedia secara etis pada data Anda.</li>
+        <li>Bila subgroup tidak tersedia pada data Anda, buat eksperimen tiruan: latih model pada subset data yang sengaja tidak seimbang (misalnya 90%:10%), lalu ukur disparitas performanya pada test set seimbang.</li>
+        <li>Tulis satu halaman "model card" singkat untuk model Praktikum 06/11 Anda: cakupan data latih, keterbatasan yang diketahui, dan subgroup yang belum teruji.</li>
+        <li>Tuliskan refleksi etis: satu risiko konkret dan satu langkah mitigasi yang masuk akal untuk model yang pernah Anda bangun sepanjang semester ini.</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa domain randomization justru membuat citra sintetis <em>kurang</em> realistis, tetapi model yang dihasilkan justru <em>lebih</em> robust di dunia nyata?</li>
+        <li>Pada contoh disparate impact ratio di bagian 06, berapa TPR minimum subgroup B agar lolos 80% rule bila TPR subgroup A tetap 0,95? Hitung dan jelaskan.</li>
+        <li>Jelaskan dengan kalimat Anda sendiri mengapa "model dengan akurasi 95%" bisa tetap menjadi sistem yang bermasalah secara etis.</li>
+        <li>Pilih satu model yang Anda bangun di praktikum semester ini. Subgroup atau skenario apa yang paling mungkin belum teruji dengan baik, dan mengapa?</li>
+        <li>Sebuah perusahaan ingin men-deploy sistem pengenalan wajah untuk absensi karyawan. Pertanyaan apa saja yang menurut Anda wajib dijawab sebelum sistem ini disetujui, di luar pertanyaan akurasi teknis?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — Unit 10 (<a href="https://huggingface.co/learn/computer-vision-course/en/unit10/synthetic-datasets" target="_blank" rel="noopener noreferrer">Synthetic Data</a>), Unit 11 (Zero-Shot Learning), Unit 12 (Ethics and Bias).</li>
+        <li>Tobin, J. et al. (2017). <a href="https://arxiv.org/abs/1703.06907" target="_blank" rel="noopener noreferrer">Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World</a>.</li>
+        <li>Barocas, S., Hardt, M., &amp; Narayanan, A. <a href="https://fairmlbook.org/" target="_blank" rel="noopener noreferrer">Fairness and Machine Learning: Limitations and Opportunities</a>.</li>
+        <li>Gebru, T. et al. (2018). <a href="https://arxiv.org/abs/1803.09010" target="_blank" rel="noopener noreferrer">Datasheets for Datasets</a>.</li>
+        <li>Mitchell, M. et al. (2019). <a href="https://arxiv.org/abs/1810.03993" target="_blank" rel="noopener noreferrer">Model Cards for Model Reporting</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 
