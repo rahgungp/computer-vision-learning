@@ -14,6 +14,8 @@ Seluruh **diagram konsep** pada situs ini adalah SVG orisinal yang ditulis langs
 | Berkas | Keterangan | Sumber / Lisensi |
 |--------|------------|------------------|
 | `logo-TKOM.png` | Placeholder logo Program Studi Teknik Komputer, motif aperture kamera | Dibuat untuk proyek ini. **Ganti dengan logo resmi** memakai nama berkas yang sama. |
+| `kisumu-street-traffic.jpg` | Foto jalan raya Kisumu, Kenya — dipakai sebagai dasar ilustrasi keluaran detektor objek (Figure 6.4, week-06) | Josep M. Gracia, Wikimedia Commons, [File:KISU - Street traffic and pedestrians in Kisumu, Kenya, 2012.jpg](https://commons.wikimedia.org/wiki/File:KISU_-_Street_traffic_and_pedestrians_in_Kisumu,_Kenya,_2012.jpg), lisensi **CC BY-SA 4.0** |
+| `xanthomonas-plant-disease.jpg` | Figur ilmiah gejala penyakit tanaman akibat bakteri *Xanthomonas*, termasuk hawar daun padi (Figure 6.5, week-06) | An, S.Q. et al. (2019), *FEMS Microbiology Reviews*, via Wikimedia Commons, [File:Xanthomonas-disease.jpg](https://commons.wikimedia.org/wiki/File:Xanthomonas-disease.jpg), lisensi **CC BY 4.0** |
 
 ## Daftar ilustrasi SVG (inline di halaman materi)
 
@@ -39,9 +41,14 @@ Seluruh **diagram konsep** pada situs ini adalah SVG orisinal yang ditulis langs
 | 5.2 | week-05 | Konvolusi 2D: perkalian, penjumlahan, feature map |
 | 5.3 | week-05 | Pengaruh padding dan stride |
 | 5.4 | week-05 | Arsitektur CNN lengkap |
+| 6.1 | week-06 | Garis waktu evolusi arsitektur CNN (LeNet → ConvNeXt) |
+| 6.2 | week-06 | Blok residual ResNet: jalur pintas identity |
+| 6.3 | week-06 | Konvolusi standar vs depthwise separable (MobileNet) |
+| 6.4 | week-06 | Foto nyata + anotasi kotak deteksi orisinal (ilustrasi keluaran YOLO) |
+| 6.5 | week-06 | Foto nyata gejala penyakit tanaman (contoh transfer learning) |
 | — | index | Ilustrasi hero: pixel → operasi → representasi |
 
-Seluruhnya orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1 dan Unit 2). Tidak ada gambar dari sumber tersebut yang disalin atau di-hotlink.
+Figure 1.1–6.3 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1 dan Unit 2) serta paper arsitektur terkait. Figure 6.4 dan 6.5 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
 
 ## Bila kelak menambahkan gambar eksternal
 

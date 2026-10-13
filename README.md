@@ -5,6 +5,9 @@ Program Studi Teknik Komputer · Universitas Warmadewa
 
 Digital codelab untuk mata kuliah Computer Vision. Dibangun dengan HTML5, CSS3, dan JavaScript vanilla — tanpa framework, tanpa proses build — sehingga dapat langsung di-deploy ke GitHub Pages.
 
+**Repositori:** <https://github.com/rahgungp/computer-vision-learning>
+**Situs live:** <https://rahgungp.github.io/computer-vision-learning/> (aktifkan di Settings → Pages bila belum pernah di-set, lihat bagian [Deploy ke GitHub Pages](#deploy-ke-github-pages))
+
 ---
 
 ## Overview
@@ -24,7 +27,7 @@ Konvolusi, misalnya, dihitung manual dengan matriks kecil terlebih dahulu. Fungs
 | 03 | Image Processing & Preprocessing | HF Unit 1 — Pre-processing | ✅ Tersedia |
 | 04 | Feature Extraction & Feature Matching | HF Unit 1 — Feature Description, Matching | ✅ Tersedia |
 | 05 | Introduction to CNN | HF Unit 2 — Introduction to CNN | ✅ Tersedia |
-| 06 | CNN Architectures & Transfer Learning | HF Unit 2 | 🔒 Coming Soon |
+| 06 | CNN Architectures & Transfer Learning | HF Unit 2 | ✅ Tersedia |
 | 07 | Vision Transformers | HF Unit 3 | 🔒 Coming Soon |
 | 08 | Ujian Tengah Semester | Asesmen | 🔒 Coming Soon |
 | 09 | Multimodal Computer Vision | HF Unit 4 | 🔒 Coming Soon |
@@ -98,60 +101,53 @@ Seluruh penjadwalan materi diatur dari **satu berkas**: `assets/js/course-config
 
 Status saat ini:
 
-- **Week 01–05** → `material: true`
-- **Week 06–16** → `material: false`
+- **Week 01–06** → `material: true`
+- **Week 07–16** → `material: false`
 
-### Publish Materi 06
+### Cara Memperbarui Situs yang Sudah Live (ringkas)
 
-Buka `assets/js/course-config.js`, cari:
-
-```js
-week06: {
-    title: "CNN Architectures & Transfer Learning",
-    ...
-    material: false
-}
-```
-
-Ubah menjadi:
-
-```js
-week06: {
-    title: "CNN Architectures & Transfer Learning",
-    ...
-    material: true
-}
-```
-
-Simpan, lalu:
+Situs ini **sudah ter-deploy** di GitHub Pages dari repositori <https://github.com/rahgungp/computer-vision-learning>, branch `main`. Setiap perubahan yang di-push ke `main` otomatis membangun ulang situs live dalam waktu kurang dari semenit — tidak ada langkah build atau deploy manual tambahan. Alur kerjanya selalu sama, apa pun yang diubah:
 
 ```bash
 git add .
-git commit -m "Publish Computer Vision Module 06"
+git commit -m "Pesan singkat tentang perubahan ini"
 git push
 ```
 
-Setelah GitHub Pages selesai melakukan deployment (biasanya di bawah satu menit), Materi 06 menjadi **AVAILABLE**: kartunya di homepage aktif, item sidebarnya dapat diklik, dan progress menyesuaikan penyebutnya secara otomatis.
+Lalu tunggu 30–60 detik dan refresh <https://rahgungp.github.io/computer-vision-learning/> (lakukan hard refresh / Ctrl+Shift+R bila browser masih menampilkan versi cache lama). Progres build dapat dipantau di tab **Actions** pada repositori GitHub.
 
-### Menyembunyikan kembali
+Tiga jenis perubahan yang paling sering dilakukan:
 
-Ubah `material: true` menjadi `material: false`, lalu:
+**1. Menerbitkan materi baru** (isi sudah ditulis lengkap di `weeks/week-XX.html`)
 
-```bash
-git add .
-git commit -m "Hide Computer Vision Module 06"
-git push
+Buka `assets/js/course-config.js`, cari blok `weekXX`, lalu ubah `material: false` menjadi `material: true` dan isi `updated` dengan tanggal hari ini:
+
+```js
+week07: {
+    title: "Vision Transformers",
+    ...
+    updated: "20 Oktober 2026",
+    material: true          // sebelumnya false
+}
 ```
 
-### Menulis isi materi yang baru dibuka
+Commit dan push seperti di atas. Begitu materi berstatus `material: true`, kartunya di homepage aktif, item sidebarnya dapat diklik, dan progress bar ikut menyesuaikan penyebutnya secara otomatis.
 
-Mengubah `material: true` membuat halaman **dapat diakses**, tetapi isinya tetap perlu ditulis. Untuk itu, salin struktur salah satu materi yang sudah lengkap:
+**2. Menulis isi materi yang belum ada halamannya**
+
+Salin struktur materi yang sudah lengkap sebagai kerangka awal:
 
 ```bash
-cp weeks/week-05.html weeks/week-06.html
+cp weeks/week-06.html weeks/week-07.html
 ```
 
-Lalu sesuaikan `data-week="06"`, judul halaman, dan kelima belas blok isinya. Semua elemen navigasi terisi otomatis dari `course-config.js`.
+Sesuaikan `data-week="XX"`, judul halaman (`<title>`, `<h1>`), dan kelima belas blok isinya (Learning Objectives → References). Semua elemen navigasi (breadcrumb, sidebar, pager Previous/Next, progress) terisi otomatis dari `course-config.js` — tidak perlu disunting manual.
+
+**3. Menyembunyikan materi kembali** (misalnya untuk revisi besar)
+
+Ubah `material: true` menjadi `material: false` pada `course-config.js`, lalu commit dan push seperti biasa.
+
+> Perubahan kecil lain — memperbaiki typo, mengganti logo di `assets/img/logo-TKOM.png`, menambah gambar di `assets/img/` — memakai alur `git add . && git commit -m "..." && git push` yang sama persis.
 
 ---
 
@@ -161,7 +157,7 @@ GitHub Pages adalah **static hosting**. Menyembunyikan materi di sisi klien **bu
 
 Tujuan fitur ini adalah **CONTENT SCHEDULING**, bukan **SECURE CONTENT PROTECTION**.
 
-Siapa pun yang membuka source halaman atau repositori dapat melihat berkas HTML yang ada. Karena itu, pendekatan yang dipakai di sini adalah yang paling jujur: **isi materi yang terkunci memang belum ditulis di dalam berkasnya.** Halaman `week-06.html` sampai `week-16.html` hanya memuat kerangka dan panel Coming Soon — tidak ada konten yang disembunyikan dengan CSS atau JavaScript, sehingga tidak ada yang dapat "diintip" lebih awal.
+Siapa pun yang membuka source halaman atau repositori dapat melihat berkas HTML yang ada. Karena itu, pendekatan yang dipakai di sini adalah yang paling jujur: **isi materi yang terkunci memang belum ditulis di dalam berkasnya.** Halaman `week-07.html` sampai `week-16.html` hanya memuat kerangka dan panel Coming Soon — tidak ada konten yang disembunyikan dengan CSS atau JavaScript, sehingga tidak ada yang dapat "diintip" lebih awal.
 
 Bila suatu saat diperlukan proteksi konten yang sesungguhnya (misalnya materi ujian), gunakan hosting dengan autentikasi sisi server, bukan GitHub Pages.
 
@@ -179,8 +175,8 @@ Bila suatu saat diperlukan proteksi konten yang sesungguhnya (misalnya materi uj
 ├── README.md
 │
 ├── weeks/
-│   ├── week-01.html … week-05.html    Materi lengkap (15 blok + ilustrasi SVG)
-│   └── week-06.html … week-16.html    Coming Soon (kerangka saja)
+│   ├── week-01.html … week-06.html    Materi lengkap (15 blok + ilustrasi SVG/foto)
+│   └── week-07.html … week-16.html    Coming Soon (kerangka saja)
 │
 ├── practical/
 │   └── practical-01.html … practical-05.html
@@ -252,6 +248,6 @@ Lalu buka `http://localhost:8000`.
 
 Materi pembelajaran disusun oleh Tim Pengajar Computer Vision, Program Studi Teknik Komputer, Universitas Warmadewa, dengan basis akademik Hugging Face Community Computer Vision Course.
 
-Seluruh diagram pada situs ini adalah SVG orisinal yang ditulis langsung di dalam halaman, memakai variabel warna tema sehingga tetap terbaca pada mode terang maupun gelap. Setiap figure memiliki nomor, caption, dan baris sumber.
+Sebagian besar diagram pada situs ini adalah SVG orisinal yang ditulis langsung di dalam halaman, memakai variabel warna tema sehingga tetap terbaca pada mode terang maupun gelap. Mulai Materi 06, beberapa figure memakai foto nyata berlisensi bebas (Wikimedia Commons, CC BY / CC BY-SA) yang disimpan lokal di `assets/img/` — bukan hotlink — dengan atribusi lengkap. Setiap figure memiliki nomor, caption, dan baris sumber.
 
-Bila kelak digunakan gambar eksternal, urutan prioritas sumbernya: aset resmi Hugging Face → Wikimedia Commons → Unsplash → Pexels → dokumentasi resmi → repositori open-source berlisensi sesuai. Berkas disimpan lokal di `assets/img/` (bukan hotlink) dan dicatat di `assets/img/ATTRIBUTION.md`.
+Urutan prioritas sumber gambar eksternal: aset resmi Hugging Face → Wikimedia Commons → Unsplash → Pexels → dokumentasi resmi → repositori open-source berlisensi sesuai. Gambar hasil pencarian Google tidak pernah dipakai langsung — hanya untuk menemukan referensi visual, sumber dan lisensinya tetap ditelusuri sebelum dipakai. Daftar lengkap berkas dan lisensinya ada di `assets/img/ATTRIBUTION.md`.

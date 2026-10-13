@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Materi 06 · CNN Architectures &amp; Transfer Learning — COM Computer Vision</title>
-<meta name="description" content="Materi 06: CNN Architectures &amp; Transfer Learning. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<meta name="description" content="Materi 06: evolusi arsitektur CNN dari LeNet sampai ConvNeXt — VGG, GoogLeNet/Inception, ResNet, MobileNet, YOLO — serta transfer learning: feature extraction dan fine-tuning pada dataset kecil.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="06">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -50,16 +50,769 @@
         <h1 class="page-title" data-week-title>CNN Architectures &amp; Transfer Learning</h1>
         <p class="page-sub" data-week-subtitle>VGG, GoogLeNet, ResNet, MobileNet, ConvNeXt, YOLO, dan transfer learning</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
+          <span class="meta-chip">⏱ <span data-week-duration>130 menit</span></span>
           <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 2</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan garis evolusi arsitektur CNN dari LeNet sampai ConvNeXt dan motivasi di balik setiap lompatannya;</li>
+          <li>menjelaskan <em>degradation problem</em> pada jaringan yang sangat dalam dan bagaimana residual connection pada ResNet mengatasinya;</li>
+          <li>menghitung penghematan parameter depthwise separable convolution pada MobileNet dibanding konvolusi standar;</li>
+          <li>membedakan konvolusi klasifikasi (VGG, ResNet, dst.) dengan detektor objek satu tahap seperti YOLO;</li>
+          <li>membedakan <em>feature extraction</em> dan <em>fine-tuning</em> sebagai dua strategi transfer learning;</li>
+          <li>menerapkan transfer learning memakai model terlatih ImageNet pada dataset kecil milik sendiri.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Pada Materi 05, CNN yang Anda hitung hanya berisi dua lapisan konvolusi dan sekitar 35 ribu parameter.
+        Pertanyaan alaminya: apa yang terjadi bila kita menumpuk puluhan lapisan seperti itu? Dan apa yang kita
+        lakukan bila dataset kita sendiri hanya berisi beberapa ratus citra — jauh dari cukup untuk melatih
+        jaringan sedalam itu dari nol?
+      </p>
+      <p>
+        Dua pertanyaan itu ternyata saling berkaitan, dan sejarahnya berjalan berurutan. Peneliti mula-mula
+        menumpuk lapisan konvolusi makin dalam (VGG) dan menemukan bahwa performa memang membaik — sampai titik
+        tertentu. Setelah itu, menambah lapisan justru memperburuk bahkan akurasi pelatihan, bukan cuma akurasi
+        validasi. Ini bukan overfitting; inilah yang disebut <strong>degradation problem</strong>, dan solusinya
+        (ResNet) mengubah cara kita merancang jaringan dalam secara permanen. Begitu arsitektur dalam menjadi
+        stabil dan terbukti menjadi ekstraktor fitur visual yang andal, muncul gagasan kedua: mengapa melatih
+        ulang semuanya dari nol untuk setiap dataset baru? Model yang sudah dilatih pada 1,4 juta citra ImageNet
+        sudah "tahu" cara mengenali tepi, tekstur, dan bentuk secara umum — pengetahuan itu bisa dipakai ulang.
+        Itulah <strong>transfer learning</strong>, dan ia adalah alasan mengapa Anda tidak perlu 1,4 juta citra
+        untuk membangun pengklasifikasi citra yang baik.
+      </p>
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Satu kalimat yang merangkum seluruh materi ini</p>
+        <p style="margin-bottom:0">
+          Arsitektur CNN modern adalah jawaban atas satu masalah teknis (bagaimana melatih jaringan yang sangat
+          dalam tanpa macet) dan satu masalah praktis (bagaimana memakai jaringan sedalam itu ketika data Anda
+          sendiri sangat terbatas) — dan transfer learning adalah jawaban untuk masalah kedua.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-05.html">Materi 05</a> — konvolusi, padding, stride, pooling, parameter sharing, dan backpropagation pada CNN. Seluruh materi ini dibangun langsung di atasnya.</li>
+        <li>Gagasan umum <em>overfitting</em>: model yang menghafal data latih tetapi gagal menggeneralisasi ke data baru.</li>
+        <li>Konsep dasar pelatihan jaringan: loss function, gradient descent, dan learning rate.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <h3>Garis waktu evolusi arsitektur CNN</h3>
+      <p>
+        Tujuh arsitektur berikut bukan daftar acak — masing-masing lahir untuk menjawab keterbatasan arsitektur
+        sebelumnya.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Arsitektur</th><th>Tahun</th><th>Lapisan</th><th>Parameter (±)</th><th>Gagasan utama</th></tr></thead>
+          <tbody>
+            <tr><td>LeNet-5</td><td>1998</td><td>7</td><td>60 ribu</td><td>CNN pertama yang bekerja: konvolusi + pooling + dense untuk digit tulisan tangan.</td></tr>
+            <tr><td>AlexNet</td><td>2012</td><td>8</td><td>62 juta</td><td>ReLU, dropout, dan pelatihan di GPU — memenangkan ILSVRC 2012 dengan selisih besar.</td></tr>
+            <tr><td>VGG16</td><td>2014</td><td>16</td><td>138 juta</td><td>Tumpuk kernel 3×3 kecil secara konsisten; kedalaman sebagai sumber performa.</td></tr>
+            <tr><td>GoogLeNet (Inception v1)</td><td>2014</td><td>22</td><td>6,8 juta</td><td>Inception module: beberapa ukuran kernel paralel + bottleneck 1×1 untuk hemat parameter.</td></tr>
+            <tr><td>ResNet-50</td><td>2015</td><td>50</td><td>25,6 juta</td><td>Residual connection memecahkan degradation problem — jaringan ratusan lapisan jadi bisa dilatih.</td></tr>
+            <tr><td>MobileNetV2</td><td>2018</td><td>53</td><td>3,4 juta</td><td>Depthwise separable convolution — dirancang untuk ponsel dan perangkat edge.</td></tr>
+            <tr><td>ConvNeXt-T</td><td>2022</td><td>—</td><td>28 juta</td><td>CNN murni yang "dimodernisasi" dengan ide desain dari Vision Transformer.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Perhatikan pola yang tidak intuitif: GoogLeNet (22 lapisan) punya parameter jauh lebih sedikit daripada
+        VGG16 (16 lapisan). Jumlah lapisan dan jumlah parameter adalah dua hal yang berbeda — dan sebagian besar
+        materi ini menjelaskan mengapa.
+      </p>
+
+      <h3>Dua keluarga tugas: klasifikasi vs deteksi</h3>
+      <p>
+        Ketujuh arsitektur di atas pada dasarnya menjawab satu tugas: <em>satu citra → satu label</em>. YOLO
+        (<em>You Only Look Once</em>) menjawab tugas yang berbeda: <em>satu citra → banyak objek, masing-masing
+        dengan lokasi (bounding box) dan label</em>. YOLO tetap memakai tulang punggung (backbone) konvolusi yang
+        sama prinsipnya seperti ResNet atau VGG — bedanya ada pada kepala jaringan (head) dan cara ia dilatih.
+        Kita bahas YOLO sebagai keluarga terpisah di bagian 05.
+      </p>
+
+      <h3>Transfer learning: pakai ulang, jangan mulai dari nol</h3>
+      <p>
+        <strong>Transfer learning</strong> adalah strategi memakai bobot model yang sudah dilatih pada dataset
+        besar (umumnya ImageNet, 1,4 juta citra, 1000 kelas) sebagai titik awal untuk tugas baru, alih-alih
+        menginisialisasi bobot secara acak. Ada dua mode:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mode</th><th>Yang dilakukan</th><th>Kapan dipakai</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Feature extraction</strong></td><td>Bekukan (<em>freeze</em>) seluruh lapisan konvolusi; hanya latih classifier head yang baru.</td><td>Dataset baru sangat kecil dan mirip karakteristiknya dengan ImageNet.</td></tr>
+            <tr><td><strong>Fine-tuning</strong></td><td>Bekukan sebagian besar lapisan awal, lalu buka (<em>unfreeze</em>) beberapa blok teratas dan latih dengan learning rate kecil.</td><td>Dataset baru lebih besar atau cukup berbeda dari ImageNet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>VGG — kedalaman lewat kernel kecil yang konsisten</h3>
+      <p>
+        Sebelum VGG, arsitektur sering memakai kernel besar (7×7, 11×11) di lapisan awal. VGG mengajukan gagasan
+        sebaliknya: pakai <strong>hanya kernel 3×3</strong>, tetapi tumpuk beberapa lapisan berurutan. Dua lapisan
+        konvolusi 3×3 berurutan memiliki <em>receptive field</em> efektif yang setara dengan satu lapisan 5×5 —
+        tetapi dengan parameter lebih sedikit dan dua fungsi aktivasi non-linear, bukan satu. Kita hitung ini di
+        bagian 06.
+      </p>
+      <p>
+        Harga dari pendekatan ini: VGG16 memiliki 138 juta parameter, dan lebih dari 100 juta di antaranya berada
+        di lapisan dense setelah flatten — bukan di lapisan konvolusinya. Inilah target utama yang diserang oleh
+        arsitektur-arsitektur sesudahnya.
+      </p>
+
+      <h3>GoogLeNet — lebar sebagai alternatif dalam</h3>
+      <p>
+        GoogLeNet mengajukan pertanyaan berbeda: mengapa harus memilih satu ukuran kernel di setiap lapisan?
+        <strong>Inception module</strong> menjalankan beberapa cabang konvolusi (1×1, 3×3, 5×5) dan satu cabang
+        pooling secara <em>paralel</em> pada input yang sama, lalu menggabungkan (<em>concatenate</em>) seluruh
+        hasilnya pada dimensi kanal. Jaringan tidak perlu "memilih" ukuran kernel terbaik — ia mempelajari bobot
+        yang menentukan cabang mana yang paling berguna.
+      </p>
+      <p>
+        Trik yang membuat ini hemat parameter adalah <strong>konvolusi 1×1 sebagai bottleneck</strong>: sebelum
+        konvolusi 3×3 atau 5×5 yang mahal, sisipkan konvolusi 1×1 untuk mengecilkan jumlah kanal terlebih dahulu.
+        Konvolusi 1×1 tidak melihat tetangga spasial sama sekali — ia hanya mencampur informasi antar-kanal pada
+        satu titik pixel, sehingga sangat murah secara komputasi namun efektif mengurangi dimensi sebelum operasi
+        yang mahal.
+      </p>
+
+      <h3>ResNet — memecahkan degradation problem</h3>
+      <p>
+        Inilah temuan yang mengejutkan komunitas riset pada 2015: jaringan polos (<em>plain network</em>, tanpa
+        jalur pintas) dengan 56 lapisan memiliki <strong>error pelatihan</strong> yang lebih tinggi daripada
+        versi 20 lapisannya. Bukan error validasi — error <em>pelatihan</em>. Ini membuktikan masalahnya bukan
+        overfitting, melainkan jaringan yang sedalam itu sulit dioptimasi sama sekali. Inilah <strong>degradation
+        problem</strong>.
+      </p>
+      <p>
+        Solusinya elegan: tambahkan jalur pintas (<em>skip connection</em>) yang melewatkan input langsung ke
+        output blok, dijumlahkan dengan hasil transformasinya:
+      </p>
+      <pre><code>H(x) = F(x) + x
+
+H(x) = output blok
+F(x) = transformasi yang dipelajari (conv → BN → ReLU → conv → BN)
+x    = input blok, dilewatkan langsung lewat jalur pintas</code></pre>
+      <p>
+        Bila suatu blok residual tidak dibutuhkan untuk tugas tertentu, jaringan cukup mempelajari <code>F(x) =
+        0</code>, sehingga <code>H(x) = x</code> — blok tersebut berperilaku seperti identity dan tidak merusak
+        apa pun. Jauh lebih mudah mempelajari "jangan mengubah apa pun" daripada mempelajari pemetaan identity
+        secara eksplisit lewat tumpukan lapisan non-linear. Turunan matematisnya kita bahas di bagian 06 —
+        di situlah terlihat jelas mengapa jalur pintas ini membuat gradient tetap mengalir meski jaringannya
+        sangat dalam.
+      </p>
+
+      <h3>MobileNet — konvolusi yang dipecah menjadi dua tahap murah</h3>
+      <p>
+        VGG dan ResNet dirancang untuk akurasi maksimum di server dengan GPU besar. MobileNet dirancang untuk
+        kondisi sebaliknya: ponsel, kamera IoT, dan papan tertanam (embedded board) dengan memori dan daya yang
+        sangat terbatas.
+      </p>
+      <p>
+        Gagasan intinya adalah <strong>depthwise separable convolution</strong>: alih-alih satu konvolusi standar
+        yang sekaligus menyaring ruang (spasial) dan mencampur kanal, pecah menjadi dua tahap berurutan:
+      </p>
+      <ol>
+        <li><strong>Depthwise convolution</strong> — satu filter spasial per kanal input, bekerja terpisah pada setiap kanal. Tidak ada percampuran antar-kanal di tahap ini.</li>
+        <li><strong>Pointwise convolution</strong> — konvolusi 1×1 biasa yang mencampur hasil antar-kanal.</li>
+      </ol>
+      <p>
+        Hasilnya setara secara fungsional dengan konvolusi standar, tetapi jumlah parameter dan komputasinya jauh
+        lebih kecil. Perhitungan lengkapnya ada di bagian 06.
+      </p>
+
+      <h3>ConvNeXt — CNN murni yang "dimodernisasi"</h3>
+      <p>
+        ConvNeXt lahir setelah Vision Transformer (Materi 07) menunjukkan performa yang sangat kuat. Pertanyaan
+        penelitiannya: apakah keunggulan itu benar-benar berasal dari mekanisme <em>attention</em>, atau dari
+        pilihan desain lain (ukuran patch, normalisasi, rasio lapisan) yang bisa diterapkan kembali ke CNN biasa?
+        ConvNeXt mengambil ResNet lalu memodernisasinya langkah demi langkah: kernel depthwise 7×7 yang lebih
+        besar, lebih sedikit fungsi aktivasi per blok, LayerNorm menggantikan BatchNorm, dan struktur <em>inverted
+        bottleneck</em>. Hasilnya: CNN murni tanpa satu pun mekanisme attention, namun menyamai bahkan mengungguli
+        Vision Transformer pada ImageNet. Ini relevan sebagai jembatan menuju Materi 07.
+      </p>
+
+      <h3>YOLO — deteksi objek dalam satu kali lintasan</h3>
+      <p>
+        Sebelum YOLO, pendekatan populer untuk deteksi objek adalah <em>two-stage</em>: tahap pertama mengusulkan
+        ribuan kandidat wilayah (<em>region proposals</em>), tahap kedua mengklasifikasikan tiap kandidat satu per
+        satu. Akurat, tetapi lambat — jauh dari real-time.
+      </p>
+      <p>
+        YOLO mengubah deteksi objek menjadi satu masalah regresi tunggal. Citra dibagi menjadi grid S×S; setiap
+        sel grid, dalam satu kali forward pass, langsung memprediksi koordinat bounding box, skor keyakinan
+        (<em>confidence</em>), dan probabilitas kelas secara bersamaan — karena itulah namanya <em>You Only Look
+        Once</em>. Konsekuensinya: YOLO versi awal mampu berjalan pada 45 frame per detik di GPU kelas atas saat
+        itu, cukup cepat untuk video real-time, dengan konsekuensi akurasi lokalisasi sedikit di bawah pendekatan
+        two-stage untuk objek kecil yang berdempetan.
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Mengapa dua kernel 3×3 lebih hemat daripada satu kernel 5×5</h3>
+      <p>Misalkan jumlah kanal masuk dan keluar sama-sama <code>C</code>. Bandingkan jumlah parameternya:</p>
+      <pre><code>Satu konvolusi 5×5:        5 × 5 × C × C   = 25C²
+Dua konvolusi 3×3 berurutan: 2 × (3 × 3 × C × C) = 18C²
+
+Penghematan = (25C² − 18C²) / 25C² = 28%</code></pre>
+      <p>
+        Dengan C = 64: 25 × 64² = 102.400 parameter untuk satu kernel 5×5, berbanding 18 × 64² = 73.728 parameter
+        untuk dua kernel 3×3 — dan dua kernel 3×3 menyumbang dua fungsi aktivasi non-linear, bukan satu, sehingga
+        jaringan juga lebih ekspresif. Inilah alasan matematis di balik keputusan desain VGG.
+      </p>
+
+      <h3>Depthwise separable convolution secara numerik</h3>
+      <p>
+        Misalkan ukuran kernel <code>D<sub>k</sub> = 3</code>, kanal masuk <code>M = 32</code>, kanal keluar
+        <code>N = 64</code>, pada feature map 1 posisi (untuk membandingkan jumlah parameter, ukuran spasial
+        feature map tidak relevan).
+      </p>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Konvolusi standar</span>
+          <pre style="margin:0"><code>D_k × D_k × M × N
+= 3 × 3 × 32 × 64
+= 18.432 parameter</code></pre>
+        </div>
+        <span class="op" aria-hidden="true">vs</span>
+        <div>
+          <span class="matrix-cap">Depthwise separable</span>
+          <pre style="margin:0"><code>Depthwise: 3×3×32        =    288
+Pointwise: 1×1×32×64     =  2.048
+Total                    =  2.336 parameter</code></pre>
+        </div>
+      </div>
+      <p>
+        Rasio keduanya adalah 2.336 / 18.432 ≈ <strong>12,7%</strong> — penghematan sekitar delapan kali lipat.
+        Secara umum, rasio ini mengikuti rumus:
+      </p>
+      <pre><code>          1     1
+rasio =  ─── + ────
+          N     D_k²
+
+Contoh di atas: 1/64 + 1/9 = 0,0156 + 0,111 ≈ 0,127  (cocok dengan hasil hitungan manual)</code></pre>
+      <p>
+        Semakin besar jumlah kanal keluar <code>N</code>, semakin besar pula penghematannya — dan pada jaringan
+        modern, <code>N</code> sering bernilai ratusan. Inilah sebabnya MobileNet dapat mencapai akurasi yang
+        layak dengan parameter puluhan kali lebih sedikit daripada VGG.
+      </p>
+
+      <h3>Mengapa residual connection menjaga gradient tetap mengalir</h3>
+      <p>
+        Ingat dari Materi 05 bahwa backpropagation memperbaiki bobot lewat turunan (gradient) loss terhadap
+        bobot tersebut. Pada jaringan polos yang sangat dalam, gradient harus melewati puluhan fungsi non-linear
+        berurutan — dan nilainya bisa menyusut mendekati nol di setiap lapisan (<em>vanishing gradient</em>),
+        sehingga lapisan-lapisan awal nyaris berhenti belajar.
+      </p>
+      <p>Turunkan gradient pada satu blok residual <code>H(x) = F(x) + x</code> terhadap input <code>x</code>:</p>
+      <pre><code>∂H/∂x = ∂F/∂x + 1</code></pre>
+      <p>
+        Suku "<code>+ 1</code>" inilah kuncinya. Betapapun kecilnya <code>∂F/∂x</code> (bahkan mendekati nol),
+        gradient tetap memiliki jalur langsung bernilai 1 untuk mengalir ke belakang lewat jalur pintas. Pada
+        jaringan polos tanpa jalur pintas, tidak ada jaminan semacam ini — gradient sepenuhnya bergantung pada
+        hasil kali puluhan turunan berurutan, yang dapat menyusut secara eksponensial.
+      </p>
+
+      <h3>Perbandingan parameter: ringkasan kuantitatif</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Arsitektur</th><th>Parameter</th><th>Top-5 error ILSVRC (±)</th><th>Cocok untuk</th></tr></thead>
+          <tbody>
+            <tr><td>VGG16</td><td>138 juta</td><td>7,3%</td><td>Baseline akademik, keterbatasan memori bukan isu</td></tr>
+            <tr><td>GoogLeNet</td><td>6,8 juta</td><td>6,7%</td><td>Akurasi tinggi dengan anggaran parameter ketat</td></tr>
+            <tr><td>ResNet-50</td><td>25,6 juta</td><td>3,6%</td><td>Backbone umum untuk klasifikasi maupun deteksi</td></tr>
+            <tr><td>MobileNetV2</td><td>3,4 juta</td><td>~10%*</td><td>Ponsel, kamera edge, robot kecil</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:-.6rem"><em>*MobileNetV2 dievaluasi belakangan dengan protokol yang sedikit berbeda; dibandingkan langsung ia memang mengorbankan sebagian akurasi demi ukuran model yang jauh lebih kecil dan latensi yang jauh lebih rendah.</em></p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 780 270" role="img" aria-label="Garis waktu tujuh arsitektur CNN dari LeNet-5 tahun 1998 sampai ConvNeXt tahun 2022, dengan jumlah lapisan dan parameter masing-masing">
+            <style>
+              .tl  { stroke: var(--dg-grid); stroke-width: 2; }
+              .tn  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.6; }
+              .tn2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .th  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .tm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+              .ty  { font: 700 10px monospace; fill: var(--dg-accent); }
+            </style>
+            <g transform="translate(18,0)">
+            <line x1="20" y1="60" x2="740" y2="60" class="tl"/>
+            <!-- nodes -->
+            <g transform="translate(20,0)">
+              <circle cx="0" cy="60" r="6" class="tn"/>
+              <text x="0" y="40" class="ty" text-anchor="middle">1998</text>
+              <text x="0" y="82" class="th" text-anchor="middle">LeNet-5</text>
+              <text x="0" y="96" class="tm" text-anchor="middle">7 lapisan</text>
+              <text x="0" y="108" class="tm" text-anchor="middle">60 ribu param</text>
+            </g>
+            <g transform="translate(140,0)">
+              <circle cx="0" cy="60" r="6" class="tn"/>
+              <text x="0" y="40" class="ty" text-anchor="middle">2012</text>
+              <text x="0" y="82" class="th" text-anchor="middle">AlexNet</text>
+              <text x="0" y="96" class="tm" text-anchor="middle">8 lapisan</text>
+              <text x="0" y="108" class="tm" text-anchor="middle">62 juta param</text>
+            </g>
+            <g transform="translate(260,0)">
+              <circle cx="0" cy="60" r="7" class="tn2"/>
+              <text x="0" y="40" class="ty" text-anchor="middle">2014</text>
+              <text x="0" y="82" class="th" text-anchor="middle">VGG16</text>
+              <text x="0" y="96" class="tm" text-anchor="middle">16 lapisan</text>
+              <text x="0" y="108" class="tm" text-anchor="middle">138 juta param</text>
+              <text x="0" y="136" class="tm" text-anchor="middle" font-style="italic">dalam = lebih baik,</text>
+              <text x="0" y="148" class="tm" text-anchor="middle" font-style="italic">tapi boros parameter</text>
+            </g>
+            <g transform="translate(380,0)">
+              <circle cx="0" cy="60" r="6" class="tn"/>
+              <text x="0" y="40" class="ty" text-anchor="middle">2014</text>
+              <text x="0" y="82" class="th" text-anchor="middle">GoogLeNet</text>
+              <text x="0" y="96" class="tm" text-anchor="middle">22 lapisan</text>
+              <text x="0" y="108" class="tm" text-anchor="middle">6,8 juta param</text>
+            </g>
+            <g transform="translate(480,0)">
+              <circle cx="0" cy="60" r="7" class="tn2"/>
+              <text x="0" y="40" class="ty" text-anchor="middle">2015</text>
+              <text x="0" y="82" class="th" text-anchor="middle">ResNet-50</text>
+              <text x="0" y="96" class="tm" text-anchor="middle">50 lapisan</text>
+              <text x="0" y="108" class="tm" text-anchor="middle">25,6 juta param</text>
+              <text x="0" y="136" class="tm" text-anchor="middle" font-style="italic">residual connection</text>
+              <text x="0" y="148" class="tm" text-anchor="middle" font-style="italic">memecah degradation</text>
+            </g>
+            <g transform="translate(610,0)">
+              <circle cx="0" cy="60" r="6" class="tn"/>
+              <text x="0" y="40" class="ty" text-anchor="middle">2018</text>
+              <text x="0" y="82" class="th" text-anchor="middle">MobileNetV2</text>
+              <text x="0" y="96" class="tm" text-anchor="middle">53 lapisan</text>
+              <text x="0" y="108" class="tm" text-anchor="middle">3,4 juta param</text>
+            </g>
+            <g transform="translate(720,0)">
+              <circle cx="0" cy="60" r="6" class="tn"/>
+              <text x="0" y="40" class="ty" text-anchor="middle">2022</text>
+              <text x="0" y="82" class="th" text-anchor="middle">ConvNeXt</text>
+              <text x="0" y="96" class="tm" text-anchor="middle">28 juta param</text>
+            </g>
+            <line x1="20" y1="200" x2="740" y2="200" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="380" y="222" class="tm" text-anchor="middle">Lebih banyak lapisan tidak selalu berarti lebih banyak parameter — GoogLeNet membuktikannya.</text>
+            <text x="380" y="240" class="tm" text-anchor="middle" font-style="italic">Dua titik balik terbesar ditandai lebih besar: VGG (kedalaman murni) dan ResNet (residual connection).</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 6.1.</b> Garis waktu evolusi arsitektur CNN dari LeNet-5 (1998) sampai ConvNeXt (2022).
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 2 — CNN Architectures.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 260" role="img" aria-label="Diagram blok residual ResNet: input dibagi dua jalur, jalur utama melalui konvolusi batch normalization ReLU konvolusi batch normalization, jalur pintas identity langsung ke penjumlahan, hasil dijumlahkan lalu dilewatkan ReLU">
+            <defs>
+              <marker id="arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .rb { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .ri { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .rs { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.8; }
+              .rl { stroke: var(--dg-stroke); stroke-width: 1.7; fill: none; marker-end: url(#arR); }
+              .rn { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .rm { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <text x="40" y="24" class="rn">x (input blok)</text>
+            <rect class="ri" x="20" y="34" width="70" height="30" rx="4"/>
+            <line x1="55" y1="64" x2="55" y2="90" class="rl"/>
+
+            <!-- main path -->
+            <g transform="translate(20,96)">
+              <rect class="rb" x="0" y="0" width="70" height="28" rx="4"/><text x="35" y="18" class="rm" text-anchor="middle">Conv + BN</text>
+              <line x1="35" y1="28" x2="35" y2="44" class="rl"/>
+              <rect class="rb" x="0" y="44" width="70" height="28" rx="4"/><text x="35" y="62" class="rm" text-anchor="middle">ReLU</text>
+              <line x1="35" y1="72" x2="35" y2="88" class="rl"/>
+              <rect class="rb" x="0" y="88" width="70" height="28" rx="4"/><text x="35" y="106" class="rm" text-anchor="middle">Conv + BN</text>
+              <text x="35" y="134" class="rm" text-anchor="middle" font-style="italic">F(x)</text>
+            </g>
+
+            <!-- skip path -->
+            <path d="M55 90 C 230 90, 230 220, 340 220" class="rl" fill="none"/>
+            <text x="200" y="84" class="rm" style="font-weight:700;fill:var(--dg-accent-2);">jalur pintas (identity) — bawa x apa adanya</text>
+
+            <line x1="55" y1="212" x2="300" y2="220" class="rl"/>
+            <!-- sum node -->
+            <circle cx="340" cy="220" r="18" class="rs"/>
+            <text x="340" y="225" class="rn" text-anchor="middle">+</text>
+            <text x="340" y="252" class="rm" text-anchor="middle">H(x) = F(x) + x</text>
+
+            <line x1="358" y1="220" x2="420" y2="220" class="rl"/>
+            <rect class="ri" x="420" y="204" width="70" height="30" rx="4"/>
+            <text x="455" y="224" class="rm" text-anchor="middle">ReLU</text>
+            <line x1="490" y1="219" x2="540" y2="219" class="rl"/>
+            <text x="548" y="224" class="rn">output blok</text>
+
+            <line x1="20" y1="248" x2="620" y2="248" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 6.2.</b> Satu blok residual ResNet: jalur pintas identity menjumlahkan input apa adanya dengan hasil transformasi F(x), menjaga gradient tetap mengalir ke lapisan-lapisan awal.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari He et al. (2015), "Deep Residual Learning for Image Recognition".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 260" role="img" aria-label="Perbandingan konvolusi standar dengan depthwise separable convolution: konvolusi standar menyaring ruang dan mencampur kanal sekaligus dalam satu operasi mahal, depthwise separable memecahnya menjadi tahap depthwise per kanal diikuti tahap pointwise satu kali satu yang mencampur kanal">
+            <defs>
+              <marker id="arS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .sb { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .sb2{ fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.4; }
+              .sl { stroke: var(--dg-stroke); stroke-width: 1.6; fill: none; marker-end: url(#arS); }
+              .sh { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .sm { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+              .sf { font: 10.5px monospace; fill: var(--dg-accent); font-weight: 700; }
+            </style>
+
+            <text x="20" y="22" class="sh">Konvolusi standar</text>
+            <rect class="sb" x="20" y="34" width="110" height="60" rx="5"/>
+            <text x="75" y="60" class="sm" text-anchor="middle">saring ruang +</text>
+            <text x="75" y="74" class="sm" text-anchor="middle">campur kanal</text>
+            <text x="75" y="112" class="sm" text-anchor="middle">sekaligus, 1 operasi</text>
+            <text x="75" y="130" class="sf" text-anchor="middle">18.432 param</text>
+
+            <text x="200" y="64" font-size="18" fill="var(--dg-text)" opacity=".55">vs</text>
+
+            <text x="250" y="22" class="sh">Depthwise separable</text>
+            <rect class="sb2" x="250" y="34" width="110" height="46" rx="5"/>
+            <text x="305" y="54" class="sm" text-anchor="middle">1. Depthwise</text>
+            <text x="305" y="68" class="sm" text-anchor="middle">per kanal, spasial saja</text>
+            <text x="305" y="94" class="sf" text-anchor="middle">288 param</text>
+            <path d="M305 110 v18" class="sl"/>
+            <rect class="sb2" x="250" y="134" width="110" height="46" rx="5"/>
+            <text x="305" y="154" class="sm" text-anchor="middle">2. Pointwise (1×1)</text>
+            <text x="305" y="168" class="sm" text-anchor="middle">campur antar-kanal</text>
+            <text x="305" y="194" class="sf" text-anchor="middle">2.048 param</text>
+
+            <path d="M400 100 h30" class="sl"/>
+            <g transform="translate(440,56)">
+              <rect width="260" height="110" rx="6" fill="var(--dg-fill)" stroke="var(--dg-grid)" stroke-width="1"/>
+              <text x="130" y="24" class="sh" text-anchor="middle">Total: 2.336 param</text>
+              <text x="130" y="46" class="sm" text-anchor="middle">dibanding 18.432 param standar</text>
+              <text x="130" y="68" class="sf" text-anchor="middle" style="fill:var(--dg-accent-2)">≈ 8× lebih hemat</text>
+              <text x="130" y="90" class="sm" text-anchor="middle">D_k=3, kanal masuk=32, kanal keluar=64</text>
+            </g>
+            <text x="370" y="238" class="sm" text-anchor="middle">Hasil fungsionalnya setara — yang berubah adalah berapa banyak angka yang harus dipelajari dan dihitung.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 6.3.</b> Konvolusi standar versus depthwise separable convolution pada MobileNet, dengan contoh angka D<sub>k</sub>=3, M=32, N=64.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Howard et al. (2017), "MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 505" role="img" aria-label="Foto jalan raya di Kisumu, Kenya, dengan kotak deteksi berwarna yang diberi label truk, pejalan kaki, sepeda, van, bajaj, dan mobil sebagai ilustrasi keluaran detektor objek satu tahap seperti YOLO">
+            <image href="../assets/img/kisumu-street-traffic.jpg" x="0" y="0" width="760" height="505" preserveAspectRatio="xMidYMid slice"/>
+            <style>
+              .bbox { fill: none; stroke-width: 2.6; }
+              .blbl { font: 700 11px var(--font-sans, sans-serif); }
+              .blbg { opacity: .88; }
+            </style>
+            <!-- truk -->
+            <rect class="bbox" x="0" y="172" width="90" height="214" stroke="#ffd23f"/>
+            <rect class="blbg" x="0" y="160" width="86" height="16" fill="#ffd23f"/>
+            <text x="4" y="172" class="blbl" fill="#1a1400">truk 0,93</text>
+            <!-- pejalan kaki -->
+            <rect class="bbox" x="110" y="300" width="175" height="205" stroke="#ff5d5d"/>
+            <rect class="blbg" x="110" y="288" width="128" height="16" fill="#ff5d5d"/>
+            <text x="114" y="300" class="blbl" fill="#2a0000">pejalan kaki 0,88</text>
+            <!-- sepeda -->
+            <rect class="bbox" x="440" y="285" width="60" height="155" stroke="#5de0ff"/>
+            <rect class="blbg" x="440" y="273" width="78" height="16" fill="#5de0ff"/>
+            <text x="444" y="285" class="blbl" fill="#00202a">sepeda 0,81</text>
+            <!-- van hijau -->
+            <rect class="bbox" x="283" y="272" width="140" height="140" stroke="#7cf29c"/>
+            <rect class="blbg" x="283" y="260" width="58" height="16" fill="#7cf29c"/>
+            <text x="287" y="272" class="blbl" fill="#042b0e">van 0,95</text>
+            <!-- bajaj oranye -->
+            <rect class="bbox" x="552" y="285" width="80" height="130" stroke="#ff9f45"/>
+            <rect class="blbg" x="552" y="273" width="66" height="16" fill="#ff9f45"/>
+            <text x="556" y="285" class="blbl" fill="#2a1400">bajaj 0,86</text>
+            <!-- mobil putih -->
+            <rect class="bbox" x="564" y="285" width="196" height="145" stroke="#c9a6ff"/>
+            <rect class="blbg" x="668" y="273" width="68" height="16" fill="#c9a6ff"/>
+            <text x="672" y="285" class="blbl" fill="#1c0033">mobil 0,90</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 6.4.</b> Ilustrasi keluaran detektor objek satu tahap: satu kali forward pass menghasilkan seluruh bounding box, skor keyakinan, dan kelas sekaligus — inilah yang dilakukan YOLO pada setiap frame video secara real-time. Kotak dan label pada gambar ini disusun untuk tujuan ilustrasi, bukan hasil model sungguhan.
+          <span class="src">Foto: "Street traffic and pedestrians in Kisumu, Kenya" oleh Josep M. Gracia, Wikimedia Commons, lisensi CC BY-SA 4.0. Anotasi kotak deteksi orisinal COM Computer Vision.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Mari terapkan transfer learning pada kasus yang realistis: mengklasifikasikan penyakit daun tanaman dari
+        foto, dengan dataset yang hanya berisi beberapa ratus citra per kelas — jauh terlalu kecil untuk melatih
+        ResNet dari nol.
+      </p>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <img src="../assets/img/xanthomonas-plant-disease.jpg" alt="Empat gejala penyakit tanaman akibat bakteri Xanthomonas: busuk hitam pada kubis, kanker jeruk, serta garis dan hawar daun pada padi" style="width:100%;max-width:420px;border-radius:6px;display:block">
+        </div>
+        <figcaption>
+          <b>Figure 6.5.</b> Gejala penyakit tanaman akibat bakteri <em>Xanthomonas</em>, termasuk hawar daun bakteri pada padi (vii–viii) — kasus klasik dataset kecil dan sangat terspesialisasi, tempat transfer learning paling terasa manfaatnya.
+          <span class="src">Sumber: An, S.Q. et al. (2019), "Mechanistic insights into host adaptation, virulence and epidemiology of the phytopathogen Xanthomonas", FEMS Microbiology Reviews, via Wikimedia Commons, lisensi CC BY 4.0.</span>
+        </figcaption>
+      </figure>
+
+      <p>Langkah strategi: mulai dari ResNet50 yang sudah dilatih pada ImageNet, bekukan seluruh base model, pasang classifier head baru.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Komponen</th><th>Status</th><th>Alasan</th></tr></thead>
+          <tbody>
+            <tr><td>Base ResNet50 (lapisan konvolusi)</td><td>Beku (trainable=False)</td><td>Sudah mempelajari fitur visual umum dari 1,4 juta citra ImageNet — tepi, tekstur, bentuk.</td></tr>
+            <tr><td>Global Average Pooling</td><td>Tanpa bobot</td><td>Meratakan feature map akhir menjadi satu vektor per kanal.</td></tr>
+            <tr><td>Dense head baru (kelas penyakit)</td><td>Dilatih dari nol</td><td>Spesifik untuk tugas: jumlah neuron keluaran = jumlah kelas penyakit pada dataset ini.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <details class="acc">
+        <summary>Setelah memahami strateginya — bentuk kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python · Keras</span>
+<pre><code>base_model = keras.applications.ResNet50(
+    weights="imagenet", include_top=False, input_shape=(224, 224, 3)
+)
+base_model.trainable = False          # tahap 1: feature extraction
+
+model = keras.Sequential([
+    base_model,
+    layers.GlobalAveragePooling2D(),
+    layers.Dropout(0.3),
+    layers.Dense(n_kelas_penyakit, activation="softmax"),
+])
+model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+model.fit(train_ds, validation_data=val_ds, epochs=10)
+
+# tahap 2 (opsional): fine-tuning bila akurasi tahap 1 belum cukup
+base_model.trainable = True
+for layer in base_model.layers[:-20]:     # buka hanya 20 lapisan teratas
+    layer.trainable = False
+model.compile(optimizer=keras.optimizers.Adam(1e-5),   # learning rate jauh lebih kecil
+              loss="categorical_crossentropy", metrics=["accuracy"])
+model.fit(train_ds, validation_data=val_ds, epochs=5)</code></pre>
+          <p style="margin-bottom:0">
+            Learning rate pada tahap fine-tuning sengaja dibuat 100 kali lebih kecil. Bobot pretrained sudah bagus
+            — pembaruan yang terlalu besar justru bisa merusaknya (fenomena yang disebut <em>catastrophic
+            forgetting</em>).
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Diagnosis penyakit tanaman</dt>
+        <dd>Transfer learning dari ImageNet ke foto daun memungkinkan aplikasi deteksi penyakit pertanian dibangun dengan dataset yang hanya berisi ratusan, bukan jutaan, citra per kelas.</dd>
+        <dt>Pencitraan medis</dt>
+        <dd>ResNet dan arsitektur serupa menjadi backbone umum untuk klasifikasi citra rontgen, CT, dan patologi, sering kali di-fine-tune dari model pretrained ImageNet meski domainnya sangat berbeda.</dd>
+        <dt>Aplikasi di perangkat mobile</dt>
+        <dd>MobileNet dan turunannya menjalankan deteksi objek, segmentasi wajah untuk filter kamera, dan OCR langsung di ponsel, tanpa mengirim data ke server.</dd>
+        <dt>Kendaraan otonom dan CCTV real-time</dt>
+        <dd>Keluarga YOLO dipakai luas untuk mendeteksi kendaraan, pejalan kaki, dan rambu secara real-time karena kecepatannya yang jauh melampaui detektor two-stage.</dd>
+        <dt>Pengendalian mutu industri</dt>
+        <dd>Fine-tuning model pretrained pada foto produk cacat mempercepat pengembangan sistem inspeksi visual tanpa perlu dataset sebesar riset akademik.</dd>
+        <dt>Pencarian visual e-commerce</dt>
+        <dd>Fitur dari lapisan akhir CNN pretrained (sebelum classifier) dipakai sebagai representasi untuk mencari produk serupa berdasarkan kemiripan visual.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Jaringan yang lebih dalam selalu lebih akurat."</p>
+        <p style="margin-bottom:0">
+          Hanya benar sampai batas tertentu, dan hanya bila masalah pengoptimasiannya ditangani. Jaringan polos
+          56 lapisan justru lebih buruk daripada versi 20 lapisannya — inilah degradation problem yang mendorong
+          lahirnya ResNet.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Transfer learning berarti memakai model orang lain tanpa perlu memahami cara kerjanya."</p>
+        <p style="margin-bottom:0">
+          Justru sebaliknya: memilih lapisan mana yang dibekukan, berapa learning rate fine-tuning, dan kapan
+          risiko catastrophic forgetting muncul, semuanya memerlukan pemahaman tentang apa yang dipelajari
+          setiap lapisan CNN.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Fine-tuning harus selalu dilakukan agar hasilnya maksimal."</p>
+        <p style="margin-bottom:0">
+          Bergantung pada ukuran dan kemiripan dataset dengan ImageNet. Dataset kecil dan mirip cukup dengan
+          feature extraction murni; membuka terlalu banyak lapisan pada dataset kecil justru berisiko overfitting.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "YOLO adalah satu-satunya cara melakukan deteksi objek."</p>
+        <p style="margin-bottom:0">
+          YOLO adalah salah satu keluarga detektor <em>single-stage</em> yang populer. Keluarga R-CNN (R-CNN,
+          Fast R-CNN, Faster R-CNN) adalah pendekatan <em>two-stage</em> yang masih dipakai ketika akurasi
+          lokalisasi lebih diprioritaskan daripada kecepatan.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "MobileNet selalu jauh kurang akurat dibanding ResNet."</p>
+        <p style="margin-bottom:0">
+          Selisihnya sering kali lebih kecil daripada yang dibayangkan, sementara penghematan ukuran model dan
+          latensinya mencapai puluhan kali lipat. Pertanyaan yang tepat bukan "mana yang paling akurat", melainkan
+          "trade-off mana yang sesuai dengan anggaran komputasi perangkat sasaran".
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>VGG membuktikan kedalaman berguna,</strong> dengan menumpuk kernel 3×3 kecil secara konsisten — tapi boros parameter di lapisan dense.</li>
+        <li><strong>GoogLeNet membuktikan lebar juga berguna,</strong> lewat Inception module dan bottleneck 1×1 yang menghemat parameter drastis meski lapisannya lebih banyak dari VGG.</li>
+        <li><strong>ResNet memecahkan degradation problem</strong> lewat residual connection: H(x) = F(x) + x, dengan turunan ∂H/∂x = ∂F/∂x + 1 yang menjamin gradient tetap mengalir.</li>
+        <li><strong>MobileNet memecah konvolusi standar</strong> menjadi depthwise + pointwise, menghemat parameter hingga ~8× pada contoh materi ini.</li>
+        <li><strong>ConvNeXt membuktikan CNN murni masih kompetitif</strong> ketika dimodernisasi dengan ide desain dari Vision Transformer.</li>
+        <li><strong>YOLO mengubah deteksi objek menjadi satu regresi tunggal,</strong> memungkinkan deteksi real-time dengan trade-off akurasi lokalisasi pada objek kecil.</li>
+        <li><strong>Transfer learning punya dua mode:</strong> feature extraction (bekukan semua, latih head) untuk dataset kecil dan mirip ImageNet, fine-tuning (buka sebagian, learning rate kecil) untuk dataset lebih besar atau berbeda domain.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini berpusat pada transfer learning sungguhan: Anda akan memuat model pretrained,
+        membekukannya, memasang classifier head baru, dan membandingkan hasilnya dengan dan tanpa fine-tuning.
+      </p>
+      <ul>
+        <li>Google Colab dengan akses GPU (Runtime → Change runtime type → GPU) — dataset kecil pun lebih cepat dilatih dengan GPU.</li>
+        <li>TensorFlow/Keras atau PyTorch dengan modul <code>applications</code> / <code>timm</code> untuk memuat bobot pretrained ImageNet.</li>
+        <li>Dataset kecil terorganisir dalam folder per kelas (dua sampai lima kelas sudah cukup untuk melihat efek transfer learning dengan jelas).</li>
+      </ul>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Notebook resmi Hugging Face</p>
+        <p style="margin-bottom:0">
+          Unit 2 kurikulum Hugging Face menyediakan dua notebook hands-on yang langsung relevan dengan materi ini:
+          <em>Transfer Learning with VGG19</em> dan <em>Using ResNet with timm</em>. Keduanya tautannya tersedia
+          di bagian 13 di bawah.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="https://github.com/huggingface/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/transfer_learning_vgg19.ipynb" target="_blank" rel="noopener noreferrer">🧪 Notebook: Transfer Learning with VGG19 ↗</a>
+        <a class="btn secondary" href="https://github.com/huggingface/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/timm_Resnet.ipynb" target="_blank" rel="noopener noreferrer">📖 Notebook: Using ResNet with timm ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Pilih atau kumpulkan dataset kecil (dua sampai lima kelas, minimal 50 citra per kelas).</li>
+        <li>Bangun model feature extraction: ResNet50 atau VGG19 pretrained ImageNet, base dibekukan, classifier head baru. Catat akurasi validasinya.</li>
+        <li>Lanjutkan ke fine-tuning: buka 15–20 lapisan teratas, turunkan learning rate 100×, latih ulang beberapa epoch. Bandingkan akurasinya dengan tahap feature extraction.</li>
+        <li>Hitung manual jumlah parameter yang dibekukan vs dilatih pada kedua tahap, lalu bandingkan dengan jumlah parameter bila model dilatih dari nol.</li>
+        <li>Visualisasikan beberapa feature map dari lapisan awal dan lapisan akhir base model — perhatikan bahwa lapisan awal menangkap tepi/tekstur generik, lapisan akhir lebih spesifik.</li>
+        <li>Tuliskan refleksi singkat: pada titik mana fine-tuning mulai menurunkan akurasi validasi (indikasi overfitting atau catastrophic forgetting)?</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa GoogLeNet bisa memiliki parameter jauh lebih sedikit daripada VGG16 meski lapisannya jauh lebih banyak? Jelaskan peran konvolusi 1×1 di dalamnya.</li>
+        <li>Turunan ∂H/∂x = ∂F/∂x + 1 pada residual connection. Apa yang terjadi pada gradient bila ∂F/∂x mendekati nol, dan mengapa ini penting untuk jaringan yang sangat dalam?</li>
+        <li>Pada kasus apa Anda akan memilih MobileNet dibanding ResNet, dan pada kasus apa sebaliknya? Pertimbangkan perangkat sasaran, bukan hanya akurasi.</li>
+        <li>Mengapa learning rate pada tahap fine-tuning harus jauh lebih kecil daripada saat melatih classifier head dari nol?</li>
+        <li>YOLO mengorbankan sebagian akurasi lokalisasi demi kecepatan. Pada aplikasi apa trade-off ini masuk akal, dan pada aplikasi apa sebaliknya lebih baik memakai detektor two-stage?</li>
+        <li>Bila dataset Anda sangat berbeda dari ImageNet (misalnya citra satelit atau citra medis inframerah), apakah transfer learning dari ImageNet tetap masuk akal? Jelaskan alasannya.</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit2/cnns/common-architectures" target="_blank" rel="noopener noreferrer">Unit 2: Common Architectures</a> dan <a href="https://huggingface.co/learn/computer-vision-course/en/unit2/cnns/resnet" target="_blank" rel="noopener noreferrer">ResNet</a>.</li>
+        <li>Simonyan, K., &amp; Zisserman, A. (2014). <a href="https://arxiv.org/abs/1409.1556" target="_blank" rel="noopener noreferrer">Very Deep Convolutional Networks for Large-Scale Image Recognition</a> (VGG).</li>
+        <li>Szegedy, C. et al. (2014). <a href="https://arxiv.org/abs/1409.4842" target="_blank" rel="noopener noreferrer">Going Deeper with Convolutions</a> (GoogLeNet).</li>
+        <li>He, K., Zhang, X., Ren, S., &amp; Sun, J. (2015). <a href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noopener noreferrer">Deep Residual Learning for Image Recognition</a> (ResNet).</li>
+        <li>Howard, A.G. et al. (2017). <a href="https://arxiv.org/abs/1704.04861" target="_blank" rel="noopener noreferrer">MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications</a>.</li>
+        <li>Liu, Z. et al. (2022). <a href="https://arxiv.org/abs/2201.03545" target="_blank" rel="noopener noreferrer">A ConvNet for the 2020s</a> (ConvNeXt).</li>
+        <li>Redmon, J. et al. (2016). <a href="https://arxiv.org/abs/1506.02640" target="_blank" rel="noopener noreferrer">You Only Look Once: Unified, Real-Time Object Detection</a> (YOLO).</li>
+        <li>Notebook resmi Unit 2: <a href="https://github.com/huggingface/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/transfer_learning_vgg19.ipynb" target="_blank" rel="noopener noreferrer">Transfer Learning with VGG19</a> dan <a href="https://github.com/huggingface/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/timm_Resnet.ipynb" target="_blank" rel="noopener noreferrer">Using ResNet with timm</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 

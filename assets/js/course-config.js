@@ -124,10 +124,10 @@ const courseConfig = {
       "Menerapkan transfer learning pada dataset sendiri"
     ],
     unit: "Hugging Face Unit 2 — VGG, GoogLeNet, MobileNet, ConvNeXt, ResNet, YOLO",
-    duration: "120 menit",
-    updated: "—",
+    duration: "130 menit",
+    updated: "13 Oktober 2026",
     practical: null,
-    material: false
+    material: true
   },
 
   week07: {
