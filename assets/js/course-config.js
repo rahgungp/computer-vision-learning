@@ -260,9 +260,9 @@ const courseConfig = {
     ],
     unit: "Hugging Face Unit 9 — Model Optimization",
     duration: "110 menit",
-    updated: "—",
-    practical: null,
-    material: false
+    updated: "13 Oktober 2026",
+    practical: "practical-14.html",
+    material: true
   },
 
   week15: {
