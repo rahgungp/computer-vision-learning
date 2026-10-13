@@ -141,10 +141,10 @@ const courseConfig = {
       "Menjelaskan peran DETR dan OneFormer pada deteksi serta segmentasi"
     ],
     unit: "Hugging Face Unit 3 — Vision Transformers",
-    duration: "120 menit",
-    updated: "—",
-    practical: null,
-    material: false
+    duration: "130 menit",
+    updated: "13 Oktober 2026",
+    practical: "practical-07.html",
+    material: true
   },
 
   week08: {

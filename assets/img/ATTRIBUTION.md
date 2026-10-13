@@ -16,6 +16,7 @@ Seluruh **diagram konsep** pada situs ini adalah SVG orisinal yang ditulis langs
 | `logo-TKOM.png` | Placeholder logo Program Studi Teknik Komputer, motif aperture kamera | Dibuat untuk proyek ini. **Ganti dengan logo resmi** memakai nama berkas yang sama. |
 | `kisumu-street-traffic.jpg` | Foto jalan raya Kisumu, Kenya — dipakai sebagai dasar ilustrasi keluaran detektor objek (Figure 6.4, week-06) | Josep M. Gracia, Wikimedia Commons, [File:KISU - Street traffic and pedestrians in Kisumu, Kenya, 2012.jpg](https://commons.wikimedia.org/wiki/File:KISU_-_Street_traffic_and_pedestrians_in_Kisumu,_Kenya,_2012.jpg), lisensi **CC BY-SA 4.0** |
 | `xanthomonas-plant-disease.jpg` | Figur ilmiah gejala penyakit tanaman akibat bakteri *Xanthomonas*, termasuk hawar daun padi (Figure 6.5, week-06) | An, S.Q. et al. (2019), *FEMS Microbiology Reviews*, via Wikimedia Commons, [File:Xanthomonas-disease.jpg](https://commons.wikimedia.org/wiki/File:Xanthomonas-disease.jpg), lisensi **CC BY 4.0** |
+| `cat-patch-demo.jpg` | Potret kucing — dasar ilustrasi langkah patchify ViT (Figure 7.3, week-07) | Wasiul Bahar, Wikimedia Commons, [File:Cat in Notre Dame college Dhaka (2022; cropped 2023).jpg](https://commons.wikimedia.org/wiki/File:Cat_in_Notre_Dame_college_Dhaka_(2022;_cropped_2023).jpg), lisensi **CC BY-SA 4.0** |
 
 ## Daftar ilustrasi SVG (inline di halaman materi)
 
@@ -46,9 +47,14 @@ Seluruh **diagram konsep** pada situs ini adalah SVG orisinal yang ditulis langs
 | 6.3 | week-06 | Konvolusi standar vs depthwise separable (MobileNet) |
 | 6.4 | week-06 | Foto nyata + anotasi kotak deteksi orisinal (ilustrasi keluaran YOLO) |
 | 6.5 | week-06 | Foto nyata gejala penyakit tanaman (contoh transfer learning) |
+| 7.1 | week-07 | Garis waktu keluarga Vision Transformer (ViT → OneFormer) |
+| 7.2 | week-07 | Arsitektur ViT: patch embedding, posisi, CLS, encoder |
+| 7.3 | week-07 | Foto nyata + grid patch orisinal (ilustrasi patchify ViT) |
+| 7.4 | week-07 | Window attention vs shifted window attention (Swin) |
+| 7.5 | week-07 | Foto nyata + anotasi object query orisinal (ilustrasi DETR) |
 | — | index | Ilustrasi hero: pixel → operasi → representasi |
 
-Figure 1.1–6.3 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1 dan Unit 2) serta paper arsitektur terkait. Figure 6.4 dan 6.5 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
+Figure 1.1–7.2 dan 7.4 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–3) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, dan 7.5 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
 
 ## Bila kelak menambahkan gambar eksternal
 

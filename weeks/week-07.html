@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Materi 07 · Vision Transformers — COM Computer Vision</title>
-<meta name="description" content="Materi 07: Vision Transformers. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<meta name="description" content="Materi 07: dari konvolusi ke attention — ViT, DeiT, Swin Transformer, CvT, MobileViT, DINAT, DETR, OneFormer, dan knowledge distillation.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="07">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -48,18 +48,765 @@
       <div class="toolbar-main">
         <span class="eyebrow">Materi 07</span>
         <h1 class="page-title" data-week-title>Vision Transformers</h1>
-        <p class="page-sub" data-week-subtitle>ViT, Swin, CvT, DINAT, MobileViT, DETR, OneFormer, knowledge distillation</p>
+        <p class="page-sub" data-week-subtitle>ViT, Swin, CvT, DINAT, MobileViT, DETR, OneFormer, dan knowledge distillation</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
+          <span class="meta-chip">⏱ <span data-week-duration>130 menit</span></span>
           <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 3</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan mekanisme patch embedding: bagaimana citra dipecah menjadi barisan token;</li>
+          <li>menghitung self-attention secara manual pada contoh token berukuran kecil;</li>
+          <li>membandingkan ViT dengan CNN dari sisi inductive bias dan kebutuhan data pretraining;</li>
+          <li>menjelaskan knowledge distillation pada DeiT dan mengapa itu membuat ViT bisa dilatih tanpa data sebesar JFT-300M;</li>
+          <li>menjelaskan window attention pada Swin Transformer dan menghitung penghematan komputasinya dibanding attention global;</li>
+          <li>menjelaskan peran DETR (set prediction) dan OneFormer (satu model untuk tiga tugas segmentasi).</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Seluruh Materi 05 dan 06 berdiri di atas satu asumsi: kernel kecil yang digeser ke seluruh citra adalah
+        cara terbaik mengekstraksi fitur visual. Asumsi itu disebut <strong>inductive bias</strong> — pengetahuan
+        bawaan yang ditanamkan ke dalam arsitektur sebelum satu data pun dilihat. CNN punya dua: <em>locality</em>
+        (pixel yang berdekatan lebih relevan satu sama lain) dan <em>translation equivariance</em> (detektor tepi
+        yang sama berguna di mana pun posisinya pada citra).
+      </p>
+      <p>
+        Pertanyaan yang diajukan Vision Transformer pada 2020 cukup berani: bagaimana bila asumsi itu dilepas
+        sepenuhnya, dan model dibiarkan mempelajari sendiri hubungan antar-bagian citra — termasuk hubungan
+        antar-bagian yang letaknya jauh — sejak lapisan pertama? Jawabannya bekerja, tetapi dengan harga: tanpa
+        inductive bias bawaan, ViT butuh jauh lebih banyak data untuk menemukan sendiri pola yang sudah
+        "diberikan gratis" kepada CNN lewat desain arsitekturnya. Sebagian besar materi ini adalah kisah
+        bagaimana peneliti mengembalikan sebagian inductive bias itu — lewat distilasi, lewat jendela lokal,
+        lewat konvolusi yang disisipkan kembali — tanpa kehilangan kekuatan utama attention: jangkauan global.
+      </p>
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Satu kalimat yang merangkum seluruh materi ini</p>
+        <p style="margin-bottom:0">
+          CNN mengatakan kepada model "mulailah dari yang lokal, lalu perluas secara bertahap"; Vision Transformer
+          mengatakan "lihat semuanya sekaligus sejak awal, dan pelajari sendiri apa yang relevan" — dan sebagian
+          besar inovasi setelah ViT adalah usaha mengambil yang terbaik dari kedua filosofi itu.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-06.html">Materi 06</a> — terutama residual connection (ViT juga memakainya) dan transfer learning (ViT hampir selalu dipakai lewat model pretrained).</li>
+        <li><a href="./week-05.html">Materi 05</a> — gagasan bahwa citra direpresentasikan sebagai fitur, bukan pixel mentah.</li>
+        <li>Perkalian matriks dan fungsi softmax (mengubah sekumpulan angka menjadi distribusi probabilitas yang berjumlah 1).</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <h3>Garis waktu keluarga Vision Transformer</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Arsitektur</th><th>Tahun</th><th>Gagasan utama</th></tr></thead>
+          <tbody>
+            <tr><td>ViT</td><td>2020</td><td>Patch citra + transformer encoder murni untuk klasifikasi; butuh data pretraining sangat besar (JFT-300M).</td></tr>
+            <tr><td>DETR</td><td>2020</td><td>Deteksi objek sebagai <em>set prediction</em> lewat object queries; menghilangkan anchor box dan NMS.</td></tr>
+            <tr><td>DeiT</td><td>2021</td><td>ViT yang dilatih efisien hanya dengan ImageNet-1k, lewat distillation token dari guru CNN.</td></tr>
+            <tr><td>Swin Transformer</td><td>2021</td><td>Arsitektur hierarkis + shifted window attention; backbone umum untuk deteksi dan segmentasi.</td></tr>
+            <tr><td>CvT</td><td>2021</td><td>Menyisipkan konvolusi ke dalam ViT untuk mengembalikan inductive bias lokal.</td></tr>
+            <tr><td>MobileViT</td><td>2021</td><td>Blok hybrid konvolusi + transformer yang ringan, untuk perangkat mobile.</td></tr>
+            <tr><td>DINAT</td><td>2022</td><td>Neighborhood attention berskala dilasi; attention lokal dengan jangkauan diperluas tanpa biaya tambahan.</td></tr>
+            <tr><td>OneFormer</td><td>2023</td><td>Satu model, satu proses pelatihan, untuk tiga tugas segmentasi sekaligus lewat task token.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Pola yang terlihat: ViT dan DETR membuka jalan pada 2020 dengan menunjukkan transformer <em>bisa</em>
+        dipakai untuk visi. Seluruh arsitektur sesudahnya (DeiT, Swin, CvT, MobileViT, DINAT) adalah jawaban atas
+        pertanyaan "bagaimana membuatnya praktis" — lebih hemat data, lebih hemat komputasi, lebih cocok untuk
+        perangkat terbatas. OneFormer adalah titik konvergensi: satu arsitektur transformer untuk banyak tugas
+        sekaligus.
+      </p>
+
+      <h3>Dua kategori tugas, pola yang sama seperti Materi 06</h3>
+      <p>
+        Persis seperti CNN di Materi 06, keluarga ini terbagi menjadi arsitektur untuk <strong>klasifikasi</strong>
+        (ViT, DeiT, Swin, CvT, MobileViT, DINAT — satu citra masuk, satu label keluar, meski Swin dan DINAT juga
+        lazim dipakai sebagai backbone deteksi/segmentasi) dan arsitektur untuk <strong>tugas terstruktur</strong>
+        (DETR untuk deteksi objek, OneFormer untuk segmentasi). Dasarnya tetap sama: mekanisme self-attention
+        yang akan kita hitung manual di bagian 06.
+      </p>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>ViT — citra sebagai barisan kata</h3>
+      <p>
+        Judul paper aslinya sudah merangkum gagasannya: <em>"An Image is Worth 16×16 Words"</em>. Citra dipecah
+        menjadi kotak-kotak kecil berukuran tetap (umumnya 16×16 pixel), setiap kotak diratakan menjadi satu
+        vektor lalu diproyeksikan secara linear — persis seperti kata yang diubah menjadi word embedding pada
+        model bahasa. Barisan vektor ("token") inilah yang dimasukkan ke transformer encoder standar, lengkap
+        dengan <strong>position embedding</strong> (karena self-attention sendiri tidak tahu urutan spasial) dan
+        satu token tambahan khusus di awal, <strong>[CLS] token</strong>, yang representasinya di lapisan akhir
+        dipakai untuk klasifikasi.
+      </p>
+      <p>
+        Hasilnya mengejutkan sekaligus mengecewakan tim penelitinya sendiri pada awalnya: dilatih hanya pada
+        ImageNet-1k (1,3 juta citra), ViT kalah dari ResNet. Baru setelah dilatih pada JFT-300M (300 juta citra,
+        dataset internal Google) ViT mengungguli CNN. Kesimpulannya jelas: tanpa inductive bias locality dan
+        translation equivariance yang dimiliki CNN, ViT harus <em>menemukan sendiri</em> pola-pola itu dari data
+        — dan itu butuh data dalam jumlah sangat besar.
+      </p>
+
+      <h3>DeiT — knowledge distillation sebagai jalan pintas</h3>
+      <p>
+        Pertanyaan DeiT (<em>Data-efficient image Transformer</em>): bisakah ViT dilatih kompetitif hanya dengan
+        ImageNet-1k, tanpa JFT-300M? Jawabannya: ya, lewat <strong>knowledge distillation</strong>. Sebuah model
+        CNN yang sudah kuat (disebut <em>teacher</em>) dipakai untuk "mengajari" ViT (<em>student</em>) lewat
+        token tambahan khusus, <strong>distillation token</strong>, yang berjalan berdampingan dengan [CLS] token
+        dan memiliki loss-nya sendiri yang mencocokkan keputusan si guru. Secara konseptual, inductive bias milik
+        CNN tidak ditanamkan langsung ke arsitektur ViT, melainkan "dibocorkan" lewat proses pelatihan. DeiT
+        mencapai akurasi yang sebanding dengan ViT hasil pretraining JFT-300M, hanya dengan data yang seribu kali
+        lebih sedikit.
+      </p>
+
+      <h3>Swin Transformer — hierarki dan jendela yang bergeser</h3>
+      <p>
+        ViT memiliki dua masalah praktis untuk tugas selain klasifikasi: (1) resolusi tokennya tetap dari awal
+        sampai akhir, padahal deteksi dan segmentasi butuh representasi multi-skala seperti pada CNN; (2)
+        attention global pada seluruh token berbiaya kuadratik — menjadi sangat mahal pada citra beresolusi
+        tinggi. Swin Transformer menjawab keduanya sekaligus:
+      </p>
+      <ul>
+        <li><strong>Arsitektur hierarkis.</strong> Seperti CNN, Swin memiliki beberapa tahap; setiap tahap menggabungkan patch tetangga menjadi satu (<em>patch merging</em>), sehingga resolusi menurun dan jumlah kanal bertambah secara bertahap — persis pola yang Anda kenal dari ResNet di Materi 06.</li>
+        <li><strong>Window attention.</strong> Self-attention dihitung hanya di dalam jendela lokal kecil (misalnya 7×7 patch), bukan ke seluruh citra, sehingga biayanya linear terhadap jumlah patch, bukan kuadratik.</li>
+        <li><strong>Shifted window.</strong> Bila jendelanya selalu di posisi yang sama, token di jendela berbeda tidak pernah saling "bicara". Pada lapisan berikutnya, jendela digeser setengah ukurannya, sehingga token di tepi jendela lama kini berada di jendela baru yang sama — informasi perlahan menyebar lintas jendela tanpa pernah menghitung attention global yang mahal.</li>
+      </ul>
+      <p>Perhitungan lengkap penghematan komputasinya ada di bagian 06.</p>
+
+      <h3>CvT dan MobileViT — mengembalikan konvolusi</h3>
+      <p>
+        Dua arsitektur ini mengambil jalan yang lebih langsung: masukkan kembali konvolusi ke dalam transformer.
+        <strong>CvT</strong> (<em>Convolutional vision Transformer</em>) mengganti patch embedding linear ViT
+        dengan konvolusi (<em>convolutional token embedding</em>), dan mengganti proyeksi Q, K, V linear dengan
+        konvolusi depthwise-separable (<em>convolutional projection</em>) — mengingatkan pada MobileNet di Materi
+        06. Konvolusi secara alami membawa locality, sehingga CvT bahkan tidak lagi memerlukan position embedding
+        terpisah.
+      </p>
+      <p>
+        <strong>MobileViT</strong> melangkah lebih jauh ke arah efisiensi: blok dasarnya memakai konvolusi biasa
+        untuk pemrosesan lokal, lalu blok transformer ringan untuk memodelkan hubungan jarak jauh, disusun
+        bergantian. Hasilnya adalah model berukuran beberapa juta parameter saja — sekelas MobileNet — yang tetap
+        mendapat manfaat jangkauan global dari attention, cocok untuk perangkat dengan daya komputasi terbatas.
+      </p>
+
+      <h3>DINAT — attention sebagai jendela geser, dengan jangkauan yang bisa diperluas</h3>
+      <p>
+        <em>Neighborhood Attention</em> (NA) membatasi setiap token untuk hanya memperhatikan tetangga
+        terdekatnya — mirip konsep kernel pada konvolusi, tetapi bobotnya dihitung lewat attention, bukan
+        dipelajari sebagai nilai tetap per posisi. <strong>DINAT</strong> (<em>Dilated Neighborhood Attention
+        Transformer</em>) menambahkan <em>dilasi</em>: beberapa lapisan "melompati" tetangga terdekat untuk
+        menjangkau area yang lebih luas tanpa menambah biaya komputasi — persis gagasan dilated/atrous convolution
+        pada CNN klasik, kini diterapkan pada attention.
+      </p>
+
+      <h3>DETR — deteksi objek sebagai pemetaan satu-ke-satu</h3>
+      <p>
+        Ingat dari Materi 06 bahwa YOLO menghasilkan ratusan kandidat box per citra lalu menyaringnya dengan
+        <em>Non-Maximum Suppression</em> (NMS). DETR mengajukan pendekatan yang sama sekali berbeda. Fitur citra
+        dari backbone CNN diratakan dan dimasukkan ke transformer encoder, lalu transformer decoder menerima
+        sejumlah tetap <strong>object queries</strong> yang dipelajari (misalnya 100) — setiap query, lewat
+        cross-attention terhadap fitur citra, langsung memprediksi satu kelas dan satu bounding box (atau
+        "tidak ada objek"). Pelatihannya memakai <em>bipartite matching</em> (algoritma Hungarian) yang
+        memasangkan setiap objek sungguhan dengan tepat satu query terbaik. Konsekuensinya: <strong>tidak ada
+        anchor box, tidak ada region proposal, dan tidak ada NMS</strong> — deteksi objek menjadi masalah
+        <em>set prediction</em> langsung, satu query satu objek.
+      </p>
+
+      <h3>OneFormer — satu model untuk tiga tugas segmentasi</h3>
+      <p>
+        Segmentasi semantik (setiap pixel diberi label kelas), instance (setiap objek individu dipisahkan), dan
+        panoptic (gabungan keduanya) biasanya dilatih sebagai tiga model terpisah, masing-masing dengan loss dan
+        arsitektur kepala yang berbeda. <strong>OneFormer</strong> melatih satu model untuk ketiganya sekaligus,
+        memakai arsitektur berbasis query (serupa semangat object query pada DETR) ditambah sebuah
+        <strong>task token</strong> yang memberi tahu model tugas mana yang sedang diminta saat itu. Hasilnya:
+        satu set bobot, satu proses pelatihan, performa yang menyamai bahkan mengungguli model khusus satu tugas.
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Menghitung jumlah patch</h3>
+      <p>Untuk citra berukuran <code>H × W</code> dengan ukuran patch <code>P × P</code>:</p>
+      <pre><code>jumlah patch = (H / P) × (W / P)
+
+Contoh ViT-B/16 pada citra 224×224:
+jumlah patch = (224/16) × (224/16) = 14 × 14 = 196
+
++ 1 token [CLS]  →  panjang barisan token = 197</code></pre>
+      <p>
+        Bandingkan dengan Materi 05: rumus ukuran feature map CNN, <code>(n + 2p − f)/s + 1</code>, menghitung
+        berapa posisi yang disinggahi satu kernel yang bergeser. Rumus patch count di atas menghitung hal yang
+        mirip secara konsep — berapa banyak "unit" yang akan diproses — tetapi tanpa kernel yang tumpang tindih:
+        setiap patch persis bersebelahan, tidak saling menimpa.
+      </p>
+
+      <h3>Self-attention dihitung manual</h3>
+      <p>
+        Misalkan hanya dua token, masing-masing berdimensi 2, dan anggap proyeksi Q, K, V adalah identitas
+        (<code>Q = K = V = X</code>) agar aritmetikanya tetap sederhana dan bisa dihitung dengan tangan:
+      </p>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Token 1 (x₁)</span>
+          <div class="matrix" style="grid-template-columns: repeat(2, auto)" role="img" aria-label="Token satu berisi 1 0">
+            <span>1</span><span>0</span>
+          </div>
+        </div>
+        <div>
+          <span class="matrix-cap">Token 2 (x₂)</span>
+          <div class="matrix" style="grid-template-columns: repeat(2, auto)" role="img" aria-label="Token dua berisi 0 1">
+            <span>0</span><span>1</span>
+          </div>
+        </div>
+      </div>
+      <pre><code>Langkah 1 — skor kemiripan:  Q·Kᵀ
+  x1·x1 = (1×1)+(0×0) = 1      x1·x2 = (1×0)+(0×1) = 0
+  x2·x1 = (0×1)+(1×0) = 0      x2·x2 = (0×0)+(1×1) = 1
+
+Langkah 2 — skala dengan √d_k  (d_k = 2, √2 ≈ 1,414):
+  baris 1: [1/1,414, 0/1,414] = [0,707 , 0]
+  baris 2: [0 , 0,707]
+
+Langkah 3 — softmax tiap baris (ubah jadi "berapa persen perhatian"):
+  baris 1: softmax([0,707 , 0]) = [0,670 , 0,330]
+  baris 2: softmax([0 , 0,707]) = [0,330 , 0,670]
+
+Langkah 4 — kalikan dengan V, jumlahkan (weighted sum):
+  output token 1 = 0,670 × [1,0] + 0,330 × [0,1] = [0,670 , 0,330]
+  output token 2 = 0,330 × [1,0] + 0,670 × [0,1] = [0,330 , 0,670]</code></pre>
+      <p>
+        Bacalah hasilnya: output token 1 masih 67% dirinya sendiri, tetapi sudah "meminjam" 33% informasi dari
+        token 2. Inilah inti self-attention — setiap token memperbarui representasinya dengan campuran berbobot
+        dari <em>seluruh</em> token lain, bukan hanya tetangga spasialnya seperti pada konvolusi. Formula
+        umumnya:
+      </p>
+      <pre><code>Attention(Q, K, V) = softmax( Q·Kᵀ / √d_k ) · V</code></pre>
+
+      <h3>Mengapa window attention jauh lebih hemat</h3>
+      <p>
+        Biaya komputasi self-attention global sebanding dengan kuadrat jumlah token <code>n</code>. Pada citra
+        beresolusi tinggi, <code>n</code> membengkak cepat:
+      </p>
+      <pre><code>Resolusi 224×224, patch 16×16:  n = 196    →  n² =  38.416
+Resolusi 448×448, patch 16×16:  n = 784    →  n² = 614.656   (16× lebih mahal, padahal citra cuma 2× lebih besar per sisi)</code></pre>
+      <p>Swin membatasi attention hanya di dalam jendela tetap M×M (umumnya M=7), sehingga biayanya linear terhadap n:</p>
+      <pre><code>Ω(global attention)       ∝  n²
+Ω(window attention)       ∝  M² × n
+
+Contoh: n = 3.136 patch (tahap awal Swin pada citra 224×224, patch 4×4), M = 7
+  global:  n²     = 3.136²      = 9.834.496
+  window:  M² × n = 49 × 3.136  =   153.664
+
+Rasio penghematan = n / M² = 3.136 / 49 = 64× lebih hemat</code></pre>
+      <p>
+        Angka 64× ini bukan kebetulan kecil — inilah yang membuat Swin bisa dipakai sebagai backbone deteksi dan
+        segmentasi pada resolusi tinggi, sementara ViT murni dengan attention global akan kehabisan memori jauh
+        sebelum mencapai resolusi tersebut.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 780 240" role="img" aria-label="Garis waktu arsitektur Vision Transformer dari ViT dan DETR tahun 2020 sampai OneFormer tahun 2023">
+            <style>
+              .tl  { stroke: var(--dg-grid); stroke-width: 2; }
+              .tn  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.6; }
+              .tn2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.6; }
+              .th  { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .tm  { font: 9px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+              .ty  { font: 700 10px monospace; fill: var(--dg-accent); }
+            </style>
+            <g transform="translate(18,0)">
+              <line x1="20" y1="60" x2="740" y2="60" class="tl"/>
+              <g transform="translate(20,0)">
+                <circle cx="0" cy="60" r="7" class="tn2"/>
+                <text x="0" y="40" class="ty" text-anchor="middle">2020</text>
+                <text x="0" y="82" class="th" text-anchor="middle">ViT</text>
+                <text x="0" y="96" class="tm" text-anchor="middle">patch + encoder</text>
+                <text x="0" y="108" class="tm" text-anchor="middle">butuh JFT-300M</text>
+              </g>
+              <g transform="translate(125,0)">
+                <circle cx="0" cy="60" r="6" class="tn"/>
+                <text x="0" y="40" class="ty" text-anchor="middle">2020</text>
+                <text x="0" y="82" class="th" text-anchor="middle">DETR</text>
+                <text x="0" y="96" class="tm" text-anchor="middle">set prediction</text>
+                <text x="0" y="108" class="tm" text-anchor="middle">tanpa NMS</text>
+              </g>
+              <g transform="translate(250,0)">
+                <circle cx="0" cy="60" r="6" class="tn"/>
+                <text x="0" y="40" class="ty" text-anchor="middle">2021</text>
+                <text x="0" y="82" class="th" text-anchor="middle">DeiT</text>
+                <text x="0" y="96" class="tm" text-anchor="middle">distillation</text>
+                <text x="0" y="108" class="tm" text-anchor="middle">token</text>
+              </g>
+              <g transform="translate(365,0)">
+                <circle cx="0" cy="60" r="7" class="tn2"/>
+                <text x="0" y="40" class="ty" text-anchor="middle">2021</text>
+                <text x="0" y="82" class="th" text-anchor="middle">Swin</text>
+                <text x="0" y="96" class="tm" text-anchor="middle">hierarkis +</text>
+                <text x="0" y="108" class="tm" text-anchor="middle">shifted window</text>
+              </g>
+              <g transform="translate(475,0)">
+                <circle cx="0" cy="60" r="6" class="tn"/>
+                <text x="0" y="40" class="ty" text-anchor="middle">2021</text>
+                <text x="0" y="82" class="th" text-anchor="middle">CvT / MobileViT</text>
+                <text x="0" y="96" class="tm" text-anchor="middle">konvolusi</text>
+                <text x="0" y="108" class="tm" text-anchor="middle">kembali masuk</text>
+              </g>
+              <g transform="translate(620,0)">
+                <circle cx="0" cy="60" r="6" class="tn"/>
+                <text x="0" y="40" class="ty" text-anchor="middle">2022</text>
+                <text x="0" y="82" class="th" text-anchor="middle">DINAT</text>
+                <text x="0" y="96" class="tm" text-anchor="middle">neighborhood</text>
+                <text x="0" y="108" class="tm" text-anchor="middle">attention dilasi</text>
+              </g>
+              <g transform="translate(720,0)">
+                <circle cx="0" cy="60" r="6" class="tn"/>
+                <text x="0" y="40" class="ty" text-anchor="middle">2023</text>
+                <text x="0" y="82" class="th" text-anchor="middle">OneFormer</text>
+                <text x="0" y="96" class="tm" text-anchor="middle">1 model, 3</text>
+                <text x="0" y="108" class="tm" text-anchor="middle">tugas segmentasi</text>
+              </g>
+              <line x1="20" y1="190" x2="740" y2="190" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+              <text x="380" y="212" class="tm" text-anchor="middle">2020: transformer terbukti bisa dipakai untuk visi. Sesudahnya: bagaimana membuatnya praktis.</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 7.1.</b> Garis waktu keluarga Vision Transformer, dari ViT dan DETR (2020) sampai OneFormer (2023).
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 3 — Vision Transformers.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 330" role="img" aria-label="Arsitektur ViT: citra dipecah menjadi patch, diratakan dan diproyeksikan secara linear, ditambah position embedding dan token CLS, dimasukkan ke tumpukan transformer encoder berisi multi-head self-attention dan MLP dengan residual connection, lalu token CLS pada keluaran dipakai untuk klasifikasi">
+            <defs>
+              <marker id="arV" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .vb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .vb2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.4; }
+              .vd  { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .vl  { stroke: var(--dg-stroke); stroke-width: 1.6; fill: none; marker-end: url(#arV); }
+              .vh  { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .vm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <!-- image to patches -->
+            <text x="16" y="20" class="vh">Citra → patch</text>
+            <g transform="translate(16,30)">
+              <g stroke="var(--dg-grid)" stroke-width="1" fill="var(--dg-fill)">
+                <rect x="0" y="0" width="22" height="22"/><rect x="22" y="0" width="22" height="22"/><rect x="44" y="0" width="22" height="22"/>
+                <rect x="0" y="22" width="22" height="22"/><rect x="22" y="22" width="22" height="22" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1.6"/><rect x="44" y="22" width="22" height="22"/>
+                <rect x="0" y="44" width="22" height="22"/><rect x="22" y="44" width="22" height="22"/><rect x="44" y="44" width="22" height="22"/>
+              </g>
+              <text x="33" y="82" class="vm" text-anchor="middle">9 patch (contoh)</text>
+            </g>
+            <path d="M92 52 h20" class="vl"/>
+
+            <!-- flatten+linear -->
+            <g transform="translate(122,22)">
+              <rect class="vb" x="0" y="0" width="70" height="60" rx="4"/>
+              <text x="35" y="26" class="vm" text-anchor="middle">flatten +</text>
+              <text x="35" y="40" class="vm" text-anchor="middle">linear proj.</text>
+              <text x="35" y="78" class="vm" text-anchor="middle">token embedding</text>
+            </g>
+            <path d="M192 52 h20" class="vl"/>
+
+            <!-- + pos + cls -->
+            <g transform="translate(222,10)">
+              <rect class="vb2" x="0" y="0" width="34" height="34" rx="4"/>
+              <text x="17" y="22" class="vm" text-anchor="middle" style="font-weight:700">CLS</text>
+              <rect class="vd" x="0" y="42" width="34" height="34" rx="4"/>
+              <rect class="vd" x="38" y="42" width="34" height="34" rx="4"/>
+              <rect class="vd" x="76" y="42" width="34" height="34" rx="4"/>
+              <text x="55" y="92" class="vm" text-anchor="middle">+ position embedding</text>
+            </g>
+            <path d="M332 52 h20" class="vl"/>
+
+            <!-- transformer encoder stack -->
+            <g transform="translate(362,0)">
+              <rect x="0" y="0" width="230" height="110" rx="6" fill="var(--dg-fill)" stroke="var(--dg-grid)" stroke-width="1"/>
+              <text x="115" y="18" class="vh" text-anchor="middle">Transformer Encoder × L</text>
+              <rect class="vb" x="14" y="26" width="90" height="26" rx="4"/><text x="59" y="43" class="vm" text-anchor="middle">Multi-Head</text>
+              <rect class="vb" x="126" y="26" width="90" height="26" rx="4"/><text x="171" y="43" class="vm" text-anchor="middle">Self-Attention</text>
+              <path d="M14 34 q-10 0 -10 20 t10 20" class="vl" stroke-dasharray="2 3" marker-end="none"/>
+              <text x="4" y="58" class="vm" style="font-size:8px">residual</text>
+              <rect class="vb2" x="14" y="62" width="202" height="26" rx="4"/><text x="115" y="79" class="vm" text-anchor="middle">MLP (+ residual + LayerNorm)</text>
+              <text x="115" y="102" class="vm" text-anchor="middle" font-style="italic">diulang L lapisan berurutan</text>
+            </g>
+            <path d="M592 52 h20" class="vl"/>
+
+            <!-- output -->
+            <g transform="translate(622,22)">
+              <rect class="vb2" x="0" y="0" width="118" height="60" rx="5"/>
+              <text x="59" y="24" class="vm" text-anchor="middle">ambil token CLS</text>
+              <text x="59" y="40" class="vm" text-anchor="middle">→ MLP head</text>
+              <text x="59" y="56" class="vm" text-anchor="middle" style="font-weight:700">→ kelas</text>
+            </g>
+
+            <line x1="16" y1="150" x2="744" y2="150" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="380" y="172" class="vm" text-anchor="middle">Token CLS tidak mewakili satu patch mana pun — perannya murni "mengumpulkan" informasi dari seluruh token lewat attention.</text>
+            <text x="380" y="190" class="vm" text-anchor="middle" font-style="italic">Perhatikan polanya sama dengan ResNet: residual connection di setiap sub-blok.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 7.2.</b> Arsitektur ViT: patch embedding, position embedding, token CLS, tumpukan transformer encoder, dan classifier head.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Dosovitskiy et al. (2020), "An Image is Worth 16×16 Words".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 700" role="img" aria-label="Foto potret kucing dibagi menjadi grid enam kali enam patch sebagai ilustrasi langkah patchify pada Vision Transformer, dengan satu patch disorot dan diratakan menjadi vektor">
+            <image href="../assets/img/cat-patch-demo.jpg" x="0" y="0" width="700" height="700" preserveAspectRatio="xMidYMid slice"/>
+            <g stroke="#ffffff" stroke-width="1.4" opacity=".85">
+              <line x1="116.7" y1="0" x2="116.7" y2="700"/><line x1="233.3" y1="0" x2="233.3" y2="700"/>
+              <line x1="350" y1="0" x2="350" y2="700"/><line x1="466.7" y1="0" x2="466.7" y2="700"/><line x1="583.3" y1="0" x2="583.3" y2="700"/>
+              <line x1="0" y1="116.7" x2="700" y2="116.7"/><line x1="0" y1="233.3" x2="700" y2="233.3"/>
+              <line x1="0" y1="350" x2="700" y2="350"/><line x1="0" y1="466.7" x2="700" y2="466.7"/><line x1="0" y1="583.3" x2="700" y2="583.3"/>
+            </g>
+            <rect x="116.7" y="116.7" width="116.6" height="116.6" fill="none" stroke="#ffd23f" stroke-width="4"/>
+            <text x="175" y="104" text-anchor="middle" font-weight="700" font-size="16" fill="#1a1400" style="paint-order:stroke" stroke="#ffd23f" stroke-width="5">patch (2,2)</text>
+            <g transform="translate(20,580)">
+              <rect width="300" height="100" rx="8" fill="var(--dg-fill)" stroke="#ffd23f" stroke-width="2" opacity=".95"/>
+              <text x="150" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="var(--dg-text)">flatten patch (2,2) → 1 vektor</text>
+              <text x="150" y="48" text-anchor="middle" font-size="10.5" fill="var(--dg-text)" opacity=".8">16×16×3 pixel → 768 angka</text>
+              <text x="150" y="68" text-anchor="middle" font-size="10.5" fill="var(--dg-text)" opacity=".8">(lewat proyeksi linear)</text>
+              <text x="150" y="88" text-anchor="middle" font-size="10.5" fill="var(--dg-text)" opacity=".8" font-style="italic">36 patch → 36 token</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 7.3.</b> Langkah patchify pada citra nyata: grid 6×6 ini menyederhanakan skema asli ViT-B/16 (grid 14×14 pada citra 224×224) agar tetap mudah dibaca. Setiap kotak diratakan menjadi satu token sebelum masuk ke transformer encoder.
+          <span class="src">Foto: "Cat in Notre Dame college Dhaka" oleh Wasiul Bahar, Wikimedia Commons, lisensi CC BY-SA 4.0. Anotasi grid orisinal COM Computer Vision.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 350" role="img" aria-label="Perbandingan window attention dan shifted window attention pada Swin Transformer: pada lapisan pertama jendela attention tersusun rapi tanpa tumpang tindih, pada lapisan berikutnya jendela digeser setengah ukurannya sehingga token di tepi jendela lama kini berada dalam jendela baru yang sama">
+            <style>
+              .wc  { fill: var(--dg-fill); stroke: var(--dg-grid); stroke-width: .8; }
+              .ww  { fill: none; stroke-width: 2.2; }
+              .wh  { font: 700 11.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .wm  { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+            <defs>
+              <clipPath id="swinClip"><rect x="0" y="0" width="240" height="240"/></clipPath>
+            </defs>
+            <text x="20" y="22" class="wh">Lapisan W-MSA — jendela tetap</text>
+            <g transform="translate(20,34)">
+              <g>
+                <rect class="wc" x="0" y="0" width="240" height="240"/>
+                <g stroke="var(--dg-grid)" stroke-width=".6">
+                  <path d="M30 0v240M60 0v240M90 0v240M120 0v240M150 0v240M180 0v240M210 0v240
+                           M0 30h240M0 60h240M0 90h240M0 120h240M0 150h240M0 180h240M0 210h240"/>
+                </g>
+                <g class="ww" stroke="var(--dg-accent)">
+                  <rect x="0" y="0" width="120" height="120"/>
+                  <rect x="120" y="0" width="120" height="120"/>
+                  <rect x="0" y="120" width="120" height="120"/>
+                  <rect x="120" y="120" width="120" height="120"/>
+                </g>
+              </g>
+              <text x="120" y="262" class="wm" text-anchor="middle">4 jendela terpisah — tidak saling bertukar informasi</text>
+            </g>
+
+            <text x="400" y="22" class="wh">Lapisan SW-MSA — jendela digeser</text>
+            <g transform="translate(400,34)">
+              <g>
+                <rect class="wc" x="0" y="0" width="240" height="240"/>
+                <g stroke="var(--dg-grid)" stroke-width=".6">
+                  <path d="M30 0v240M60 0v240M90 0v240M120 0v240M150 0v240M180 0v240M210 0v240
+                           M0 30h240M0 60h240M0 90h240M0 120h240M0 150h240M0 180h240M0 210h240"/>
+                </g>
+                <g class="ww" stroke="var(--dg-accent-2)" clip-path="url(#swinClip)">
+                  <rect x="60" y="60" width="120" height="120"/>
+                  <rect x="-60" y="60" width="120" height="120"/>
+                  <rect x="60" y="-60" width="120" height="120"/>
+                  <rect x="180" y="60" width="120" height="120"/>
+                  <rect x="60" y="180" width="120" height="120"/>
+                </g>
+              </g>
+              <text x="120" y="262" class="wm" text-anchor="middle">jendela baru menyilang 4 jendela lama — informasi mulai menyebar</text>
+            </g>
+
+            <line x1="20" y1="310" x2="680" y2="310" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="350" y="332" class="wm" text-anchor="middle" font-style="italic">Diulang berselang-seling: W-MSA, SW-MSA, W-MSA, SW-MSA, … — biaya tetap linear, jangkauan tetap meluas.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 7.4.</b> Window attention (W-MSA) dan shifted window attention (SW-MSA) pada Swin Transformer, diselang-seling di tiap lapisan.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Liu et al. (2021), "Swin Transformer: Hierarchical Vision Transformer using Shifted Windows".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 505" role="img" aria-label="Foto jalan raya di Kisumu, Kenya, dengan empat kotak deteksi yang diberi label query untuk mengilustrasikan DETR: setiap object query memprediksi langsung satu objek tanpa proses penyaringan Non-Maximum Suppression">
+            <image href="../assets/img/kisumu-street-traffic.jpg" x="0" y="0" width="760" height="505" preserveAspectRatio="xMidYMid slice"/>
+            <style>
+              .dbox { fill: none; stroke-width: 3; stroke-dasharray: 2 0; }
+              .dlbl { font: 700 11px var(--font-sans, sans-serif); }
+              .dbg  { opacity: .9; }
+            </style>
+            <rect class="dbox" x="0" y="172" width="90" height="214" stroke="#7cf29c"/>
+            <rect class="dbg" x="0" y="160" width="128" height="16" fill="#7cf29c"/>
+            <text x="4" y="172" class="dlbl" fill="#042b0e">query #17 → truk</text>
+
+            <rect class="dbox" x="283" y="272" width="140" height="140" stroke="#5de0ff"/>
+            <rect class="dbg" x="283" y="260" width="118" height="16" fill="#5de0ff"/>
+            <text x="287" y="272" class="dlbl" fill="#00202a">query #42 → van</text>
+
+            <rect class="dbox" x="564" y="285" width="196" height="145" stroke="#c9a6ff"/>
+            <rect class="dbg" x="652" y="273" width="108" height="16" fill="#c9a6ff"/>
+            <text x="656" y="285" class="dlbl" fill="#1c0033">query #73 → mobil</text>
+
+            <rect class="dbox" x="110" y="300" width="175" height="205" stroke="#ff9f45"/>
+            <rect class="dbg" x="110" y="288" width="178" height="16" fill="#ff9f45"/>
+            <text x="114" y="300" class="dlbl" fill="#2a1400">query #91 → pejalan kaki</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 7.5.</b> Ilustrasi keluaran DETR: dari 100 object query yang dipelajari, hanya beberapa yang "menyala" menjadi deteksi — masing-masing langsung satu objek, tanpa anchor box dan tanpa NMS. Bandingkan dengan Figure 6.4 (YOLO) yang menghasilkan banyak kandidat box sebelum disaring. Kotak dan label di sini disusun untuk tujuan ilustrasi, bukan hasil model sungguhan.
+          <span class="src">Foto: "Street traffic and pedestrians in Kisumu, Kenya" oleh Josep M. Gracia, Wikimedia Commons, lisensi CC BY-SA 4.0. Anotasi kotak deteksi orisinal COM Computer Vision.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Mari bandingkan langsung ViT dengan ResNet-50 dari Materi 06 pada satu tugas klasifikasi, memakai model
+        pretrained dari Hugging Face <code>transformers</code> — pustaka yang sama yang mendasari seluruh
+        kurikulum ini.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model</th><th>Parameter</th><th>Ukuran patch / kernel</th><th>Butuh posisi eksplisit?</th></tr></thead>
+          <tbody>
+            <tr><td>ResNet-50 (Materi 06)</td><td>25,6 juta</td><td>kernel 3×3, bergeser</td><td>Tidak — posisi tersirat dari struktur konvolusi</td></tr>
+            <tr><td>ViT-B/16</td><td>86 juta</td><td>patch 16×16, tidak tumpang tindih</td><td>Ya — position embedding eksplisit</td></tr>
+            <tr><td>Swin-T</td><td>29 juta</td><td>patch 4×4 awal, window 7×7</td><td>Ya, tapi relatif per-window (lebih hemat)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <details class="acc">
+        <summary>Setelah memahami arsitekturnya — bentuk kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python · Hugging Face Transformers</span>
+<pre><code>from transformers import ViTImageProcessor, ViTForImageClassification
+from PIL import Image
+
+processor = ViTImageProcessor.from_pretrained("google/vit-base-patch16-224")
+model = ViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
+
+img = Image.open("kucing.jpg")
+inputs = processor(images=img, return_tensors="pt")      # resize + normalisasi + patchify otomatis
+outputs = model(**inputs)
+
+kelas = outputs.logits.argmax(-1).item()
+print(model.config.id2label[kelas])</code></pre>
+          <p style="margin-bottom:0">
+            Perhatikan: tidak ada baris kode yang menulis ulang perhitungan self-attention manual pada bagian 06
+            — <code>processor</code> dan <code>model</code> menanganinya. Tujuan perhitungan manual tadi bukan
+            agar Anda menulis ulang transformer dari nol, melainkan agar Anda tahu persis apa yang terjadi di
+            balik dua baris kode ini.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Backbone klasifikasi skala besar</dt>
+        <dd>ViT dan Swin menjadi backbone umum pada sistem produksi besar yang memiliki data pretraining melimpah, menggantikan ResNet pada banyak lini produk visi Google dan Meta.</dd>
+        <dt>Deteksi objek tanpa post-processing rumit</dt>
+        <dd>DETR dan turunannya dipakai ketika pipeline ingin menghindari tuning ambang NMS yang rapuh dan sulit digeneralisasi antar dataset.</dd>
+        <dt>Segmentasi terpadu</dt>
+        <dd>OneFormer memudahkan tim yang sebelumnya harus memelihara tiga model segmentasi terpisah (semantik, instance, panoptic) menjadi satu model, satu siklus pelatihan dan deployment.</dd>
+        <dt>Vision model di perangkat mobile</dt>
+        <dd>MobileViT membawa manfaat attention ke aplikasi kamera ponsel dan AR tanpa mengorbankan ukuran model, menyambung langsung dari MobileNet di Materi 06.</dd>
+        <dt>Transfer learning dengan data terbatas</dt>
+        <dd>DeiT dan model hasil distilasi serupa memungkinkan tim dengan anggaran data terbatas tetap memakai arsitektur transformer, tanpa perlu dataset sebesar JFT-300M.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "ViT selalu lebih baik daripada CNN."</p>
+        <p style="margin-bottom:0">
+          Hanya benar bila data pretraining-nya sangat besar. Pada dataset kecil-menengah tanpa distilasi atau
+          hybrid conv-attention, CNN sering kali masih menang karena inductive bias-nya membantu generalisasi
+          dengan data terbatas.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Self-attention bisa melihat 'segalanya' tanpa biaya tambahan."</p>
+        <p style="margin-bottom:0">
+          Biayanya kuadratik terhadap jumlah token. Itulah sebabnya Swin, DINAT, dan arsitektur sejenis harus
+          membatasi jangkauan attention secara eksplisit pada citra beresolusi tinggi.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Token [CLS] adalah salah satu patch citra."</p>
+        <p style="margin-bottom:0">
+          Bukan. [CLS] adalah token buatan yang ditambahkan di luar barisan patch, tanpa isi visual apa pun pada
+          awalnya — perannya murni mengumpulkan informasi dari seluruh patch lewat attention sepanjang lapisan
+          encoder.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "DETR tidak memakai konvolusi sama sekali."</p>
+        <p style="margin-bottom:0">
+          DETR tetap memakai backbone CNN (umumnya ResNet) untuk mengekstraksi fitur awal; transformer
+          encoder-decoder bekerja di atas fitur tersebut, bukan langsung pada pixel mentah.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Knowledge distillation hanya membuat model lebih kecil."</p>
+        <p style="margin-bottom:0">
+          Pada DeiT, tujuannya bukan mengecilkan ukuran model (student dan teacher bisa berukuran sebanding),
+          melainkan mentransfer inductive bias dan "cara belajar" dari model guru ke model murid yang arsitekturnya
+          berbeda.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>ViT memecah citra menjadi patch</strong> dan memprosesnya sebagai barisan token lewat transformer encoder standar, memakai position embedding dan token CLS.</li>
+        <li><strong>Tanpa inductive bias CNN, ViT butuh data pretraining sangat besar</strong> (JFT-300M) untuk mengungguli CNN.</li>
+        <li><strong>DeiT memakai knowledge distillation</strong> (distillation token dari guru CNN) agar ViT kompetitif hanya dengan ImageNet-1k.</li>
+        <li><strong>Swin Transformer hierarkis dan membatasi attention ke jendela lokal,</strong> dengan shifted window agar informasi tetap menyebar — penghematan komputasi hingga puluhan kali lipat pada contoh materi ini.</li>
+        <li><strong>CvT dan MobileViT menyisipkan kembali konvolusi</strong> untuk mengembalikan sebagian inductive bias lokal.</li>
+        <li><strong>DINAT membatasi attention ke tetangga terdekat,</strong> dengan dilasi untuk memperluas jangkauan tanpa biaya tambahan — analog dilated convolution.</li>
+        <li><strong>DETR mengubah deteksi objek menjadi set prediction</strong> lewat object queries dan bipartite matching, menghilangkan anchor box dan NMS.</li>
+        <li><strong>OneFormer melatih satu model untuk tiga tugas segmentasi sekaligus</strong> lewat task token.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini berfokus pada penggunaan model Vision Transformer pretrained lewat Hugging Face
+        <code>transformers</code>, serta perbandingan langsung dengan CNN pretrained dari Materi 06.
+      </p>
+      <ul>
+        <li>Google Colab dengan akses GPU, pustaka <code>transformers</code> dan <code>timm</code> terpasang.</li>
+        <li>Dataset kecil yang sama dengan Praktikum 06, agar perbandingan ViT vs ResNet50 apel-ke-apel.</li>
+        <li>Kertas dan kalkulator — bagian self-attention manual pada materi ini sebaiknya dihitung ulang sendiri sebelum praktikum, bukan sekadar dibaca.</li>
+      </ul>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Notebook resmi Hugging Face</p>
+        <p style="margin-bottom:0">
+          Unit 3 kurikulum Hugging Face menyediakan notebook hands-on untuk fine-tuning ViT dan eksperimen
+          dengan DETR. Tautannya tersedia di bagian 13 di bawah.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="https://huggingface.co/learn/computer-vision-course/en/unit3/vision-transformers/vision-transformer-for-image-classification" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Vision Transformer for Image Classification ↗</a>
+        <a class="btn secondary" href="https://huggingface.co/docs/transformers/model_doc/detr" target="_blank" rel="noopener noreferrer">📖 Dokumentasi: DETR ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Ulangi perhitungan self-attention manual pada bagian 06 dengan angka Anda sendiri (ubah nilai token, bukan hanya dua token dengan nilai [1,0] dan [0,1]).</li>
+        <li>Muat <code>google/vit-base-patch16-224</code> lewat <code>transformers</code>, jalankan pada dataset kecil Praktikum 06, dan bandingkan akurasinya dengan ResNet50 hasil fine-tuning.</li>
+        <li>Hitung jumlah patch dan panjang barisan token untuk tiga ukuran citra berbeda (misalnya 160×160, 224×224, 384×384) dengan patch 16×16, lalu hubungkan dengan biaya komputasi self-attention.</li>
+        <li>Visualisasikan attention map dari satu head pada lapisan terakhir ViT (banyak contoh kode tersedia di dokumentasi Hugging Face) dan amati patch mana yang paling diperhatikan token CLS.</li>
+        <li>Tuliskan refleksi: pada dataset kecil Anda, mana yang lebih unggul — ViT, ResNet50, atau Swin? Jelaskan hubungannya dengan inductive bias yang dibahas di bagian 02.</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa ViT memerlukan position embedding eksplisit, sedangkan CNN tidak memerlukan komponen serupa?</li>
+        <li>Pada contoh self-attention manual di bagian 06, apa yang akan terjadi pada bobot attention bila token 1 dan token 2 justru identik (misalnya keduanya [1,0])? Hitung dan jelaskan maknanya.</li>
+        <li>Jelaskan dengan kalimat Anda sendiri mengapa Swin Transformer disebut "hierarkis" sementara ViT standar tidak.</li>
+        <li>DETR menghilangkan NMS sepenuhnya. Berdasarkan apa yang Anda pelajari tentang YOLO di Materi 06, apa trade-off yang masuk akal diperkirakan terjadi akibat perubahan ini?</li>
+        <li>Mengapa knowledge distillation pada DeiT memakai token terpisah (distillation token), bukan sekadar menambahkan loss tambahan pada token CLS yang sudah ada?</li>
+        <li>Bila anggaran data Anda sangat terbatas (ratusan citra per kelas), arsitektur mana dari materi ini yang akan Anda pilih sebagai titik awal, dan mengapa?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit3/vision-transformers/vision-transformer-for-image-classification" target="_blank" rel="noopener noreferrer">Unit 3: Vision Transformers</a>.</li>
+        <li>Dosovitskiy, A. et al. (2020). <a href="https://arxiv.org/abs/2010.11929" target="_blank" rel="noopener noreferrer">An Image is Worth 16×16 Words: Transformers for Image Recognition at Scale</a> (ViT).</li>
+        <li>Carion, N. et al. (2020). <a href="https://arxiv.org/abs/2005.12872" target="_blank" rel="noopener noreferrer">End-to-End Object Detection with Transformers</a> (DETR).</li>
+        <li>Touvron, H. et al. (2021). <a href="https://arxiv.org/abs/2012.12877" target="_blank" rel="noopener noreferrer">Training Data-Efficient Image Transformers &amp; Distillation Through Attention</a> (DeiT).</li>
+        <li>Liu, Z. et al. (2021). <a href="https://arxiv.org/abs/2103.14030" target="_blank" rel="noopener noreferrer">Swin Transformer: Hierarchical Vision Transformer using Shifted Windows</a>.</li>
+        <li>Wu, H. et al. (2021). <a href="https://arxiv.org/abs/2103.15808" target="_blank" rel="noopener noreferrer">CvT: Introducing Convolutions to Vision Transformers</a>.</li>
+        <li>Mehta, S., &amp; Rastegari, M. (2021). <a href="https://arxiv.org/abs/2110.02178" target="_blank" rel="noopener noreferrer">MobileViT: Light-weight, General-purpose, and Mobile-friendly Vision Transformer</a>.</li>
+        <li>Hassani, A., &amp; Shi, H. (2022). <a href="https://arxiv.org/abs/2209.15001" target="_blank" rel="noopener noreferrer">Dilated Neighborhood Attention Transformer</a> (DINAT).</li>
+        <li>Jain, J. et al. (2023). <a href="https://arxiv.org/abs/2211.06220" target="_blank" rel="noopener noreferrer">OneFormer: One Transformer to Rule Universal Image Segmentation</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 
