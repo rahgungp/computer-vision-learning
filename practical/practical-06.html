@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praktikum 06 · Transfer Learning dari ResNet50 — COM Computer Vision</title>
+<meta name="description" content="Praktikum 06 untuk Materi 06: feature extraction dan fine-tuning dengan ResNet50 pretrained ImageNet pada dataset kecil milik sendiri.">
+<link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-base="../" data-page="practical" data-week="06">
+
+<a class="skip-link" href="#content">Lewati ke konten praktikum</a>
+
+<header class="site-header">
+  <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
+  <a class="brand" href="../index.html">
+    <img src="../assets/img/logo-TKOM.png" alt="Logo Program Studi Teknik Komputer Universitas Warmadewa">
+    <span class="brand-text">
+      <span class="brand-name">COM COMPUTER VISION</span>
+      <span class="brand-sub">Teknik Komputer · Universitas Warmadewa</span>
+    </span>
+  </a>
+  <button class="icon-btn nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Buka menu navigasi">⋯</button>
+  <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+    <a href="../index.html">Home</a>
+    <a href="../index.html#daftar-materi">Materi</a>
+    <a href="../about.html">Tentang</a>
+    <a href="../references.html">Referensi</a>
+  </nav>
+  <div class="header-tools">
+    <button class="icon-btn" data-theme-toggle aria-label="Beralih ke mode gelap" title="Mode gelap">☾</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Daftar materi dan navigasi halaman"></aside>
+
+  <main class="content" id="content">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span aria-hidden="true">/</span>
+      <a href="../index.html#daftar-materi">Materi</a><span aria-hidden="true">/</span>
+      <a href="../weeks/week-06.html">Materi 06</a><span aria-hidden="true">/</span>
+      <span>Praktikum</span>
+    </nav>
+
+    <div class="toolbar">
+      <div class="toolbar-main">
+        <span class="eyebrow">🧪 Praktikum 06</span>
+        <h1 class="page-title">Transfer Learning dari ResNet50</h1>
+        <p class="page-sub">Feature extraction dan fine-tuning pada dataset kecil milik sendiri</p>
+        <div class="meta-row">
+          <span class="meta-chip">⏱ 130 menit</span>
+          <span class="meta-chip">🧰 Google Colab (GPU) · TensorFlow/Keras</span>
+          <span class="meta-chip">📖 <a href="../weeks/week-06.html">Materi 06</a></span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn" href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer">▶ Buka Google Colab Baru</a>
+      <a class="btn secondary" href="../weeks/week-06.html">📖 Kembali ke Materi 06</a>
+    </div>
+
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Tujuan Praktikum</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah praktikum ini, mahasiswa mampu:</p>
+        <ul>
+          <li>memuat model pretrained ImageNet (ResNet50) dan membekukannya sebagai feature extractor;</li>
+          <li>memasang dan melatih classifier head baru di atas base model yang beku;</li>
+          <li>melakukan fine-tuning dengan membuka sebagian lapisan teratas dan learning rate kecil;</li>
+          <li>menghitung jumlah parameter yang dibekukan vs dilatih pada setiap tahap;</li>
+          <li>membandingkan akurasi feature extraction murni dengan akurasi setelah fine-tuning.</li>
+        </ul>
+      </div>
+      <div class="callout warn">
+        <p class="callout-title"><span aria-hidden="true">⚠</span> Aktifkan GPU terlebih dahulu</p>
+        <p style="margin-bottom:0">
+          Di Google Colab: <strong>Runtime → Change runtime type → T4 GPU</strong>. Tanpa GPU, pelatihan ResNet50
+          tetap bisa berjalan tetapi jauh lebih lambat.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="langkah0">
+      <h2><span class="step-no">02</span>Langkah 0 — Siapkan dataset kecil</h2>
+      <p>
+        Kumpulkan atau unduh dataset dengan dua sampai lima kelas, minimal 50 citra per kelas, disusun dalam
+        folder per kelas. Dataset publik kecil seperti <em>cats_vs_dogs</em>, <em>tf_flowers</em>, atau
+        <em>rock_paper_scissors</em> dari TensorFlow Datasets juga bisa dipakai bila Anda belum punya dataset
+        sendiri.
+      </p>
+<pre><code>import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
+train_ds = keras.utils.image_dataset_from_directory(
+    "dataset/train", image_size=(224, 224), batch_size=32)
+val_ds = keras.utils.image_dataset_from_directory(
+    "dataset/val", image_size=(224, 224), batch_size=32)
+
+n_kelas = len(train_ds.class_names)
+print("Kelas:", train_ds.class_names)</code></pre>
+    </section>
+
+    <section class="section" id="langkah1">
+      <h2><span class="step-no">03</span>Langkah 1 — Feature extraction: bekukan base model</h2>
+<pre><code>base_model = keras.applications.ResNet50(
+    weights="imagenet", include_top=False, input_shape=(224, 224, 3)
+)
+base_model.trainable = False
+
+preprocess = keras.applications.resnet50.preprocess_input
+
+model = keras.Sequential([
+    layers.Lambda(preprocess),
+    base_model,
+    layers.GlobalAveragePooling2D(),
+    layers.Dropout(0.3),
+    layers.Dense(n_kelas, activation="softmax"),
+])
+model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+history_1 = model.fit(train_ds, validation_data=val_ds, epochs=10)</code></pre>
+      <p>Catat akurasi validasi terbaik pada tahap ini — angka ini menjadi baseline pembanding untuk Langkah 2.</p>
+    </section>
+
+    <section class="section" id="langkah2">
+      <h2><span class="step-no">04</span>Langkah 2 — Fine-tuning: buka lapisan teratas</h2>
+<pre><code>base_model.trainable = True
+for layer in base_model.layers[:-20]:      # bekukan semua KECUALI 20 lapisan teratas
+    layer.trainable = False
+
+model.compile(
+    optimizer=keras.optimizers.Adam(1e-5),  # learning rate 100x lebih kecil dari tahap 1
+    loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+)
+history_2 = model.fit(train_ds, validation_data=val_ds, epochs=5)</code></pre>
+      <div class="callout tip">
+        <p class="callout-title"><span aria-hidden="true">✔</span> Bila akurasi validasi malah turun</p>
+        <p style="margin-bottom:0">
+          Kemungkinan besar learning rate masih terlalu besar, atau jumlah lapisan yang dibuka terlalu banyak
+          untuk ukuran dataset Anda — gejala <em>catastrophic forgetting</em> yang dibahas di Materi 06. Coba
+          turunkan learning rate sekali lagi atau kurangi jumlah lapisan yang dibuka.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="langkah3">
+      <h2><span class="step-no">05</span>Langkah 3 — Hitung parameter beku vs dilatih</h2>
+<pre><code>def hitung_parameter(model):
+    trainable = sum(tf.size(w).numpy() for w in model.trainable_weights)
+    beku      = sum(tf.size(w).numpy() for w in model.non_trainable_weights)
+    print(f"Trainable : {trainable:,}")
+    print(f"Beku      : {beku:,}")
+    print(f"Total     : {trainable + beku:,}")
+
+hitung_parameter(model)</code></pre>
+      <p>
+        Bandingkan hasilnya dengan tabel pada bagian Example di Materi 06, lalu hitung berapa persen dari total
+        25,6 juta parameter ResNet50 yang benar-benar Anda latih pada tahap feature extraction dan pada tahap
+        fine-tuning.
+      </p>
+    </section>
+
+    <section class="section" id="langkah4">
+      <h2><span class="step-no">06</span>Langkah 4 — Bandingkan dan visualisasikan</h2>
+<pre><code>import matplotlib.pyplot as plt
+
+acc_1 = history_1.history["val_accuracy"]
+acc_2 = history_2.history["val_accuracy"]
+
+plt.plot(range(1, len(acc_1) + 1), acc_1, label="Feature extraction")
+plt.plot(range(len(acc_1) + 1, len(acc_1) + len(acc_2) + 1), acc_2, label="Fine-tuning")
+plt.axvline(len(acc_1) + 0.5, color="gray", linestyle="--", label="mulai fine-tuning")
+plt.xlabel("Epoch"); plt.ylabel("Validation accuracy"); plt.legend(); plt.show()</code></pre>
+      <p>
+        Satu grafik ini merangkum keseluruhan praktikum: di mana letak lompatan akurasi setelah fine-tuning
+        dimulai, dan apakah lompatan itu bertahan atau justru menurun di epoch-epoch berikutnya?
+      </p>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Notebook resmi Hugging Face</p>
+        <p>Sebagai pembanding, telusuri dua notebook resmi Unit 2 berikut:</p>
+        <div class="btn-row" style="margin:.4rem 0 0">
+          <a class="btn secondary" href="https://github.com/huggingface/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/transfer_learning_vgg19.ipynb" target="_blank" rel="noopener noreferrer">▶ Transfer Learning with VGG19 ↗</a>
+          <a class="btn secondary" href="https://github.com/huggingface/computer-vision-course/blob/main/notebooks/Unit%202%20-%20Convolutional%20Neural%20Networks/timm_Resnet.ipynb" target="_blank" rel="noopener noreferrer">▶ Using ResNet with timm ↗</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="checklist">
+      <h2><span class="step-no">07</span>Checklist Verifikasi</h2>
+      <ul>
+        <li>Dataset tersusun rapi dalam folder per kelas, minimal 50 citra per kelas.</li>
+        <li>Model feature extraction (base beku) berhasil dilatih dan akurasi validasinya tercatat.</li>
+        <li>Model fine-tuning (20 lapisan teratas terbuka, learning rate 1e-5) berhasil dilatih.</li>
+        <li>Jumlah parameter trainable vs beku dihitung pada kedua tahap.</li>
+        <li>Grafik perbandingan akurasi feature extraction vs fine-tuning sudah dibuat.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="pengumpulan">
+      <h2><span class="step-no">08</span>Pengumpulan &amp; Refleksi</h2>
+      <ol>
+        <li>Berapa persen dari total parameter ResNet50 yang benar-benar Anda latih pada tahap feature extraction? Apakah itu sesuai dugaan Anda?</li>
+        <li>Pada epoch keberapa fine-tuning mulai terlihat membantu, dan pada epoch keberapa (bila ada) justru mulai merugikan?</li>
+        <li>Bila Anda menaikkan learning rate fine-tuning menjadi sama dengan tahap feature extraction (tanpa diperkecil), apa yang Anda perkirakan terjadi? Uji dugaan Anda.</li>
+        <li>Bandingkan hasil ini dengan melatih arsitektur sekecil CNN Materi 05 dari nol pada dataset yang sama. Apa kesimpulan Anda tentang manfaat transfer learning untuk dataset kecil?</li>
+      </ol>
+    </section>
+
+    <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p><strong>COM Computer Vision Learning</strong></p>
+      <p>Program Studi Teknik Komputer · Universitas Warmadewa</p>
+      <p>© <span data-year>2026</span> Tim Pengajar Computer Vision.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigasi footer">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#daftar-materi">Materi</a>
+      <a href="../about.html">Tentang</a>
+      <a href="../references.html">Referensi</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/js/course-config.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/fullscreen.js"></script>
+<script src="../assets/js/progress.js"></script>
+</body>
+</html>

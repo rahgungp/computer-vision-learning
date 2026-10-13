@@ -62,7 +62,7 @@ Seluruh identitas visual, tata letak, kode, dan ilustrasi pada situs ini dibuat 
 - **16 learning modules** — seluruhnya terdaftar sepanjang semester
 - **Theory** — 15 blok terstruktur per materi
 - **Illustration** — 20+ diagram SVG buatan sendiri, ber-theme dan bebas lisensi
-- **Practice** — 5 halaman praktikum + tautan notebook resmi Hugging Face
+- **Practice** — 6 halaman praktikum + tautan notebook resmi Hugging Face
 - **Fullscreen Presentation Mode** — halaman materi dapat dipakai langsung sebagai media mengajar
 - **Dark Mode** — preferensi tersimpan di `localStorage`
 - **Progress** — dihitung hanya terhadap materi yang sudah dibuka
@@ -179,7 +179,7 @@ Bila suatu saat diperlukan proteksi konten yang sesungguhnya (misalnya materi uj
 │   └── week-07.html … week-16.html    Coming Soon (kerangka saja)
 │
 ├── practical/
-│   └── practical-01.html … practical-05.html
+│   └── practical-01.html … practical-06.html
 │
 └── assets/
     ├── css/

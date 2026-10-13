@@ -126,7 +126,7 @@ const courseConfig = {
     unit: "Hugging Face Unit 2 — VGG, GoogLeNet, MobileNet, ConvNeXt, ResNet, YOLO",
     duration: "130 menit",
     updated: "13 Oktober 2026",
-    practical: null,
+    practical: "practical-06.html",
     material: true
   },
 
