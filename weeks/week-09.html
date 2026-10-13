@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Materi 09 · Multimodal Computer Vision — COM Computer Vision</title>
-<meta name="description" content="Materi 09: Multimodal Computer Vision. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<meta name="description" content="Materi 09: Vision-Language Models — CLIP, BLIP, dan OWL-ViT. Contrastive pretraining, image captioning, dan deteksi objek open-vocabulary.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="09">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -50,16 +50,555 @@
         <h1 class="page-title" data-week-title>Multimodal Computer Vision</h1>
         <p class="page-sub" data-week-subtitle>Vision Language Models, CLIP, BLIP, OWL-ViT</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
+          <span class="meta-chip">⏱ <span data-week-duration>120 menit</span></span>
           <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 4</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan gagasan dasar vision-language model: menyatukan citra dan teks dalam satu ruang representasi;</li>
+          <li>menghitung contrastive loss (InfoNCE) secara manual pada contoh pasangan citra-teks berukuran kecil;</li>
+          <li>menjelaskan bagaimana CLIP melakukan klasifikasi zero-shot tanpa fine-tuning sama sekali;</li>
+          <li>membedakan tiga tugas multimodal utama: retrieval, captioning, dan deteksi open-vocabulary;</li>
+          <li>menjelaskan arsitektur BLIP dan strategi CapFilt untuk membersihkan data web yang noisy;</li>
+          <li>menjelaskan bagaimana OWL-ViT mendeteksi objek dari query teks bebas, bukan dari daftar kelas tetap.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Materi 01 sampai 08 seluruhnya berbentuk sama: satu citra masuk, satu keluaran (kelas, box, atau mask)
+        keluar dari daftar kemungkinan yang tetap dan ditentukan sejak pelatihan. Dunia nyata jarang serapi itu.
+        Orang mencari "foto kucing oranye duduk di sofa", bukan memilih dari 1000 kelas ImageNet. Robot gudang
+        diperintah "ambil kotak yang di sebelah kanan rak biru", bukan diberi daftar kelas objek yang sudah
+        ditentukan sebelumnya.
+      </p>
+      <p>
+        Vision-language model menjawab kesenjangan itu dengan ide yang menipu sederhana: proyeksikan citra dan
+        teks ke dalam <strong>satu ruang vektor yang sama</strong>, sedemikian rupa sehingga citra dan kalimat
+        yang "cocok secara makna" memiliki vektor yang berdekatan, dan yang tidak cocok saling menjauh. Begitu
+        ruang itu terbentuk, klasifikasi, pencarian, bahkan deteksi objek berubah menjadi soal geometri sederhana:
+        mengukur jarak atau sudut antar-vektor.
+      </p>
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Satu kalimat yang merangkum seluruh materi ini</p>
+        <p style="margin-bottom:0">
+          CLIP tidak belajar "ini foto kucing" sebagai sebuah label — ia belajar menaruh foto kucing dan kalimat
+          <em>"a photo of a cat"</em> berdekatan di ruang vektor yang sama, dan menjauhkannya dari kalimat
+          <em>"a photo of a dog"</em>. Klasifikasi muncul sebagai efek samping dari kedekatan itu, bukan tujuan
+          yang dilatih langsung.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-07.html">Materi 07</a> — ViT dan self-attention; image encoder CLIP/BLIP/OWL-ViT umumnya berbasis ViT.</li>
+        <li><a href="./week-06.html">Materi 06</a> — transfer learning, sebagai pembanding langsung terhadap zero-shot yang akan dibahas di sini.</li>
+        <li>Dot product dan cosine similarity antar-vektor: <code>cos(u, v) = (u·v) / (‖u‖ ‖v‖)</code>.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model</th><th>Tahun</th><th>Tugas utama</th><th>Gagasan kunci</th></tr></thead>
+          <tbody>
+            <tr><td>CLIP</td><td>2021</td><td>Retrieval, zero-shot classification</td><td>Dual encoder + contrastive pretraining pada 400 juta pasangan citra-teks dari web.</td></tr>
+            <tr><td>BLIP</td><td>2022</td><td>Captioning + retrieval, satu model</td><td>Arsitektur unified understanding-and-generation, dibersihkan lewat strategi CapFilt.</td></tr>
+            <tr><td>OWL-ViT</td><td>2022</td><td>Open-vocabulary object detection</td><td>ViT dengan head deteksi yang dibandingkan terhadap embedding teks query bebas, bukan daftar kelas tetap.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Tiga kategori tugas multimodal</h3>
+      <p>
+        Ketiga model di atas mewakili tiga tugas yang saling melengkapi, bukan tiga pesaing untuk tugas yang
+        sama:
+      </p>
+      <ul>
+        <li><strong>Retrieval</strong> (CLIP) — diberi satu citra, cari teks yang paling cocok dari sekumpulan kandidat, atau sebaliknya.</li>
+        <li><strong>Captioning</strong> (BLIP, mode generatif) — diberi satu citra, hasilkan kalimat deskripsi baru dari nol, kata demi kata.</li>
+        <li><strong>Grounded / open-vocabulary detection</strong> (OWL-ViT) — diberi satu citra dan satu frasa bebas, temukan lokasi objek yang dimaksud, meski frasa itu tidak pernah muncul secara eksplisit pada data pelatihan.</li>
+      </ul>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>CLIP — dua encoder, satu ruang bersama</h3>
+      <p>
+        CLIP (<em>Contrastive Language-Image Pre-training</em>) terdiri atas dua encoder terpisah yang dilatih
+        bersamaan: <strong>image encoder</strong> (ViT atau ResNet) mengubah citra menjadi satu vektor, dan
+        <strong>text encoder</strong> (Transformer) mengubah kalimat menjadi satu vektor berdimensi sama.
+        Pelatihannya memakai satu batch berisi <code>N</code> pasangan citra-teks yang benar-benar berpasangan
+        (misalnya citra dan caption aslinya dari web). Dihitung <code>N × N</code> skor kemiripan (cosine
+        similarity) antara setiap citra dan setiap teks dalam batch. Hanya <code>N</code> pasangan pada diagonal
+        yang "benar"; sisanya, <code>N² − N</code> pasangan, dianggap salah.
+      </p>
+      <p>
+        Loss-nya (<em>InfoNCE</em>, dibahas dengan angka pada bagian 06) mendorong skor pada diagonal menjadi
+        tinggi dan skor di luar diagonal menjadi rendah — persis seperti softmax klasifikasi biasa, hanya saja
+        "kelas"-nya adalah "yang mana pasangan yang benar dalam batch ini", bukan label tetap. Karena labelnya
+        muncul secara alami dari pasangan citra-caption yang sudah ada di web, CLIP tidak memerlukan anotasi
+        manual sama sekali.
+      </p>
+
+      <h3>Zero-shot classification: efek samping yang mengubah segalanya</h3>
+      <p>
+        Setelah dilatih, CLIP dapat mengklasifikasikan citra ke kelas <em>apa pun</em> tanpa dilatih ulang sama
+        sekali. Caranya: ubah setiap nama kelas menjadi kalimat template, misalnya <code>"a photo of a
+        {class}"</code>, encode seluruh kalimat itu dengan text encoder, lalu bandingkan embedding citra baru
+        dengan seluruh embedding teks tersebut — kelas dengan cosine similarity tertinggi adalah prediksinya.
+        Bandingkan dengan transfer learning di Materi 06: fine-tuning tetap memerlukan data berlabel dan proses
+        pelatihan tambahan; zero-shot classification CLIP tidak memerlukan keduanya. Harganya: akurasi zero-shot
+        pada domain yang sangat spesifik sering kali masih kalah dari model yang di-fine-tune langsung pada
+        domain tersebut.
+      </p>
+
+      <h3>BLIP — satu model, tiga mode</h3>
+      <p>
+        BLIP (<em>Bootstrapped Language-Image Pretraining</em>) dirancang agar satu arsitektur dapat dipakai
+        untuk pemahaman (retrieval) <em>dan</em> penghasilan teks (captioning) sekaligus, lewat tiga mode
+        fungsional yang berbagi sebagian besar bobot:
+      </p>
+      <ol>
+        <li><strong>Unimodal encoder</strong> — melatih citra dan teks terpisah dengan contrastive loss, mirip CLIP.</li>
+        <li><strong>Image-grounded text encoder</strong> — menerima citra dan teks bersamaan untuk tugas <em>image-text matching</em>: cocok atau tidak.</li>
+        <li><strong>Image-grounded text decoder</strong> — menghasilkan caption baru kata demi kata, dilatih dengan language modeling loss.</li>
+      </ol>
+      <p>
+        Masalah terbesar pelatihan pada data web adalah caption yang berisik — alt-text asal-asalan, caption
+        yang tidak relevan dengan isi citra. BLIP mengatasinya dengan <strong>CapFilt</strong>: sebuah
+        <em>captioner</em> menghasilkan caption sintetis baru untuk citra yang caption aslinya meragukan, lalu
+        sebuah <em>filter</em> membuang pasangan citra-teks (asli maupun sintetis) yang dinilai tidak cocok.
+        Hasilnya adalah dataset yang jauh lebih bersih tanpa perlu anotasi manusia tambahan.
+      </p>
+
+      <h3>OWL-ViT — deteksi objek tanpa daftar kelas tetap</h3>
+      <p>
+        Ingat dari Materi 06 dan 07: YOLO dan DETR dilatih untuk mendeteksi sejumlah kelas yang <strong>tetap
+        dan ditentukan sejak awal</strong> (misalnya 80 kelas COCO). Menambah satu kelas baru berarti melatih
+        ulang. OWL-ViT (<em>Open-World Localization ViT</em>) mengganti classifier head ViT biasa dengan head
+        deteksi yang membandingkan setiap embedding region citra terhadap embedding teks dari query bebas —
+        persis mekanisme yang dipakai CLIP untuk zero-shot classification, hanya kini diterapkan per-region,
+        bukan per-citra utuh. Konsekuensinya: Anda dapat meminta model mendeteksi <em>"bajaj oranye"</em> atau
+        <em>"orang yang mengendarai sepeda"</em> — frasa yang tidak pernah menjadi kelas eksplisit saat pelatihan
+        — dan model tetap dapat mencoba menemukan lokasinya.
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>Contrastive loss (InfoNCE) dihitung manual</h3>
+      <p>
+        Misalkan satu batch berisi dua pasangan citra-teks yang sudah diencode menjadi vektor satuan (sudah
+        dinormalisasi), berdimensi 2:
+      </p>
+      <div class="matrix-row">
+        <div>
+          <span class="matrix-cap">Citra (I₁, I₂)</span>
+          <div class="matrix" style="grid-template-columns: repeat(2, auto)" role="img" aria-label="I1 berisi 1 0, I2 berisi 0 1">
+            <span>1</span><span>0</span>
+            <span>0</span><span>1</span>
+          </div>
+        </div>
+        <div>
+          <span class="matrix-cap">Teks (T₁, T₂)</span>
+          <div class="matrix" style="grid-template-columns: repeat(2, auto)" role="img" aria-label="T1 berisi 0,9 0,436, T2 berisi 0,436 0,9">
+            <span>0,9</span><span>0,436</span>
+            <span>0,436</span><span>0,9</span>
+          </div>
+        </div>
+      </div>
+      <pre><code>Langkah 1 — matriks kemiripan (cosine similarity, vektor sudah satuan jadi cukup dot product):
+                T1       T2
+  I1   [  0,900 ,  0,436 ]
+  I2   [  0,436 ,  0,900 ]
+
+Langkah 2 — softmax tiap baris (arah citra→teks):
+  baris I1: softmax([0,900 , 0,436]) = [0,614 , 0,386]
+  baris I2: softmax([0,436 , 0,900]) = [0,386 , 0,614]
+
+Langkah 3 — loss = −log(probabilitas pasangan yang benar, yaitu posisi diagonal):
+  loss(I1→T1) = −log(0,614) = 0,488
+  loss(I2→T2) = −log(0,614) = 0,488
+  rata-rata loss citra→teks = 0,488
+
+(Langkah yang sama diulang untuk arah teks→citra, lalu dirata-rata dengan hasil di atas —
+ inilah sebabnya InfoNCE pada CLIP disebut "symmetric loss".)</code></pre>
+      <p>
+        Bacalah maknanya: pasangan yang benar (diagonal) sudah mendapat probabilitas 61,4% — lebih tinggi
+        daripada pasangan yang salah (38,6%), tetapi belum sempurna. Pelatihan mendorong angka 0,900 pada
+        diagonal mendekati 1 dan angka 0,436 di luar diagonal mendekati 0, sehingga loss terus mengecil.
+      </p>
+
+      <h3>Zero-shot classification dihitung manual</h3>
+      <p>
+        Satu embedding citra <code>I = [1, 0]</code> dibandingkan terhadap tiga kandidat kelas, dengan logit
+        scale <code>s = 10</code> (CLIP sungguhan memakai skala yang dipelajari, umumnya sekitar 100):
+      </p>
+      <pre><code>Kandidat teks           cos similarity    × skala (s=10)
+"a photo of a cat"          0,950              9,50
+"a photo of a dog"          0,600              6,00
+"a photo of a car"          0,100              1,00
+
+softmax([9,50 , 6,00 , 1,00]) ≈ [0,970 , 0,029 , 0,0002]
+
+Prediksi: "a photo of a cat"  (keyakinan ≈ 97,0%)</code></pre>
+      <p>
+        Perhatikan peran logit scale <code>s</code>: tanpa pengali ini, selisih 0,950 vs 0,600 menghasilkan
+        distribusi yang jauh lebih landai. Logit scale yang besar membuat CLIP "percaya diri" pada prediksinya —
+        ini salah satu parameter yang ikut dipelajari selama pretraining, bukan dipilih manual.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 320" role="img" aria-label="Arsitektur CLIP: image encoder mengubah citra menjadi vektor, text encoder mengubah teks menjadi vektor, keduanya diproyeksikan ke ruang embedding bersama, lalu dihitung matriks kemiripan N kali N antara seluruh citra dan seluruh teks dalam satu batch">
+            <defs>
+              <marker id="arC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .cb  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .cb2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.4; }
+              .cd  { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .cl  { stroke: var(--dg-stroke); stroke-width: 1.6; fill: none; marker-end: url(#arC); }
+              .ch  { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .cm  { font: 9.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+
+            <text x="16" y="20" class="ch">Batch citra</text>
+            <g transform="translate(16,30)">
+              <rect class="cd" x="0" y="0" width="48" height="36" rx="4"/><text x="24" y="23" class="cm" text-anchor="middle">🐱</text>
+              <rect class="cd" x="0" y="42" width="48" height="36" rx="4"/><text x="24" y="65" class="cm" text-anchor="middle">🐶</text>
+            </g>
+            <path d="M72 56 h26" class="cl"/>
+            <g transform="translate(104,20)">
+              <rect class="cb" x="0" y="0" width="100" height="72" rx="5"/>
+              <text x="50" y="30" class="cm" text-anchor="middle">Image</text>
+              <text x="50" y="44" class="cm" text-anchor="middle">Encoder</text>
+              <text x="50" y="60" class="cm" text-anchor="middle" font-style="italic">(ViT / ResNet)</text>
+            </g>
+            <path d="M212 56 h26" class="cl"/>
+            <g transform="translate(244,24)">
+              <rect class="cd" x="0" y="0" width="60" height="26" rx="3"/><text x="30" y="18" class="cm" text-anchor="middle">I₁</text>
+              <rect class="cd" x="0" y="38" width="60" height="26" rx="3"/><text x="30" y="56" class="cm" text-anchor="middle">I₂</text>
+            </g>
+
+            <text x="16" y="150" class="ch">Batch teks</text>
+            <g transform="translate(16,160)">
+              <rect class="cd" x="0" y="0" width="80" height="36" rx="4"/><text x="40" y="23" class="cm" text-anchor="middle" style="font-size:8.5px">"a photo of a cat"</text>
+              <rect class="cd" x="0" y="42" width="80" height="36" rx="4"/><text x="40" y="65" class="cm" text-anchor="middle" style="font-size:8.5px">"a photo of a dog"</text>
+            </g>
+            <path d="M104 186 h26" class="cl"/>
+            <g transform="translate(136,150)">
+              <rect class="cb2" x="0" y="0" width="100" height="72" rx="5"/>
+              <text x="50" y="30" class="cm" text-anchor="middle">Text</text>
+              <text x="50" y="44" class="cm" text-anchor="middle">Encoder</text>
+              <text x="50" y="60" class="cm" text-anchor="middle" font-style="italic">(Transformer)</text>
+            </g>
+            <path d="M244 186 h26" class="cl"/>
+            <g transform="translate(276,154)">
+              <rect class="cd" x="0" y="0" width="60" height="26" rx="3"/><text x="30" y="18" class="cm" text-anchor="middle">T₁</text>
+              <rect class="cd" x="0" y="38" width="60" height="26" rx="3"/><text x="30" y="56" class="cm" text-anchor="middle">T₂</text>
+            </g>
+
+            <path d="M336 70 L 420 150" class="cl" marker-end="none" stroke-dasharray="2 3"/>
+            <path d="M336 186 L 420 160" class="cl" marker-end="none" stroke-dasharray="2 3"/>
+
+            <g transform="translate(440,80)">
+              <text x="130" y="0" class="ch" text-anchor="middle">Matriks kemiripan (N × N)</text>
+              <rect x="40" y="14" width="80" height="34" class="cb" /><text x="80" y="35" class="cm" text-anchor="middle">T₁</text>
+              <rect x="120" y="14" width="80" height="34" class="cb" /><text x="160" y="35" class="cm" text-anchor="middle">T₂</text>
+              <rect x="0" y="48" width="40" height="34" class="cd"/><text x="20" y="69" class="cm" text-anchor="middle">I₁</text>
+              <rect x="0" y="82" width="40" height="34" class="cd"/><text x="20" y="103" class="cm" text-anchor="middle">I₂</text>
+
+              <rect x="40" y="48" width="80" height="34" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="2.4"/>
+              <text x="80" y="69" class="cm" text-anchor="middle" style="font-weight:700">0,900</text>
+              <rect x="120" y="48" width="80" height="34" class="cd"/><text x="160" y="69" class="cm" text-anchor="middle">0,436</text>
+              <rect x="40" y="82" width="80" height="34" class="cd"/><text x="80" y="103" class="cm" text-anchor="middle">0,436</text>
+              <rect x="120" y="82" width="80" height="34" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="2.4"/>
+              <text x="160" y="103" class="cm" text-anchor="middle" style="font-weight:700">0,900</text>
+
+              <text x="110" y="136" class="cm" text-anchor="middle">diagonal (kotak oranye) = pasangan yang benar</text>
+            </g>
+
+            <line x1="16" y1="256" x2="724" y2="256" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="370" y="278" class="cm" text-anchor="middle">Contrastive loss mendorong nilai diagonal naik mendekati 1, nilai di luar diagonal turun mendekati 0.</text>
+            <text x="370" y="296" class="cm" text-anchor="middle" font-style="italic">Angka pada diagram ini sama persis dengan contoh hitungan manual pada bagian 06.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 9.1.</b> Arsitektur CLIP: dual encoder memproyeksikan citra dan teks ke ruang embedding bersama, dilatih lewat matriks kemiripan N×N.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Radford et al. (2021), "Learning Transferable Visual Models From Natural Language Supervision".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 700 620" role="img" aria-label="Foto potret kucing dibandingkan dengan tiga kandidat teks pada CLIP zero-shot classification: a photo of a cat, a photo of a dog, a photo of a car, dengan skor kemiripan dalam bentuk diagram batang, menunjukkan a photo of a cat sebagai prediksi dengan keyakinan tertinggi">
+            <image href="../assets/img/cat-patch-demo.jpg" x="0" y="0" width="700" height="500" preserveAspectRatio="xMidYMid slice"/>
+            <g transform="translate(20,520)">
+              <style>
+                .zh { font: 700 12px var(--font-sans, sans-serif); fill: var(--dg-text); }
+                .zm { font: 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .85; }
+                .zf { font: 10.5px monospace; fill: var(--dg-accent); font-weight: 700; }
+              </style>
+              <text x="0" y="0" class="zh">CLIP zero-shot — tanpa fine-tuning sama sekali:</text>
+
+              <text x="0" y="26" class="zm">"a photo of a cat"</text>
+              <rect x="190" y="14" width="430" height="16" rx="3" fill="var(--dg-fill-3)" stroke="var(--dg-accent-2)" stroke-width="1.4"/>
+              <text x="630" y="26" class="zf">0,970</text>
+
+              <text x="0" y="52" class="zm">"a photo of a dog"</text>
+              <rect x="190" y="40" width="13" height="16" rx="3" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1"/>
+              <text x="630" y="52" class="zf" style="fill:var(--dg-text);opacity:.7">0,029</text>
+
+              <text x="0" y="78" class="zm">"a photo of a car"</text>
+              <rect x="190" y="66" width="1" height="16" rx="1" fill="var(--dg-fill-2)" stroke="var(--dg-accent)" stroke-width="1"/>
+              <text x="630" y="78" class="zf" style="fill:var(--dg-text);opacity:.7">0,0002</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 9.2.</b> Ilustrasi klasifikasi zero-shot: citra tidak pernah dilatih khusus untuk tugas ini, prediksi muncul murni dari kedekatan embedding citra dengan embedding tiap kandidat teks. Angka mengikuti contoh hitungan manual pada bagian 06.
+          <span class="src">Foto: "Cat in Notre Dame college Dhaka" oleh Wasiul Bahar, Wikimedia Commons, lisensi CC BY-SA 4.0. Diagram skor orisinal COM Computer Vision.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 505" role="img" aria-label="Foto jalan raya di Kisumu, Kenya, dengan dua kotak deteksi hasil query teks bebas pada OWL-ViT: bajaj oranye dan orang mengendarai sepeda, menunjukkan deteksi objek open vocabulary tanpa daftar kelas tetap">
+            <image href="../assets/img/kisumu-street-traffic.jpg" x="0" y="0" width="760" height="505" preserveAspectRatio="xMidYMid slice"/>
+            <style>
+              .obox { fill: none; stroke-width: 3; }
+              .olbl { font: 700 11px var(--font-sans, sans-serif); }
+              .obg  { opacity: .92; }
+            </style>
+            <rect class="obox" x="552" y="285" width="80" height="130" stroke="#ff9f45"/>
+            <rect class="obg" x="552" y="440" width="190" height="34" fill="#ff9f45"/>
+            <text x="558" y="458" class="olbl" fill="#2a1400">query: "bajaj oranye"</text>
+            <text x="558" y="472" class="olbl" fill="#2a1400" style="font-weight:400;font-size:9.5px">skor kecocokan teks: 0,88</text>
+
+            <rect class="obox" x="440" y="285" width="60" height="155" stroke="#5de0ff"/>
+            <rect class="obg" x="440" y="20" width="250" height="34" fill="#5de0ff"/>
+            <text x="446" y="38" class="olbl" fill="#00202a">query: "orang mengendarai sepeda"</text>
+            <text x="446" y="52" class="olbl" fill="#00202a" style="font-weight:400;font-size:9.5px">skor kecocokan teks: 0,84</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 9.3.</b> Ilustrasi OWL-ViT: lokasi objek ditemukan dari frasa bebas yang ditulis saat inferensi, bukan dari daftar kelas yang ditentukan saat pelatihan. Bandingkan dengan Figure 6.4 (YOLO, kelas tetap) dan Figure 7.5 (DETR, kelas tetap) — ketiganya dicocokkan pada foto yang sama. Kotak dan skor di sini disusun untuk tujuan ilustrasi, bukan hasil model sungguhan.
+          <span class="src">Foto: "Street traffic and pedestrians in Kisumu, Kenya" oleh Josep M. Gracia, Wikimedia Commons, lisensi CC BY-SA 4.0. Anotasi orisinal COM Computer Vision.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Mari jalankan zero-shot classification sungguhan memakai CLIP pretrained dari Hugging Face
+        <code>transformers</code>, pada foto kucing yang sama dengan Figure 9.2.
+      </p>
+      <details class="acc">
+        <summary>Lihat kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python · Hugging Face Transformers</span>
+<pre><code>from transformers import CLIPProcessor, CLIPModel
+from PIL import Image
+
+model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+
+img = Image.open("kucing.jpg")
+kandidat = ["a photo of a cat", "a photo of a dog", "a photo of a car"]
+
+inputs = processor(text=kandidat, images=img, return_tensors="pt", padding=True)
+outputs = model(**inputs)
+
+probs = outputs.logits_per_image.softmax(dim=1)   # logit_scale sudah termasuk di dalamnya
+for teks, p in zip(kandidat, probs[0]):
+    print(f"{teks:<25} {p.item():.3f}")</code></pre>
+          <p style="margin-bottom:0">
+            Tidak ada <code>model.fit()</code> sama sekali pada kode ini — seluruh "klasifikasi" terjadi lewat
+            perbandingan embedding yang sudah dipelajari saat pretraining. Ini perbedaan paling mendasar dengan
+            Praktikum 06 dan 07, yang keduanya tetap memerlukan tahap fine-tuning.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Pencarian visual berbasis teks</dt>
+        <dd>Mesin pencari gambar (termasuk fitur di balik Google Lens dan pencarian foto di galeri ponsel) memakai embedding gaya CLIP agar kueri teks bebas dapat menemukan foto yang relevan.</dd>
+        <dt>Teks alternatif otomatis untuk aksesibilitas</dt>
+        <dd>Model captioning seperti BLIP menghasilkan deskripsi citra untuk pembaca layar, membantu pengguna tunanetra mengakses konten visual di web.</dd>
+        <dt>Moderasi dan pelabelan konten skala besar</dt>
+        <dd>Zero-shot classification memungkinkan platform mendeteksi kategori konten baru tanpa menunggu proses pelabelan dan pelatihan ulang.</dd>
+        <dt>Robotika dan grounding bahasa</dt>
+        <dd>Perintah bahasa alami ("ambil cangkir merah di sebelah kiri") memerlukan model yang dapat menghubungkan frasa bebas dengan lokasi objek — tepat yang dilakukan OWL-ViT.</dd>
+        <dt>E-commerce dan katalog produk</dt>
+        <dd>Pencarian produk lewat foto sekaligus filter teks ("sepatu lari warna biru") memanfaatkan ruang embedding bersama citra-teks.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "CLIP adalah classifier dengan daftar kelas tetap, seperti ResNet."</p>
+        <p style="margin-bottom:0">
+          Sebaliknya — CLIP tidak memiliki daftar kelas sama sekali saat pelatihan. Kelas apa pun bisa diajukan
+          saat inferensi, cukup dengan menuliskannya sebagai kalimat.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "BLIP hanya bisa membuat caption."</p>
+        <p style="margin-bottom:0">
+          BLIP menggabungkan tiga mode: contrastive retrieval (seperti CLIP), image-text matching, dan
+          captioning generatif — satu arsitektur untuk understanding <em>dan</em> generation.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Contrastive learning memerlukan label kelas seperti pelatihan biasa."</p>
+        <p style="margin-bottom:0">
+          Tidak. Satu-satunya "label" yang dibutuhkan adalah informasi pasangan mana yang cocok dalam satu batch
+          — informasi ini muncul alami dari pasangan citra-caption yang sudah ada di web, tanpa anotasi manusia.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "OWL-ViT perlu dilatih ulang setiap kali ada kelas objek baru."</p>
+        <p style="margin-bottom:0">
+          Justru itulah inti open-vocabulary detection: kelas baru cukup ditulis sebagai query teks saat
+          inferensi, tanpa mengubah bobot model sama sekali.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Zero-shot classification selalu lebih baik daripada model fine-tuned."</p>
+        <p style="margin-bottom:0">
+          Tidak selalu. Pada domain yang sangat spesifik dan sempit (misalnya mengenali varian produk tertentu),
+          model yang di-fine-tune langsung pada data domain tersebut (Materi 06) sering kali masih lebih akurat.
+          Zero-shot unggul ketika data berlabel tidak tersedia atau kelasnya sangat terbuka.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Vision-language model menyatukan citra dan teks</strong> dalam satu ruang vektor, mengubah klasifikasi dan pencarian menjadi soal kedekatan vektor.</li>
+        <li><strong>CLIP dilatih dengan contrastive loss</strong> pada pasangan citra-teks dari web, tanpa memerlukan label kelas manual.</li>
+        <li><strong>Zero-shot classification adalah efek samping dari ruang embedding bersama,</strong> bukan tujuan yang dilatih langsung — kelas baru cukup ditulis sebagai kalimat.</li>
+        <li><strong>BLIP menggabungkan retrieval dan captioning</strong> dalam satu arsitektur, dibersihkan lewat strategi CapFilt untuk mengatasi data web yang noisy.</li>
+        <li><strong>OWL-ViT memperluas mekanisme zero-shot CLIP ke level region,</strong> menghasilkan deteksi objek open-vocabulary tanpa daftar kelas tetap.</li>
+        <li><strong>Logit scale menentukan "keyakinan"</strong> distribusi zero-shot — parameter yang ikut dipelajari, bukan dipilih manual.</li>
+        <li><strong>Zero-shot bukan pengganti mutlak fine-tuning</strong> dari Materi 06 — keduanya punya domain keunggulan masing-masing.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini berfokus pada eksperimen langsung dengan CLIP pretrained, tanpa proses pelatihan
+        sama sekali — berbeda dari seluruh praktikum sebelumnya.
+      </p>
+      <ul>
+        <li>Google Colab (GPU opsional — CLIP inferensi cukup ringan untuk CPU).</li>
+        <li>Pustaka <code>transformers</code> dan <code>Pillow</code>.</li>
+        <li>Beberapa foto milik sendiri dengan subjek yang beragam, untuk diuji dengan berbagai kalimat kandidat.</li>
+      </ul>
+      <div class="callout">
+        <p class="callout-title"><span aria-hidden="true">📌</span> Notebook resmi Hugging Face</p>
+        <p style="margin-bottom:0">
+          Unit 4 kurikulum Hugging Face menyediakan notebook hands-on untuk CLIP dan model multimodal lainnya.
+          Tautannya tersedia di bagian 13 di bawah.
+        </p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="https://huggingface.co/learn/computer-vision-course/en/unit4/multimodal-models/clip" target="_blank" rel="noopener noreferrer">📖 Baca sumber: CLIP ↗</a>
+        <a class="btn secondary" href="https://huggingface.co/docs/transformers/model_doc/owlvit" target="_blank" rel="noopener noreferrer">📖 Dokumentasi: OWL-ViT ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Ulangi perhitungan contrastive loss manual pada bagian 06 dengan angka Anda sendiri, lalu verifikasi dengan kode NumPy.</li>
+        <li>Jalankan CLIP zero-shot classification pada lima foto milik sendiri dengan minimal lima kandidat kelas, termasuk kelas yang sengaja tidak relevan.</li>
+        <li>Uji sensitivitas template kalimat: bandingkan hasil memakai <code>"{class}"</code> saja vs <code>"a photo of a {class}"</code> — amati perbedaan skor kemiripannya.</li>
+        <li>Jalankan OWL-ViT pada satu foto berisi banyak objek dengan query teks bebas yang tidak termasuk kelas COCO standar (misalnya nama objek spesifik di sekitar Anda).</li>
+        <li>Tuliskan refleksi: pada kasus apa zero-shot CLIP/OWL-ViT yang baru saja Anda coba terlihat gagal, dan mengapa hal itu masuk akal mengingat cara model ini dilatih?</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa CLIP tidak memerlukan anotasi label kelas manual, sementara ResNet pada Materi 06 memerlukannya?</li>
+        <li>Pada contoh contrastive loss manual di bagian 06, apa yang akan terjadi pada loss bila T1 dan T2 justru identik? Hitung dan jelaskan implikasinya terhadap pelatihan.</li>
+        <li>Jelaskan dengan kalimat Anda sendiri mengapa zero-shot classification CLIP disebut "efek samping" dari contrastive pretraining, bukan tujuan yang dilatih langsung.</li>
+        <li>Bandingkan OWL-ViT dengan YOLO (Materi 06): dalam skenario apa Anda akan memilih salah satunya, dan mengapa?</li>
+        <li>CapFilt pada BLIP membuang pasangan citra-teks yang dianggap tidak cocok. Risiko apa yang mungkin muncul bila filter ini terlalu agresif membuang data?</li>
+        <li>Sebuah startup ingin mengenali 500 jenis komponen elektronik dari foto, tetapi hanya memiliki 10 foto berlabel per jenis. Akankah Anda merekomendasikan zero-shot CLIP, fine-tuning seperti Materi 06, atau kombinasi keduanya? Jelaskan alasannya.</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit4/multimodal-models/clip" target="_blank" rel="noopener noreferrer">Unit 4: Multimodal Models</a>.</li>
+        <li>Radford, A. et al. (2021). <a href="https://arxiv.org/abs/2103.00020" target="_blank" rel="noopener noreferrer">Learning Transferable Visual Models From Natural Language Supervision</a> (CLIP).</li>
+        <li>Li, J. et al. (2022). <a href="https://arxiv.org/abs/2201.12086" target="_blank" rel="noopener noreferrer">BLIP: Bootstrapping Language-Image Pre-training for Unified Vision-Language Understanding and Generation</a>.</li>
+        <li>Minderer, M. et al. (2022). <a href="https://arxiv.org/abs/2205.06230" target="_blank" rel="noopener noreferrer">Simple Open-Vocabulary Object Detection with Vision Transformers</a> (OWL-ViT).</li>
+        <li>Dokumentasi Hugging Face: <a href="https://huggingface.co/docs/transformers/model_doc/clip" target="_blank" rel="noopener noreferrer">CLIP</a> dan <a href="https://huggingface.co/docs/transformers/model_doc/owlvit" target="_blank" rel="noopener noreferrer">OWL-ViT</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 

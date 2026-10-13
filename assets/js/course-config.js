@@ -174,10 +174,10 @@ const courseConfig = {
       "Menjelaskan peran loss function pada model multimodal"
     ],
     unit: "Hugging Face Unit 4 — Multimodal Models",
-    duration: "110 menit",
-    updated: "—",
-    practical: null,
-    material: false
+    duration: "120 menit",
+    updated: "13 Oktober 2026",
+    practical: "practical-09.html",
+    material: true
   },
 
   week10: {

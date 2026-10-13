@@ -53,9 +53,12 @@ Seluruh **diagram konsep** pada situs ini adalah SVG orisinal yang ditulis langs
 | 7.4 | week-07 | Window attention vs shifted window attention (Swin) |
 | 7.5 | week-07 | Foto nyata + anotasi object query orisinal (ilustrasi DETR) |
 | 8.1 | week-08 | Diagram batang ilustratif pembobotan UTS per materi |
+| 9.1 | week-09 | Arsitektur CLIP: dual encoder + matriks kemiripan N×N |
+| 9.2 | week-09 | Foto nyata (dipakai ulang dari 7.3) + skor zero-shot classification orisinal |
+| 9.3 | week-09 | Foto nyata (dipakai ulang dari 6.4/7.5) + anotasi query OWL-ViT orisinal |
 | — | index | Ilustrasi hero: pixel → operasi → representasi |
 
-Figure 1.1–7.2 dan 7.4 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–3) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, dan 7.5 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
+Figure 1.1–7.2, 7.4, 8.1, dan 9.1 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–4) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, 7.5, 9.2, dan 9.3 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap; foto kucing dan foto jalan raya dipakai ulang lintas-materi (06, 07, 09) untuk membangun perbandingan visual yang konsisten antar-arsitektur. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
 
 ## Bila kelak menambahkan gambar eksternal
 
