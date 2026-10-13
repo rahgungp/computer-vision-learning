@@ -60,9 +60,13 @@ Seluruh **diagram konsep** pada situs ini adalah SVG orisinal yang ditulis langs
 | 10.2 | week-10 | Permainan adversarial GAN (Generator vs Discriminator) |
 | 10.3 | week-10 | Cycle-consistency pada CycleGAN |
 | 10.4 | week-10 | Foto nyata (dipakai ulang dari 7.3) + filter noise SVG orisinal (ilustrasi forward diffusion) |
+| 11.1 | week-11 | Anatomi pipeline detektor objek |
+| 11.2 | week-11 | Foto nyata (dipakai ulang dari 6.4/7.5/9.3) + visualisasi IoU orisinal |
+| 11.3 | week-11 | Perbandingan semantic, instance, dan panoptic segmentation |
+| 11.4 | week-11 | Kurva precision-recall dan Average Precision |
 | — | index | Ilustrasi hero: pixel → operasi → representasi |
 
-Figure 1.1–7.2, 7.4, 8.1, 9.1, dan 10.1–10.3 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–5) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, 7.5, 9.2, 9.3, dan 10.4 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap; foto kucing dan foto jalan raya dipakai ulang lintas-materi (06, 07, 09, 10) untuk membangun perbandingan visual yang konsisten antar-arsitektur. Figure 10.4 memakai filter SVG <code>feTurbulence</code> bawaan browser untuk mensimulasikan noise, bukan hasil proses diffusion sungguhan. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
+Figure 1.1–7.2, 7.4, 8.1, 9.1, 10.1–10.3, dan 11.1, 11.3, 11.4 seluruhnya SVG orisinal, disusun berdasarkan penjelasan konseptual pada Hugging Face Community Computer Vision Course (Unit 1–6) serta paper arsitektur terkait. Figure 6.4, 6.5, 7.3, 7.5, 9.2, 9.3, 10.4, dan 11.2 memakai foto nyata berlisensi bebas dari Wikimedia Commons (lihat tabel berkas gambar di atas) — disimpan lokal, bukan hotlink, dengan atribusi lengkap; foto kucing dan foto jalan raya dipakai ulang lintas-materi (06, 07, 09, 10, 11) untuk membangun perbandingan visual yang konsisten antar-arsitektur. Figure 10.4 memakai filter SVG <code>feTurbulence</code> bawaan browser untuk mensimulasikan noise, bukan hasil proses diffusion sungguhan. Tidak ada gambar yang diambil langsung dari hasil pencarian Google.
 
 ## Bila kelak menambahkan gambar eksternal
 

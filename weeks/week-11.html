@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Materi 11 · Basic Computer Vision Tasks — COM Computer Vision</title>
-<meta name="description" content="Materi 11: Basic Computer Vision Tasks. Materi ini belum tersedia dan akan dibuka sesuai jadwal perkuliahan.">
+<meta name="description" content="Materi 11: pendalaman formal object detection dan image segmentation — anatomi detektor, format anotasi, IoU, mAP, dan mIoU.">
 <link rel="icon" href="../assets/img/logo-TKOM.png" type="image/png">
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body data-base="../" data-page="week" data-week="11">
 
-<a class="skip-link" href="#content">Lewati ke konten</a>
+<a class="skip-link" href="#content">Lewati ke konten materi</a>
 
 <header class="site-header">
   <button class="icon-btn sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar materi">☰</button>
@@ -50,16 +50,570 @@
         <h1 class="page-title" data-week-title>Basic Computer Vision Tasks</h1>
         <p class="page-sub" data-week-subtitle>Object detection dan image segmentation secara formal</p>
         <div class="meta-row">
-          <span class="meta-chip badge locked">🔒 Coming Soon</span>
+          <span class="meta-chip">⏱ <span data-week-duration>120 menit</span></span>
           <span class="meta-chip">📚 <span data-week-unit>Hugging Face Unit 6</span></span>
+          <span class="meta-chip">🗓 Diperbarui <span data-week-updated>—</span></span>
         </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn secondary" data-fullscreen-toggle aria-label="Enter fullscreen presentation mode" title="Fullscreen / Presentation Mode  (F)">
+          <span aria-hidden="true">⛶</span><span class="btn-label">Fullscreen</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel Coming Soon dirender dari assets/js/course-config.js.
-         Isi materi memang BELUM ditulis di dalam berkas ini — bukan disembunyikan
-         dengan CSS — sehingga tidak ada yang dapat diakses lebih awal lewat view-source. -->
-    <div id="coming-soon"></div>
+    <!-- 1 -->
+    <section class="section" id="tujuan">
+      <h2><span class="step-no">01</span>Learning Objectives</h2>
+      <div class="objectives">
+        <p style="margin-bottom:.5rem">Setelah menyelesaikan materi ini, mahasiswa mampu:</p>
+        <ul>
+          <li>menjelaskan anatomi lengkap pipeline deteksi objek: backbone, neck, head, dan post-processing NMS;</li>
+          <li>menghitung Intersection over Union (IoU) secara manual dari dua kotak koordinat;</li>
+          <li>menghitung precision, recall, dan Average Precision (AP) dari serangkaian deteksi berlabel;</li>
+          <li>membedakan segmentasi semantik, instance, dan panoptic beserta cara mengevaluasi masing-masing;</li>
+          <li>menghitung mean IoU (mIoU) dari confusion matrix tingkat pixel;</li>
+          <li>membaca format anotasi umum: Pascal VOC, COCO, dan YOLO.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="mengapa-penting">
+      <h2><span class="step-no">02</span>Why This Matters</h2>
+      <p class="lead">
+        Materi 06, 07, dan 09 sudah memperkenalkan YOLO, DETR, dan OWL-ViT — tiga cara berbeda menghasilkan
+        bounding box. Tetapi satu pertanyaan penting belum terjawab: bagaimana kita <strong>mengukur</strong>
+        apakah bounding box itu benar? "Model mendeteksi 95% objek dengan benar" terdengar meyakinkan, tetapi
+        95% dari apa, diukur dengan ambang batas apa, dan dibandingkan terhadap apa?
+      </p>
+      <p>
+        Materi ini mengisi kekosongan itu. Tanpa metrik yang disepakati bersama, dua model tidak bisa
+        dibandingkan secara adil, dan leaderboard seperti COCO Detection Challenge tidak akan punya makna.
+        Hal yang sama berlaku untuk segmentasi: sejak Materi 01 Anda sudah tahu "segmentasi" adalah salah satu
+        tugas CV, tetapi belum dibahas bahwa segmentasi sendiri terbagi menjadi tiga varian dengan tujuan dan
+        cara evaluasi yang berbeda.
+      </p>
+      <div class="callout concept">
+        <p class="callout-title"><span aria-hidden="true">💡</span> Satu kalimat yang merangkum seluruh materi ini</p>
+        <p style="margin-bottom:0">
+          Sebuah deteksi hanya "benar" sejauh definisi yang disepakati — IoU di atas ambang tertentu, kelas yang
+          cocok, confidence yang diurutkan dengan benar — dan seluruh metrik pada materi ini adalah cara formal
+          untuk menuliskan definisi itu menjadi satu angka yang bisa dibandingkan.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="prasyarat">
+      <h2><span class="step-no">03</span>Prerequisite</h2>
+      <ul>
+        <li><a href="./week-06.html">Materi 06</a> — arsitektur YOLO sebagai contoh detektor yang akan dievaluasi dengan metrik materi ini.</li>
+        <li><a href="./week-07.html">Materi 07</a> — arsitektur DETR, dibandingkan dari sisi anchor-based vs query-based.</li>
+        <li>Gagasan dasar himpunan: irisan (intersection) dan gabungan (union).</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="konsep-inti">
+      <h2><span class="step-no">04</span>Core Concept</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tugas</th><th>Keluaran per pixel/objek</th><th>Metrik evaluasi utama</th></tr></thead>
+          <tbody>
+            <tr><td>Object detection</td><td>Bounding box + kelas + confidence per objek</td><td>IoU, Precision/Recall, AP, mAP</td></tr>
+            <tr><td>Semantic segmentation</td><td>Satu label kelas per pixel, tidak membedakan instance</td><td>mIoU (mean IoU per kelas)</td></tr>
+            <tr><td>Instance segmentation</td><td>Mask + kelas per instance objek (hanya "things" yang bisa dihitung)</td><td>AP berbasis mask (mirip deteksi objek)</td></tr>
+            <tr><td>Panoptic segmentation</td><td>Gabungan: "stuff" (langit, jalan) diberi label semantik, "things" (mobil, orang) diberi instance id</td><td>Panoptic Quality (PQ = SQ × RQ)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Istilah <strong>"stuff"</strong> dan <strong>"things"</strong> penting dipahami: <em>stuff</em> adalah
+        area yang tidak bisa dihitung sebagai objek individu (langit, jalan, rumput), sedangkan <em>things</em>
+        adalah objek yang bisa dihitung satu per satu (mobil, orang, anjing). Segmentasi semantik memperlakukan
+        keduanya sama (satu label per pixel); segmentasi instance hanya peduli pada things; segmentasi panoptic
+        menangani keduanya sekaligus dengan caranya masing-masing.
+      </p>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="penjelasan">
+      <h2><span class="step-no">05</span>Detailed Explanation</h2>
+
+      <h3>Anatomi detektor objek</h3>
+      <p>
+        Hampir semua detektor objek, dari YOLO sampai DETR, mengikuti pola umum yang sama:
+      </p>
+      <ul>
+        <li><strong>Backbone</strong> — CNN atau ViT (Materi 06–07) yang mengekstraksi fitur dari citra.</li>
+        <li><strong>Neck</strong> — menggabungkan fitur dari berbagai skala resolusi (misalnya Feature Pyramid Network), agar objek kecil dan besar sama-sama terdeteksi dengan baik.</li>
+        <li><strong>Head</strong> — memprediksi koordinat box dan kelas. Pada detektor <em>anchor-based</em> (YOLOv2–v4, Faster R-CNN), beberapa kotak acuan dengan ukuran dan rasio berbeda ditempatkan di setiap lokasi grid, lalu jaringan memprediksi koreksi terhadapnya. Pada detektor <em>anchor-free</em> (FCOS, YOLOX), jaringan memprediksi langsung jarak dari suatu titik ke keempat tepi objek. Pada detektor <em>query-based</em> seperti DETR (Materi 07), tidak ada anchor maupun grid sama sekali — object query yang langsung memprediksi box.</li>
+        <li><strong>Post-processing (NMS)</strong> — pada detektor anchor-based/anchor-free, satu objek sering terdeteksi berkali-kali oleh lokasi grid yang bertetangga. <em>Non-Maximum Suppression</em> membuang duplikat ini, menyisakan satu box dengan confidence tertinggi per objek. DETR tidak memerlukan langkah ini — sudah dibahas di Materi 07.</li>
+      </ul>
+
+      <h3>Format anotasi</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Format</th><th>Representasi box</th><th>Catatan</th></tr></thead>
+          <tbody>
+            <tr><td>Pascal VOC</td><td>XML, <code>xmin, ymin, xmax, ymax</code> (koordinat absolut)</td><td>Satu file XML per citra.</td></tr>
+            <tr><td>COCO</td><td>JSON, <code>[x, y, width, height]</code> + <code>segmentation</code> (polygon atau RLE untuk mask)</td><td>Satu file JSON untuk seluruh dataset; standar paling umum dipakai untuk benchmark.</td></tr>
+            <tr><td>YOLO</td><td>TXT, <code>x_center, y_center, width, height</code> dinormalisasi 0–1</td><td>Satu file TXT per citra, satu baris per objek.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Dari IoU ke precision, recall, dan Average Precision</h3>
+      <p>
+        Setiap deteksi dibandingkan dengan ground truth lewat IoU. Bila IoU-nya melewati ambang tertentu
+        (umumnya 0,5) <em>dan</em> kelasnya cocok, deteksi itu dihitung sebagai <strong>True Positive (TP)</strong>.
+        Bila tidak — baik karena IoU terlalu rendah, kelas salah, atau tidak ada ground truth yang cocok sama
+        sekali — deteksi itu menjadi <strong>False Positive (FP)</strong>. Ground truth yang tidak berhasil
+        dideteksi sama sekali menjadi <strong>False Negative (FN)</strong>.
+      </p>
+      <pre><code>Precision = TP / (TP + FP)    "dari semua yang dideteksi, berapa persen benar?"
+Recall    = TP / (TP + FN)    "dari semua objek sungguhan, berapa persen berhasil ditemukan?"</code></pre>
+      <p>
+        Precision dan recall biasanya saling bertukar: menurunkan ambang confidence menaikkan recall (lebih
+        banyak objek tertangkap) tapi menurunkan precision (lebih banyak deteksi salah ikut masuk).
+        <strong>Average Precision (AP)</strong> merangkum trade-off ini menjadi satu angka: luas area di bawah
+        kurva precision-recall. <strong>mAP</strong> (mean Average Precision) adalah rata-rata AP di seluruh
+        kelas — dan pada benchmark COCO, dirata-ratakan lagi pada rentang ambang IoU dari 0,5 sampai 0,95
+        (ditulis <code>mAP@[.5:.95]</code>), sehingga model dituntut akurat secara lokasi, bukan hanya "kurang
+        lebih benar".
+      </p>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="fondasi">
+      <h2><span class="step-no">06</span>Mathematical Foundation</h2>
+
+      <h3>IoU dihitung manual</h3>
+      <p>Ground truth box: <code>(x: 50–150, y: 40–140)</code> — ukuran 100×100.</p>
+      <pre><code>Kasus A — prediksi bergeser jauh: (x: 90–190, y: 60–160)
+  irisan x = [90, 150] → lebar 60
+  irisan y = [60, 140] → tinggi 80
+  luas irisan = 60 × 80 = 4.800
+
+  luas gabungan = 10.000 + 10.000 − 4.800 = 15.200
+  IoU = 4.800 / 15.200 ≈ 0,316     ← di bawah ambang 0,5 → dihitung FALSE POSITIVE
+
+Kasus B — prediksi bergeser sedikit: (x: 60–160, y: 50–150)
+  irisan x = [60, 150] → lebar 90
+  irisan y = [50, 140] → tinggi 90
+  luas irisan = 90 × 90 = 8.100
+
+  luas gabungan = 10.000 + 10.000 − 8.100 = 11.900
+  IoU = 8.100 / 11.900 ≈ 0,681     ← di atas ambang 0,5 → dihitung TRUE POSITIVE</code></pre>
+      <p>
+        Selisih pergeseran antara Kasus A (40px) dan Kasus B (10px) tidak besar secara visual, tetapi cukup
+        untuk membalik status dari "salah" menjadi "benar" pada ambang 0,5. Inilah sebabnya lokalisasi yang
+        presisi sama pentingnya dengan klasifikasi yang benar.
+      </p>
+
+      <h3>Average Precision dihitung manual</h3>
+      <p>Lima deteksi diurutkan dari confidence tertinggi, dibandingkan terhadap 5 ground truth sekelas:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Peringkat</th><th>Status</th><th>Precision kumulatif</th><th>Recall kumulatif</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>TP</td><td>1/1 = 1,000</td><td>1/5 = 0,2</td></tr>
+            <tr><td>2</td><td>TP</td><td>2/2 = 1,000</td><td>2/5 = 0,4</td></tr>
+            <tr><td>3</td><td>FP</td><td>2/3 = 0,667</td><td>2/5 = 0,4</td></tr>
+            <tr><td>4</td><td>TP</td><td>3/4 = 0,750</td><td>3/5 = 0,6</td></tr>
+            <tr><td>5</td><td>FP</td><td>3/5 = 0,600</td><td>3/5 = 0,6</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <pre><code>Precision terinterpolasi (ambil precision tertinggi pada recall ≥ r):
+  r = 0,2  →  maksimum precision pada recall≥0,2 = 1,000
+  r = 0,4  →  maksimum precision pada recall≥0,4 = 1,000
+  r = 0,6  →  maksimum precision pada recall≥0,6 = 0,750
+
+AP = Σ (Δrecall × precision terinterpolasi)
+   = (0,2 × 1,000) + (0,2 × 1,000) + (0,2 × 0,750)
+   = 0,200 + 0,200 + 0,150
+   = 0,550</code></pre>
+      <p>
+        AP = 0,55 untuk satu kelas ini. Bila dataset punya beberapa kelas, ulangi proses ini untuk tiap kelas
+        lalu rata-ratakan — itulah mAP.
+      </p>
+
+      <h3>mIoU dihitung manual</h3>
+      <p>Confusion matrix tingkat pixel untuk dua kelas, "jalan" dan "latar":</p>
+      <pre><code>                 Prediksi: jalan   Prediksi: latar
+Aktual: jalan          800               200
+Aktual: latar          100               900
+
+IoU(jalan) = TP / (TP + FP + FN) = 800 / (800 + 100 + 200) = 800/1.100 ≈ 0,727
+IoU(latar) = 900 / (900 + 200 + 100) = 900/1.200 = 0,750
+
+mIoU = (0,727 + 0,750) / 2 ≈ 0,739</code></pre>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="ilustrasi">
+      <h2><span class="step-no">07</span>Illustration</h2>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 200" role="img" aria-label="Anatomi pipeline detektor objek: backbone mengekstraksi fitur, neck menggabungkan fitur multi skala, head memprediksi box dan kelas, non maximum suppression membuang duplikat, menghasilkan deteksi akhir">
+            <defs>
+              <marker id="arD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--dg-stroke)"/>
+              </marker>
+            </defs>
+            <style>
+              .db  { fill: var(--dg-fill-2); stroke: var(--dg-accent); stroke-width: 1.4; }
+              .db2 { fill: var(--dg-fill-3); stroke: var(--dg-accent-2); stroke-width: 1.4; }
+              .dd  { fill: var(--dg-fill); stroke: var(--dg-stroke); stroke-width: 1.4; }
+              .dl  { stroke: var(--dg-stroke); stroke-width: 1.6; fill: none; marker-end: url(#arD); }
+              .dh  { font: 700 10.5px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .dm  { font: 9px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .75; }
+            </style>
+            <g transform="translate(16,70)">
+              <rect class="dd" x="0" y="0" width="54" height="54" rx="4"/><text x="27" y="32" class="dm" text-anchor="middle">citra</text>
+            </g>
+            <path d="M74 97 h20" class="dl"/>
+            <g transform="translate(98,60)">
+              <rect class="db" x="0" y="0" width="90" height="70" rx="5"/>
+              <text x="45" y="28" class="dh" text-anchor="middle">Backbone</text>
+              <text x="45" y="46" class="dm" text-anchor="middle">CNN / ViT</text>
+              <text x="45" y="60" class="dm" text-anchor="middle" font-style="italic">(Materi 06–07)</text>
+            </g>
+            <path d="M192 97 h20" class="dl"/>
+            <g transform="translate(216,60)">
+              <rect class="db" x="0" y="0" width="90" height="70" rx="5"/>
+              <text x="45" y="28" class="dh" text-anchor="middle">Neck</text>
+              <text x="45" y="46" class="dm" text-anchor="middle">gabung fitur</text>
+              <text x="45" y="60" class="dm" text-anchor="middle">multi-skala</text>
+            </g>
+            <path d="M310 97 h20" class="dl"/>
+            <g transform="translate(334,60)">
+              <rect class="db2" x="0" y="0" width="110" height="70" rx="5"/>
+              <text x="55" y="22" class="dh" text-anchor="middle">Head</text>
+              <text x="55" y="40" class="dm" text-anchor="middle">box + kelas</text>
+              <text x="55" y="54" class="dm" text-anchor="middle" font-style="italic">anchor / anchor-free</text>
+              <text x="55" y="66" class="dm" text-anchor="middle" font-style="italic">/ query-based</text>
+            </g>
+            <path d="M452 97 h20" class="dl"/>
+            <g transform="translate(476,60)">
+              <rect class="db" x="0" y="0" width="90" height="70" rx="5"/>
+              <text x="45" y="26" class="dh" text-anchor="middle">NMS</text>
+              <text x="45" y="44" class="dm" text-anchor="middle">buang box</text>
+              <text x="45" y="58" class="dm" text-anchor="middle">duplikat</text>
+            </g>
+            <path d="M570 97 h20" class="dl"/>
+            <g transform="translate(594,66)">
+              <rect class="dd" x="0" y="0" width="130" height="58" rx="5"/>
+              <text x="65" y="24" class="dh" text-anchor="middle">Deteksi akhir</text>
+              <text x="65" y="42" class="dm" text-anchor="middle">box, kelas, skor</text>
+            </g>
+            <text x="370" y="176" class="dm" text-anchor="middle" font-style="italic">DETR (Materi 07) melewati langkah anchor dan NMS sepenuhnya — object query langsung menjadi deteksi akhir.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 11.1.</b> Anatomi umum pipeline detektor objek: backbone, neck, head, dan post-processing NMS.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Unit 6 — Basic Computer Vision Tasks.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 760 460" role="img" aria-label="Foto jalan raya di Kisumu Kenya dengan dua kotak: ground truth berwarna hijau dan prediksi berwarna oranye pada objek van, beserta area irisan dan gabungan yang menunjukkan perhitungan Intersection over Union">
+            <image href="../assets/img/kisumu-street-traffic.jpg" x="0" y="0" width="760" height="505" preserveAspectRatio="xMidYMid slice"/>
+            <style>
+              .ibox { fill: none; stroke-width: 3; }
+              .ilbl { font: 700 11px var(--font-sans, sans-serif); }
+              .ibg  { opacity: .92; }
+            </style>
+            <rect class="ibox" x="283" y="272" width="140" height="140" stroke="#7cf29c"/>
+            <rect class="ibg" x="283" y="260" width="130" height="16" fill="#7cf29c"/>
+            <text x="287" y="272" class="ilbl" fill="#042b0e">ground truth</text>
+
+            <rect class="ibox" x="320" y="300" width="140" height="140" stroke="#ff9f45"/>
+            <rect class="ibg" x="320" y="440" width="110" height="16" fill="#ff9f45"/>
+            <text x="324" y="452" class="ilbl" fill="#2a1400">prediksi</text>
+
+            <rect x="320" y="300" width="103" height="112" fill="#ffd23f" opacity="0.55"/>
+            <text x="371" y="360" class="ilbl" text-anchor="middle" fill="#1a1400">irisan</text>
+
+            <g transform="translate(16,16)">
+              <rect width="220" height="54" rx="6" fill="var(--dg-fill)" stroke="var(--dg-grid)" stroke-width="1" opacity="0.95"/>
+              <text x="110" y="22" class="ilbl" text-anchor="middle" fill="var(--dg-text)">IoU ≈ 0,681</text>
+              <text x="110" y="40" class="ilbl" text-anchor="middle" fill="var(--dg-text)" style="font-weight:400;font-size:9.5px">di atas ambang 0,5 → True Positive</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 11.2.</b> Visualisasi IoU: kotak hijau (ground truth) dan kotak oranye (prediksi) pada objek van yang sama dengan Figure 6.4/7.5. Area kuning adalah irisan; angka IoU mengikuti Kasus B pada contoh hitungan manual bagian 06.
+          <span class="src">Foto: "Street traffic and pedestrians in Kisumu, Kenya" oleh Josep M. Gracia, Wikimedia Commons, lisensi CC BY-SA 4.0. Anotasi kotak dan perhitungan orisinal COM Computer Vision.</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 740 260" role="img" aria-label="Perbandingan tiga jenis segmentasi pada adegan yang sama berisi langit, jalan, dan dua mobil: segmentasi semantik memberi satu warna per kelas tanpa membedakan mobil pertama dan kedua, segmentasi instance hanya mewarnai mobil dengan id berbeda tanpa label latar, segmentasi panoptic menggabungkan keduanya">
+            <style>
+              .sg  { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+              .sm  { font: 9px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+            </style>
+            <text x="16" y="18" class="sg">Adegan asli</text>
+            <g transform="translate(16,26)">
+              <rect width="180" height="100" fill="#8fd1e8"/>
+              <rect y="55" width="180" height="45" fill="#9a9a9a"/>
+              <rect x="30" y="65" width="45" height="28" rx="4" fill="#d9534f"/>
+              <rect x="105" y="65" width="45" height="28" rx="4" fill="#5b8c5a"/>
+              <text x="90" y="118" class="sm" text-anchor="middle">langit + jalan + 2 mobil</text>
+            </g>
+
+            <text x="216" y="18" class="sg">Semantic</text>
+            <g transform="translate(216,26)">
+              <rect width="180" height="100" fill="#8fd1e8"/>
+              <rect y="55" width="180" height="45" fill="#9a9a9a"/>
+              <rect x="30" y="65" width="45" height="28" rx="4" fill="#c99"/>
+              <rect x="105" y="65" width="45" height="28" rx="4" fill="#c99"/>
+              <text x="90" y="118" class="sm" text-anchor="middle">1 label "mobil" — tak dibedakan</text>
+            </g>
+
+            <text x="416" y="18" class="sg">Instance</text>
+            <g transform="translate(416,26)">
+              <rect width="180" height="100" fill="var(--dg-fill)" stroke="var(--dg-grid)" stroke-width="1"/>
+              <rect x="30" y="65" width="45" height="28" rx="4" fill="#d9534f"/>
+              <text x="52" y="83" class="sm" text-anchor="middle" fill="#fff">id 1</text>
+              <rect x="105" y="65" width="45" height="28" rx="4" fill="#5b8c5a"/>
+              <text x="127" y="83" class="sm" text-anchor="middle" fill="#fff">id 2</text>
+              <text x="90" y="118" class="sm" text-anchor="middle">hanya "things", tiap mobil id unik</text>
+            </g>
+
+            <text x="596" y="18" class="sg">Panoptic</text>
+            <g transform="translate(596,26)">
+              <rect width="130" height="100" fill="#8fd1e8"/>
+              <rect y="55" width="130" height="45" fill="#9a9a9a"/>
+              <rect x="20" y="65" width="35" height="28" rx="4" fill="#d9534f"/>
+              <text x="37" y="83" class="sm" text-anchor="middle" fill="#fff" style="font-size:7.5px">id1</text>
+              <rect x="75" y="65" width="35" height="28" rx="4" fill="#5b8c5a"/>
+              <text x="92" y="83" class="sm" text-anchor="middle" fill="#fff" style="font-size:7.5px">id2</text>
+              <text x="65" y="118" class="sm" text-anchor="middle">stuff berlabel + things ber-id</text>
+            </g>
+
+            <line x1="16" y1="162" x2="724" y2="162" stroke="var(--dg-grid)" stroke-width="1" stroke-dasharray="4 5"/>
+            <text x="370" y="184" class="sm" text-anchor="middle">Semantic: satu label per pixel. Instance: hanya objek countable, tiap instance id terpisah.</text>
+            <text x="370" y="200" class="sm" text-anchor="middle" font-style="italic">Panoptic: setiap pixel pasti punya tepat satu jawaban — baik label stuff maupun pasangan (label, id) untuk things.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 11.3.</b> Tiga jenis segmentasi pada adegan yang sama: semantic, instance, dan panoptic.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari Kirillov et al. (2019), "Panoptic Segmentation".</span>
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <div class="figure-body">
+          <svg viewBox="0 0 640 320" role="img" aria-label="Kurva precision-recall dari contoh lima deteksi pada bagian Mathematical Foundation, dengan area di bawah kurva terinterpolasi diarsir sebagai Average Precision sebesar 0,55">
+            <style>
+              .ax { stroke: var(--dg-grid); stroke-width: 1; }
+              .pt { fill: var(--dg-accent); }
+              .ln { stroke: var(--dg-accent); stroke-width: 2; fill: none; }
+              .ar { fill: var(--dg-fill-3); opacity: .7; }
+              .lb { font: 10px var(--font-sans, sans-serif); fill: var(--dg-text); opacity: .8; }
+              .lh { font: 700 11px var(--font-sans, sans-serif); fill: var(--dg-text); }
+            </style>
+            <g transform="translate(60,20)">
+              <line x1="0" y1="0" x2="0" y2="240" class="ax"/>
+              <line x1="0" y1="240" x2="500" y2="240" class="ax"/>
+              <text x="-10" y="-6" class="lb">Precision</text>
+              <text x="440" y="258" class="lb">Recall</text>
+              <text x="-30" y="0" class="lb">1,0</text><text x="-30" y="124" class="lb">0,5</text><text x="-30" y="244" class="lb">0,0</text>
+              <text x="-4" y="258" class="lb">0</text><text x="166" y="258" class="lb">0,2</text><text x="332" y="258" class="lb">0,4</text><text x="498" y="258" class="lb">0,6</text>
+
+              <polygon class="ar" points="0,0 332,0 332,60 498,60 498,240 0,240"/>
+
+              <polyline class="ln" points="0,0 332,0 332,60 498,60"/>
+              <circle class="pt" cx="0" cy="0" r="4"/>
+              <circle class="pt" cx="332" cy="0" r="4"/>
+              <circle class="pt" cx="332" cy="60" r="4"/>
+              <circle class="pt" cx="498" cy="60" r="4"/>
+
+              <text x="250" y="30" class="lh">AP = luas arsiran ≈ 0,55</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 11.4.</b> Kurva precision-recall terinterpolasi dari contoh lima deteksi pada bagian 06. Luas area yang diarsir adalah Average Precision.
+          <span class="src">Sumber: diagram orisinal COM Computer Vision, disusun dari metodologi evaluasi PASCAL VOC / COCO.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="contoh">
+      <h2><span class="step-no">08</span>Example</h2>
+      <p>
+        Mari hitung IoU dan AP memakai kode, lalu verifikasi terhadap hitungan manual pada bagian 06.
+      </p>
+      <details class="acc">
+        <summary>Lihat kodenya</summary>
+        <div class="acc-body">
+          <span class="code-label">Python</span>
+<pre><code>def iou(boxA, boxB):
+    xA = max(boxA[0], boxB[0]); yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2]); yB = min(boxA[3], boxB[3])
+    inter = max(0, xB - xA) * max(0, yB - yA)
+    areaA = (boxA[2]-boxA[0]) * (boxA[3]-boxA[1])
+    areaB = (boxB[2]-boxB[0]) * (boxB[3]-boxB[1])
+    return inter / (areaA + areaB - inter)
+
+gt = (50, 40, 150, 140)
+pred_B = (60, 50, 160, 150)
+print(round(iou(gt, pred_B), 3))     # harus ≈ 0.681, cocok dengan Kasus B
+
+def average_precision(status_terurut, total_gt):
+    tp, fp = 0, 0
+    precisions, recalls = [], []
+    for status in status_terurut:                 # status: "TP" atau "FP", sudah terurut confidence
+        tp += status == "TP"; fp += status == "FP"
+        precisions.append(tp / (tp + fp))
+        recalls.append(tp / total_gt)
+    # interpolasi: precision maksimum pada recall >= r, lalu integrasi trapesium sederhana
+    ap, prev_recall = 0.0, 0.0
+    for r, p in zip(recalls, precisions):
+        p_interp = max(pp for pp, rr in zip(precisions, recalls) if rr >= prev_recall)
+        ap += (r - prev_recall) * p_interp if r > prev_recall else 0
+        prev_recall = r
+    return ap
+
+print(round(average_precision(["TP","TP","FP","TP","FP"], total_gt=5), 3))  # harus mendekati 0.55</code></pre>
+        </div>
+      </details>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="aplikasi">
+      <h2><span class="step-no">09</span>Real-world Application</h2>
+      <dl class="defs">
+        <dt>Benchmark dan leaderboard akademik</dt>
+        <dd>COCO, Pascal VOC, dan Cityscapes memakai mAP/mIoU/PQ sebagai standar objektif untuk membandingkan model dari berbagai tim peneliti.</dd>
+        <dt>Quality assurance model sebelum produksi</dt>
+        <dd>Tim ML menetapkan ambang mAP atau mIoU minimum yang harus dilewati sebelum model baru menggantikan model lama di produksi.</dd>
+        <dt>Kendaraan otonom</dt>
+        <dd>Segmentasi panoptic memisahkan jalan yang bisa dilalui (stuff) dari kendaraan dan pejalan kaki individual (things) dalam satu representasi.</dd>
+        <dt>Pencitraan medis</dt>
+        <dd>mIoU dipakai mengevaluasi seberapa tepat batas organ atau lesi tersegmentasi dibandingkan anotasi dokter ahli.</dd>
+        <dt>Audit bias model</dt>
+        <dd>Menghitung AP terpisah per kelas (bukan hanya mAP gabungan) membantu menemukan kelas mana yang performanya jauh lebih buruk — sering kali kelas dengan data latih paling sedikit.</dd>
+      </dl>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="miskonsepsi">
+      <h2><span class="step-no">10</span>Common Misconceptions</h2>
+
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "IoU 0,4 dan IoU 0,6 kurang lebih sama-sama 'cukup baik'."</p>
+        <p style="margin-bottom:0">
+          Pada ambang evaluasi standar (0,5), keduanya berada di sisi yang berlawanan — satu dihitung False
+          Positive, satu dihitung True Positive. Selisih kecil pada IoU bisa membalik status deteksi sepenuhnya.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "mAP yang tinggi berarti model bagus di semua kelas."</p>
+        <p style="margin-bottom:0">
+          mAP adalah rata-rata. Model dengan mAP tinggi masih bisa sangat buruk pada satu-dua kelas tertentu —
+          selalu periksa AP per kelas, bukan hanya angka rata-ratanya.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "Segmentasi instance adalah segmentasi semantik yang 'lebih detail'."</p>
+        <p style="margin-bottom:0">
+          Keduanya menjawab pertanyaan yang berbeda, bukan satu lebih detail dari yang lain. Semantik menjawab
+          "pixel ini kelas apa", instance menjawab "pixel ini milik objek yang mana" — dan instance mengabaikan
+          area stuff sepenuhnya.
+        </p>
+      </div>
+      <div class="callout misconception">
+        <p class="callout-title"><span aria-hidden="true">✖</span> "NMS selalu dibutuhkan pada semua detektor modern."</p>
+        <p style="margin-bottom:0">
+          DETR dan keluarga detektor berbasis query (Materi 07) tidak memerlukan NMS — set prediction lewat
+          bipartite matching sudah menghasilkan satu box per objek tanpa duplikat.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="section" id="ringkasan">
+      <h2><span class="step-no">11</span>Key Takeaways</h2>
+      <ul>
+        <li><strong>Detektor umumnya berpola backbone → neck → head → NMS,</strong> kecuali detektor query-based seperti DETR yang melewati anchor dan NMS sepenuhnya.</li>
+        <li><strong>IoU mengukur kecocokan lokasi</strong> lewat luas irisan dibagi luas gabungan — ambang 0,5 adalah standar paling umum.</li>
+        <li><strong>Precision dan recall saling bertukar;</strong> Average Precision merangkum trade-off ini menjadi satu angka lewat luas area di bawah kurva PR.</li>
+        <li><strong>mAP adalah rata-rata AP di seluruh kelas,</strong> pada COCO dirata-ratakan lagi di berbagai ambang IoU.</li>
+        <li><strong>Tiga jenis segmentasi menjawab pertanyaan berbeda:</strong> semantic (kelas per pixel), instance (objek per pixel), panoptic (keduanya sekaligus, stuff + things).</li>
+        <li><strong>mIoU mengevaluasi segmentasi semantik</strong> lewat rata-rata IoU per kelas dari confusion matrix tingkat pixel.</li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="section" id="persiapan">
+      <h2><span class="step-no">12</span>Preparation for Practice</h2>
+      <p>
+        Praktikum materi ini berfokus pada implementasi metrik evaluasi dari nol, lalu menerapkannya pada
+        keluaran model sungguhan dari Materi 06/07.
+      </p>
+      <ul>
+        <li>Google Colab dengan NumPy.</li>
+        <li>Keluaran deteksi dari Praktikum 06 atau 07 (atau dataset contoh kecil dengan anotasi ground truth).</li>
+        <li>Pustaka <code>pycocotools</code> untuk memverifikasi implementasi mAP Anda sendiri terhadap implementasi resmi.</li>
+      </ul>
+    </section>
+
+    <!-- 13 -->
+    <section class="section" id="praktikum">
+      <h2><span class="step-no">13</span>Practice</h2>
+      <div class="btn-row">
+        <a class="btn" href="https://huggingface.co/learn/computer-vision-course/en/unit6/basic-cv-tasks/object_detection" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Object Detection ↗</a>
+        <a class="btn secondary" href="https://huggingface.co/learn/computer-vision-course/en/unit6/basic-cv-tasks/segmentation" target="_blank" rel="noopener noreferrer">📖 Baca sumber: Segmentation ↗</a>
+      </div>
+      <p>Ringkasan tugas praktikum:</p>
+      <ol>
+        <li>Tulis fungsi <code>iou(boxA, boxB)</code> dari nol dan verifikasi terhadap Kasus A dan B pada bagian 06.</li>
+        <li>Tulis fungsi <code>average_precision</code> dari nol dan verifikasi terhadap contoh lima deteksi pada bagian 06.</li>
+        <li>Terapkan kedua fungsi pada keluaran model Praktikum 06/07 Anda sendiri, hitung mAP pada minimal tiga kelas.</li>
+        <li>Bandingkan hasil implementasi Anda dengan <code>pycocotools</code> pada dataset contoh kecil — selisihnya harus sangat kecil.</li>
+        <li>Hitung mIoU dari confusion matrix segmentasi sederhana (bisa dibuat manual dari dua mask kecil 10×10).</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section class="section" id="refleksi">
+      <h2><span class="step-no">14</span>Reflection</h2>
+      <ol>
+        <li>Mengapa ambang IoU 0,5 dianggap "standar", dan apa konsekuensinya bila sebuah aplikasi (misalnya robot presisi tinggi) membutuhkan ambang yang jauh lebih ketat?</li>
+        <li>Jelaskan dengan kalimat Anda sendiri mengapa precision dan recall cenderung berlawanan arah saat ambang confidence diubah.</li>
+        <li>Pada contoh AP manual di bagian 06, apa yang akan terjadi pada nilai AP bila deteksi peringkat 3 (FP) justru benar (TP)? Hitung ulang dan bandingkan.</li>
+        <li>Mengapa segmentasi instance tidak memberi label apa pun pada piksel langit atau jalan, sementara segmentasi semantik memberi label pada keduanya?</li>
+        <li>Sebuah tim melaporkan mAP 0,91 untuk detektor mereka tanpa menyebut ambang IoU yang dipakai. Pertanyaan apa yang harus Anda ajukan sebelum mempercayai angka itu?</li>
+      </ol>
+    </section>
+
+    <!-- 15 -->
+    <section class="section" id="referensi">
+      <h2><span class="step-no">15</span>References</h2>
+      <ul>
+        <li>Hugging Face Community Computer Vision Course — <a href="https://huggingface.co/learn/computer-vision-course/en/unit6/basic-cv-tasks/object_detection" target="_blank" rel="noopener noreferrer">Unit 6: Basic CV Tasks</a>.</li>
+        <li>Lin, T.-Y. et al. (2014). <a href="https://arxiv.org/abs/1405.0312" target="_blank" rel="noopener noreferrer">Microsoft COCO: Common Objects in Context</a>.</li>
+        <li>Everingham, M. et al. <a href="http://host.robots.ox.ac.uk/pascal/VOC/" target="_blank" rel="noopener noreferrer">The PASCAL Visual Object Classes (VOC) Challenge</a>.</li>
+        <li>Kirillov, A. et al. (2019). <a href="https://arxiv.org/abs/1801.00868" target="_blank" rel="noopener noreferrer">Panoptic Segmentation</a>.</li>
+        <li>Dokumentasi <a href="https://github.com/cocodataset/cocoapi" target="_blank" rel="noopener noreferrer">pycocotools</a>.</li>
+        <li>Halaman <a href="../references.html">Referensi</a> COM Computer Vision.</li>
+      </ul>
+    </section>
+
+    <div class="complete-box">
+      <p>Sudah memahami seluruh bagian materi ini? Tandai agar progress belajar Anda tercatat di peramban.</p>
+      <button class="btn" data-mark-complete aria-pressed="false">Tandai Materi Selesai</button>
+    </div>
 
     <nav class="pager" id="pager" aria-label="Navigasi antar materi"></nav>
 

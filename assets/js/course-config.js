@@ -208,10 +208,10 @@ const courseConfig = {
       "Menghitung dan menafsirkan IoU serta mAP"
     ],
     unit: "Hugging Face Unit 6 — Basic CV Tasks",
-    duration: "110 menit",
-    updated: "—",
-    practical: null,
-    material: false
+    duration: "120 menit",
+    updated: "13 Oktober 2026",
+    practical: "practical-11.html",
+    material: true
   },
 
   week12: {
